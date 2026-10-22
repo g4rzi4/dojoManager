@@ -31,7 +31,11 @@ export function expiryDate(): Date {
 /** La URL que se comparte o se convierte en QR. */
 export function invitationUrl(token: string): string {
   // Apunta al frontend, no al backend: lo que se abre es una pantalla.
-  return `${config.corsOrigin}/inscripcion/${token}`;
+  //
+  // Usa config.appUrl y no el origen de CORS: para que un QR funcione desde
+  // un celular, la dirección tiene que ser alcanzable desde ese celular.
+  // Con "localhost" el teléfono se busca a sí mismo y nunca encuentra nada.
+  return `${config.appUrl}/inscripcion/${token}`;
 }
 
 export type MotivoInvalida = "no-existe" | "usada" | "caducada";

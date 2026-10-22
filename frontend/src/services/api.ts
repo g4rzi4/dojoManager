@@ -14,7 +14,14 @@ import type {
 } from "../types/invitation";
 import { clearSession, getToken } from "./session";
 
-const API_URL = "http://localhost:3000";
+/**
+ * Dirección del backend.
+ *
+ * Configurable porque "localhost" solo funciona dentro de la computadora. Al
+ * abrir la app desde un celular —por ejemplo escaneando un QR de
+ * inscripción— hay que apuntar a la IP de red local. Ver frontend/.env.example.
+ */
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 /** Error de la API con su código HTTP, para distinguir 403 de 404. */
 export class ApiError extends Error {

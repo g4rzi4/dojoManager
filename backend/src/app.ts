@@ -16,7 +16,11 @@ const app = express();
 // Antes aquí había cors() abierto a cualquier origen. En desarrollo da igual,
 // pero en producción permitiría que cualquier sitio llamara a la API con la
 // sesión de quien lo visite.
-app.use(cors({ origin: config.corsOrigin }));
+//
+// Acepta una lista: en desarrollo hacen falta localhost (para trabajar en la
+// computadora) y la IP de red local (para abrir la app desde el celular al
+// escanear un QR).
+app.use(cors({ origin: config.corsOrigins }));
 app.use(express.json());
 
 app.get("/", (_req, res) => {

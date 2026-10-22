@@ -391,6 +391,48 @@ Es la única pantalla, además del login, que se abre **sin sesión**. Las defen
 > que se manda por WhatsApp. Por eso es de un solo uso y caduca. Manda cada enlace
 > solo a la persona que se va a inscribir, y si te equivocas, revócalo.
 
+## Para que el QR funcione desde un celular
+
+**Con la configuración por omisión no funciona**, y la razón es importante: los
+enlaces se generan apuntando a `localhost`, y en un teléfono `localhost` significa
+*el teléfono mismo*. Escanear el QR lo manda a buscarse a sí mismo.
+
+Hay que usar la IP de tu computadora en la red local. Para averiguarla:
+
+```bash
+ipconfig getifaddr en0     # macOS
+hostname -I                # Linux
+ipconfig                   # Windows: busca "Dirección IPv4"
+```
+
+Suponiendo que sea `192.168.1.77`, en **`backend/.env`**:
+
+```env
+PUBLIC_APP_URL="http://192.168.1.77:5173"
+CORS_ORIGIN="http://localhost:5173,http://192.168.1.77:5173"
+```
+
+Y en **`frontend/.env`**:
+
+```env
+VITE_API_URL="http://192.168.1.77:3000"
+```
+
+Reinicia los dos servidores. Vite ya escucha en la red (`server.host: true` en
+[vite.config.ts](frontend/vite.config.ts)) e imprime la dirección al arrancar.
+
+Tres cosas que hay que tener en cuenta:
+
+- **El celular y la computadora tienen que estar en la misma red wifi.** Una red de
+  invitados o de empresa puede aislar los dispositivos entre sí y lo bloquea.
+- **La IP cambia** al cambiar de red, y hay que volver a ajustar los `.env`.
+- `CORS_ORIGIN` acepta varios orígenes separados por coma, para que sigas pudiendo
+  trabajar en `localhost` mientras pruebas desde el celular. `PUBLIC_APP_URL` es uno
+  solo, porque un enlace solo puede apuntar a una dirección.
+
+En producción, `PUBLIC_APP_URL` sería el dominio real del dojo y este problema
+desaparece.
+
 ---
 
 # Estructura del proyecto
