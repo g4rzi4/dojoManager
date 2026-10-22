@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
 type CardProps = {
-  children: ReactNode;
+  /** Opcional para poder usar Card vacía como skeleton de carga. */
+  children?: ReactNode;
   className?: string;
 };
 

@@ -5,7 +5,8 @@ import { GraduationCap } from "lucide-react";
 import AuthLayout from "../layouts/AuthLayout";
 import Button from "../components/Button";
 import Input from "../components/Input";
-import { login } from "../services/api";
+import { ApiError, login } from "../services/api";
+import { homePathFor, saveSession } from "../services/session";
 
 function Login() {
   const navigate = useNavigate();
@@ -22,14 +23,19 @@ function Login() {
     try {
       const data = await login(email, password);
 
-      if (data.success) {
-        localStorage.setItem("token", data.token);
-        navigate("/dashboard");
-      } else {
-        setError(data.message);
-      }
-    } catch (err) {
-      setError("No fue posible conectar con el servidor.");
+      // Guardamos también el usuario, no solo el token: el saludo necesita
+      // su nombre y el sidebar sus permisos.
+      saveSession(data.token, data.user);
+
+      // Cada rol entra a una pantalla distinta: el alumno a su tarjeta, el
+      // admin y el profesor al panel de administración.
+      navigate(homePathFor(data.user), { replace: true });
+    } catch (e) {
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : "No fue posible conectar con el servidor."
+      );
     } finally {
       setLoading(false);
     }
