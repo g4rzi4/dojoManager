@@ -12,9 +12,12 @@ import { can, getUser } from "../services/session";
 import type { DojoEvent } from "../types/event";
 import type { EventEnrollment } from "../types/eventPayment";
 import {
+  DIVISION_LABELS,
   EVENT_PAYMENT_LABELS,
   EVENT_PAYMENT_STYLES,
+  type EventDivision,
 } from "../types/eventPayment";
+import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "../types/payment";
 import type { MyStudent } from "../types/payment";
 import { formatMoney } from "../utils/format";
 
@@ -64,6 +67,11 @@ function ReportarPago({
   onCambio: () => void | Promise<void>;
 }) {
   const [teacherCode, setTeacherCode] = useState("");
+  /** Modalidades elegidas. Un alumno puede entrar a kata y kumite. */
+  const [elegidas, setElegidas] = useState<number[]>([]);
+  const [division, setDivision] = useState<EventDivision | "">("");
+  const [metodo, setMetodo] = useState<PaymentMethod | "">("");
+  const [nota, setNota] = useState("");
   const [studentId, setStudentId] = useState<number | "">(
     misAlumnos.length === 1 ? misAlumnos[0].id : ""
   );
@@ -78,9 +86,20 @@ function ReportarPago({
     (a) => !yaReportados.some((r) => r.studentId === a.id)
   );
 
+  const modalidades = event.modalities ?? [];
+  const tieneModalidades = modalidades.length > 0;
+
+  /** El total es la SUMA de las elegidas: hay quien entra a las dos. */
+  const total = tieneModalidades
+    ? modalidades
+        .filter((m) => elegidas.includes(m.id))
+        .reduce((suma, m) => suma + m.priceCents, 0)
+    : (event.priceCents ?? 0);
+
   const valido =
     teacherCode.trim().length > 0 &&
-    (pendientes.length === 1 || studentId !== "");
+    (pendientes.length === 1 || studentId !== "") &&
+    (!tieneModalidades || elegidas.length > 0);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,10 +119,16 @@ function ReportarPago({
               ? pendientes[0].id
               : undefined
             : Number(studentId),
+        modalityIds: tieneModalidades ? elegidas : undefined,
+        division: division || undefined,
+        method: metodo || undefined,
+        note: nota.trim() || undefined,
       });
 
       setExito(res.message);
       setTeacherCode("");
+      setElegidas([]);
+      setNota("");
       await onCambio();
     } catch (err: unknown) {
       setError(
@@ -129,11 +154,9 @@ function ReportarPago({
         Pago del evento
       </h3>
       <p className="mt-1 text-sm text-slate-600">
-        Cuesta{" "}
-        <strong className="text-slate-900">
-          {formatMoney(event.priceCents ?? 0)}
-        </strong>
-        . Paga con tu profesor y luego repórtalo aquí con su clave.
+        {tieneModalidades
+          ? "Cada modalidad tiene su costo. Paga con tu profesor y luego repórtalo aquí con su clave."
+          : `Cuesta ${formatMoney(event.priceCents ?? 0)}. Paga con tu profesor y luego repórtalo aquí con su clave.`}
       </p>
 
       {/* Estado de los que ya reportaron */}
@@ -195,6 +218,138 @@ function ReportarPago({
               </select>
             </div>
           )}
+
+          {/* Modalidades: se pueden elegir varias y el total se suma */}
+          {tieneModalidades && (
+            <fieldset>
+              <legend className="text-sm font-medium text-slate-700">
+                ¿A qué modalidades entra?
+              </legend>
+
+              <div className="mt-2 space-y-2">
+                {modalidades.map((m) => (
+                  <label
+                    key={m.id}
+                    className={`
+                      flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3
+                      transition-colors duration-200
+                      motion-reduce:transition-none
+                      ${
+                        elegidas.includes(m.id)
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-slate-300 bg-white hover:bg-slate-50"
+                      }
+                    `}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={elegidas.includes(m.id)}
+                      onChange={(e) =>
+                        setElegidas((prev) =>
+                          e.target.checked
+                            ? [...prev, m.id]
+                            : prev.filter((x) => x !== m.id)
+                        )
+                      }
+                      className="cursor-pointer"
+                    />
+                    <span className="flex-1 text-sm font-medium text-slate-900">
+                      {m.name}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {formatMoney(m.priceCents)}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {/* El total, para que no haya sorpresas al pagar */}
+              <p className="mt-3 flex items-center justify-between rounded-xl bg-slate-100 px-4 py-3">
+                <span className="text-sm font-medium text-slate-700">
+                  Total a pagar
+                </span>
+                <span className="text-lg font-bold text-slate-900">
+                  {formatMoney(total)}
+                </span>
+              </p>
+            </fieldset>
+          )}
+
+          {/* División: puede no coincidir con su edad, a propósito */}
+          <div className="space-y-2">
+            <label
+              htmlFor={`ep-division-${event.id}`}
+              className="block text-sm font-medium text-slate-700"
+            >
+              División{" "}
+              <span className="font-normal text-slate-500">(opcional)</span>
+            </label>
+            <select
+              id={`ep-division-${event.id}`}
+              value={division}
+              onChange={(e) =>
+                setDivision(e.target.value as EventDivision | "")
+              }
+              aria-describedby={`ep-division-ayuda-${event.id}`}
+              className={`${inputClase} cursor-pointer`}
+            >
+              <option value="">Sin especificar</option>
+              {(Object.keys(DIVISION_LABELS) as EventDivision[]).map((d) => (
+                <option key={d} value={d}>
+                  {DIVISION_LABELS[d]}
+                </option>
+              ))}
+            </select>
+            <p
+              id={`ep-division-ayuda-${event.id}`}
+              className="text-xs text-slate-500"
+            >
+              Puede no coincidir con su edad: hay alumnos a los que se foguea
+              con adultos.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor={`ep-metodo-${event.id}`}
+              className="block text-sm font-medium text-slate-700"
+            >
+              ¿Cómo pagaste?{" "}
+              <span className="font-normal text-slate-500">(opcional)</span>
+            </label>
+            <select
+              id={`ep-metodo-${event.id}`}
+              value={metodo}
+              onChange={(e) => setMetodo(e.target.value as PaymentMethod | "")}
+              className={`${inputClase} cursor-pointer`}
+            >
+              <option value="">Sin especificar</option>
+              <option value="EFECTIVO">
+                {PAYMENT_METHOD_LABELS.EFECTIVO}
+              </option>
+              <option value="TRANSFERENCIA">
+                {PAYMENT_METHOD_LABELS.TRANSFERENCIA}
+              </option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor={`ep-nota-${event.id}`}
+              className="block text-sm font-medium text-slate-700"
+            >
+              Nota para el profesor{" "}
+              <span className="font-normal text-slate-500">(opcional)</span>
+            </label>
+            <input
+              id={`ep-nota-${event.id}`}
+              type="text"
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              placeholder="Pagué en efectivo el martes"
+              className={inputClase}
+            />
+          </div>
 
           <div className="space-y-2">
             <label
@@ -379,8 +534,19 @@ function GestionCobros({
                 <p className="text-sm font-semibold text-slate-900">
                   {e.studentName}
                 </p>
+                {e.modalidades.length > 0 && (
+                  <p className="mt-0.5 text-xs text-slate-700">
+                    {e.modalidades
+                      .map((m) => `${m.name} ${formatMoney(m.priceCents)}`)
+                      .join(" + ")}
+                    {e.division && ` · división ${DIVISION_LABELS[e.division].toLowerCase()}`}
+                  </p>
+                )}
+
                 <p className="mt-0.5 text-xs text-slate-600">
-                  {formatMoney(e.amountCents)} · reportado el{" "}
+                  {formatMoney(e.amountCents)}
+                  {e.method && ` · ${PAYMENT_METHOD_LABELS[e.method].toLowerCase()}`}
+                  {" · reportado el "}
                   {new Date(e.reportedAt).toLocaleDateString("es-MX", {
                     day: "numeric",
                     month: "long",
@@ -389,6 +555,12 @@ function GestionCobros({
                     e.acreditadoA &&
                     ` · a ${e.acreditadoA}`}
                 </p>
+
+                {e.note && (
+                  <p className="mt-1 text-xs text-slate-600 italic">
+                    "{e.note}"
+                  </p>
+                )}
               </div>
 
               <span

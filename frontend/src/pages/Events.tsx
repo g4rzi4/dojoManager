@@ -237,7 +237,13 @@ function Events() {
 
                         {event.requiresPayment && (
                           <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
-                            {formatMoney(event.priceCents ?? 0)}
+                            {event.modalities && event.modalities.length > 0
+                              ? `${event.modalities.length} modalidades · desde ${formatMoney(
+                                  Math.min(
+                                    ...event.modalities.map((m) => m.priceCents)
+                                  )
+                                )}`
+                              : formatMoney(event.priceCents ?? 0)}
                           </span>
                         )}
 

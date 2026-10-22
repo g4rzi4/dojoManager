@@ -450,8 +450,15 @@ model Event {
   /// Si hay que pagar para participar. Un torneo o un examen suelen costar.
   requiresPayment Boolean @default(false)
 
-  /// Costo en CENTAVOS. Nulo si el evento es gratuito.
+  /// Costo en CENTAVOS cuando el evento NO tiene modalidades.
+  ///
+  /// Un examen de cinta cobra una sola cuota y le basta este campo. Un
+  /// torneo define modalidades y entonces el costo sale de la suma de las
+  /// que elija cada alumno, y este campo se ignora.
   priceCents Int?
+
+  /// Modalidades con su propio costo: kata, kumite, equipos...
+  modalities EventModality[]
 
   createdById Int?
   createdBy   User? @relation("EventoCreadoPor", fields: [createdById], references: [id], onDelete: SetNull)
@@ -462,6 +469,42 @@ model Event {
   updatedAt DateTime @updatedAt
 
   @@index([date])
+}
+
+/// Una modalidad de un evento, con su costo propio.
+///
+/// Las define cada evento y no una lista fija del sistema: un torneo tiene
+/// kata y kumite, otro puede tener equipos o formas con arma, y agregar una
+/// nueva no debería exigir cambiar el código.
+model EventModality {
+  id Int @id @default(autoincrement())
+
+  eventId Int
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  /// "Kata", "Kumite", "Equipos"...
+  name String
+
+  /// Costo en CENTAVOS de esta modalidad.
+  priceCents Int
+
+  createdAt DateTime @default(now())
+
+  enrollments EventEnrollmentModality[]
+
+  /// No tiene sentido repetir el nombre dentro del mismo evento.
+  @@unique([eventId, name])
+}
+
+/// División en la que compite el alumno.
+///
+/// Se elige al inscribir y PUEDE no coincidir con su edad: hay alumnos a
+/// los que se fogea con adultos a propósito. Por eso es un dato de la
+/// inscripción y no algo que se calcule de la fecha de nacimiento.
+enum EventDivision {
+  INFANTIL
+  JUVENIL
+  ADULTO
 }
 
 enum EventPaymentStatus {
@@ -494,9 +537,18 @@ model EventEnrollment {
   creditedToId Int?
   creditedTo   User? @relation("CobroAcreditadoA", fields: [creditedToId], references: [id], onDelete: SetNull)
 
-  /// Monto en centavos. Se copia del precio del evento al reportar, para que
-  /// cambiar el precio después no altere los cobros ya hechos.
+  /// Monto TOTAL en centavos: la suma de las modalidades elegidas, o el
+  /// precio del evento si no tiene modalidades.
+  ///
+  /// Se congela al reportar, para que cambiar precios después no altere los
+  /// cobros ya hechos.
   amountCents Int
+
+  /// División en la que compite. Nula si el evento no la distingue.
+  division EventDivision?
+
+  /// Modalidades a las que entra. Un alumno puede ir a kata y kumite.
+  modalities EventEnrollmentModality[]
 
   status EventPaymentStatus @default(REPORTADO)
 
@@ -516,4 +568,21 @@ model EventEnrollment {
   @@unique([eventId, studentId])
   @@index([creditedToId])
   @@index([status])
+}
+
+/// Qué modalidades eligió un alumno, con el precio congelado de cada una.
+model EventEnrollmentModality {
+  id Int @id @default(autoincrement())
+
+  enrollmentId Int
+  enrollment   EventEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  modalityId Int
+  modality   EventModality @relation(fields: [modalityId], references: [id], onDelete: Cascade)
+
+  /// Precio de esa modalidad cuando se inscribió. Guardarlo aquí permite
+  /// reconstruir el desglose del cobro aunque el evento cambie de precio.
+  priceCents Int
+
+  @@unique([enrollmentId, modalityId])
 }

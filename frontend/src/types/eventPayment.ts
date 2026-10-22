@@ -14,6 +14,27 @@ export const EVENT_PAYMENT_STYLES: Record<EventPaymentStatus, string> = {
   RECHAZADO: "bg-red-50 text-red-800 border-red-200",
 };
 
+export type EventDivision = "INFANTIL" | "JUVENIL" | "ADULTO";
+
+export const DIVISION_LABELS: Record<EventDivision, string> = {
+  INFANTIL: "Infantil",
+  JUVENIL: "Juvenil",
+  ADULTO: "Adulto",
+};
+
+/** Modalidad de un evento con su costo: kata, kumite, equipos... */
+export type EventModality = {
+  id: number;
+  name: string;
+  priceCents: number;
+};
+
+/** Desglose de lo que se le cobró a un alumno. */
+export type EnrollmentModality = {
+  name: string;
+  priceCents: number;
+};
+
 /** Un reporte de pago, como lo ve el profesor o el admin. */
 export type EventEnrollment = {
   id: number;
@@ -23,6 +44,10 @@ export type EventEnrollment = {
   status: EventPaymentStatus;
   /** Inscrito en el evento. Se pone en true al confirmar el pago. */
   enrolled: boolean;
+  /** División en la que compite. Puede no coincidir con su edad. */
+  division: EventDivision | null;
+  /** Qué modalidades eligió y cuánto costó cada una. */
+  modalidades: EnrollmentModality[];
   method: PaymentMethod | null;
   note: string | null;
   acreditadoA: string | null;

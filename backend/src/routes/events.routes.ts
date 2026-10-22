@@ -12,6 +12,7 @@ import { requireAuth, requirePermission } from "../middleware/auth";
 import { can } from "../permissions";
 import {
   EventCategory,
+  EventDivision,
   EventPaymentStatus,
   PaymentMethod,
   Role,
@@ -42,6 +43,7 @@ router.get(
         orderBy: [{ date: "asc" }, { time: "asc" }],
         include: {
           createdBy: { select: { name: true } },
+          modalities: { orderBy: { id: "asc" } },
           _count: { select: { enrollments: true } },
         },
       }),
@@ -74,6 +76,11 @@ router.get(
           createdBy: e.createdBy?.name ?? null,
           requiresPayment: e.requiresPayment,
           priceCents: e.priceCents,
+          modalities: e.modalities.map((m) => ({
+            id: m.id,
+            name: m.name,
+            priceCents: m.priceCents,
+          })),
           /** Cuántos reportes de pago lleva, para admin y profesores. */
           reportes: e._count.enrollments,
           /** Estado de los alumnos a cargo de quien consulta. */
@@ -118,7 +125,8 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     });
   }
 
-  const { teacherCode, studentId, method, note } = req.body ?? {};
+  const { teacherCode, studentId, method, note, modalityIds, division } =
+    req.body ?? {};
 
   if (typeof teacherCode !== "string" || teacherCode.trim().length === 0) {
     return res.status(400).json({
@@ -129,7 +137,13 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, requiresPayment: true, priceCents: true, title: true },
+    select: {
+      id: true,
+      requiresPayment: true,
+      priceCents: true,
+      title: true,
+      modalities: { select: { id: true, name: true, priceCents: true } },
+    },
   });
 
   if (!event) {
@@ -139,10 +153,83 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     });
   }
 
-  if (!event.requiresPayment || event.priceCents === null) {
+  if (!event.requiresPayment) {
     return res.status(400).json({
       success: false,
       message: "Este evento no requiere pago.",
+    });
+  }
+
+  const tieneModalidades = event.modalities.length > 0;
+
+  if (!tieneModalidades && event.priceCents === null) {
+    return res.status(400).json({
+      success: false,
+      message: "Este evento no tiene costo configurado. Avísale al dojo.",
+    });
+  }
+
+  /**
+   * Cuánto se cobra y por qué conceptos.
+   *
+   * Con modalidades, el total es la SUMA de las elegidas: hay padres que
+   * inscriben a su hijo en kata y kumite y pagan las dos. Sin modalidades,
+   * es el precio único del evento.
+   *
+   * Los precios se copian aquí y se guardan en la inscripción, para poder
+   * reconstruir el desglose aunque el evento cambie de precio después.
+   */
+  const elegidas: { id: number; priceCents: number }[] = [];
+  let total: number;
+
+  if (tieneModalidades) {
+    if (!Array.isArray(modalityIds) || modalityIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Elige al menos una modalidad: ${event.modalities
+          .map((m) => m.name)
+          .join(", ")}.`,
+      });
+    }
+
+    const vistos = new Set<number>();
+
+    for (const raw of modalityIds) {
+      const mid = Number(raw);
+      const modalidad = event.modalities.find((m) => m.id === mid);
+
+      if (!modalidad) {
+        return res.status(400).json({
+          success: false,
+          message: "Una de las modalidades no pertenece a este evento.",
+        });
+      }
+
+      // Elegir la misma dos veces no debe cobrarse doble.
+      if (vistos.has(mid)) continue;
+      vistos.add(mid);
+
+      elegidas.push({ id: mid, priceCents: modalidad.priceCents });
+    }
+
+    total = elegidas.reduce((suma, m) => suma + m.priceCents, 0);
+  } else {
+    total = event.priceCents!;
+  }
+
+  // División: opcional, y puede no coincidir con la edad del alumno a
+  // propósito, porque hay quien compite con adultos para foguearse.
+  const divisiones = Object.values(EventDivision) as string[];
+
+  if (
+    division !== undefined &&
+    division !== null &&
+    division !== "" &&
+    !divisiones.includes(division)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: `División no válida. Opciones: ${divisiones.join(", ")}.`,
     });
   }
 
@@ -218,13 +305,26 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
       creditedToId: teacher.id,
       // El monto se congela al reportar: si el dojo cambia el precio
       // después, los cobros ya hechos no se alteran.
-      amountCents: event.priceCents,
+      amountCents: total,
+      division:
+        typeof division === "string" && divisiones.includes(division)
+          ? (division as EventDivision)
+          : null,
       method:
         typeof method === "string" &&
         Object.values(PaymentMethod).includes(method as PaymentMethod)
           ? (method as PaymentMethod)
           : null,
       note: typeof note === "string" ? note.trim() || null : null,
+      modalities:
+        elegidas.length > 0
+          ? {
+              create: elegidas.map((m) => ({
+                modalityId: m.id,
+                priceCents: m.priceCents,
+              })),
+            }
+          : undefined,
     },
     select: { id: true },
   });
@@ -235,7 +335,7 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
       enrollment.id,
       teacher.id,
       event.title,
-      event.priceCents
+      total
     );
   } catch (error) {
     console.error("[events] no se pudo notificar el pago reportado", error);
@@ -282,6 +382,7 @@ router.get(
           select: { id: true, firstName: true, lastName: true },
         },
         creditedTo: { select: { id: true, name: true } },
+        modalities: { include: { modality: { select: { name: true } } } },
       },
     });
 
@@ -295,6 +396,12 @@ router.get(
         amountCents: e.amountCents,
         status: e.status,
         enrolled: e.enrolled,
+        division: e.division,
+        /** Desglose: qué modalidades y cuánto costó cada una. */
+        modalidades: e.modalities.map((m) => ({
+          name: m.modality.name,
+          priceCents: m.priceCents,
+        })),
         method: e.method,
         note: e.note,
         acreditadoA: e.creditedTo?.name ?? null,
@@ -403,8 +510,15 @@ router.post(
   requireAuth,
   requirePermission("events:write"),
   async (req, res) => {
-    const { title, date, time, category, requiresPayment, priceCents } =
-      req.body ?? {};
+    const {
+      title,
+      date,
+      time,
+      category,
+      requiresPayment,
+      priceCents,
+      modalities,
+    } = req.body ?? {};
 
     if (typeof title !== "string" || title.trim().length === 0) {
       return res.status(400).json({
@@ -441,18 +555,55 @@ router.post(
       hora = time.trim();
     }
 
-    // Pago: si el evento lo requiere, el precio es obligatorio y en centavos.
+    // Pago. Un evento con modalidades saca el costo de ellas; uno sin
+    // modalidades usa un precio único.
     const conPago = requiresPayment === true;
     let precio: number | null = null;
 
-    if (conPago) {
+    const listaModalidades: { name: string; priceCents: number }[] = [];
+
+    if (conPago && Array.isArray(modalities) && modalities.length > 0) {
+      const vistos = new Set<string>();
+
+      for (const [i, m] of modalities.entries()) {
+        const name = typeof m?.name === "string" ? m.name.trim() : "";
+        const cents = Number(m?.priceCents);
+
+        if (name.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Falta el nombre de la modalidad ${i + 1}.`,
+          });
+        }
+
+        if (!Number.isInteger(cents) || cents <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `El costo de "${name}" debe ser un entero de centavos mayor a cero.`,
+          });
+        }
+
+        // El índice único de la base lo rechazaría igual, pero aquí el
+        // mensaje dice cuál es la repetida.
+        const clave = name.toLowerCase();
+        if (vistos.has(clave)) {
+          return res.status(400).json({
+            success: false,
+            message: `La modalidad "${name}" está repetida.`,
+          });
+        }
+        vistos.add(clave);
+
+        listaModalidades.push({ name, priceCents: cents });
+      }
+    } else if (conPago) {
       const cents = Number(priceCents);
 
       if (!Number.isInteger(cents) || cents <= 0) {
         return res.status(400).json({
           success: false,
           message:
-            "Si el evento requiere pago, indica el costo en centavos como un entero mayor a cero.",
+            "Si el evento requiere pago, indica el costo o define al menos una modalidad.",
         });
       }
 
@@ -471,7 +622,12 @@ router.post(
         requiresPayment: conPago,
         priceCents: precio,
         createdById: req.user!.id,
+        modalities:
+          listaModalidades.length > 0
+            ? { create: listaModalidades }
+            : undefined,
       },
+      include: { modalities: true },
     });
 
     // Avisa a las familias. Si falla, el evento ya quedó creado: no tiene
@@ -502,6 +658,11 @@ router.post(
         category: event.category,
         requiresPayment: event.requiresPayment,
         priceCents: event.priceCents,
+        modalities: event.modalities.map((m) => ({
+          id: m.id,
+          name: m.name,
+          priceCents: m.priceCents,
+        })),
       },
     });
   }

@@ -312,8 +312,10 @@ export async function createEvent(params: {
   category: EventCategory;
   /** Si hay que pagar para participar. */
   requiresPayment?: boolean;
-  /** Costo en CENTAVOS como entero. Obligatorio si requiresPayment. */
+  /** Costo en CENTAVOS. Se usa solo si el evento NO tiene modalidades. */
   priceCents?: number;
+  /** Modalidades con su costo. Si hay, el total es la suma de las elegidas. */
+  modalities?: { name: string; priceCents: number }[];
 }): Promise<{ event: DojoEvent }> {
   return request("/events", { method: "POST", body: params });
 }
@@ -331,7 +333,15 @@ export async function deleteEvent(id: string): Promise<void> {
  */
 export async function reportEventPayment(
   eventId: string,
-  params: { teacherCode: string; studentId?: number; method?: string; note?: string }
+  params: {
+    teacherCode: string;
+    studentId?: number;
+    /** Modalidades elegidas. Obligatorio si el evento tiene modalidades. */
+    modalityIds?: number[];
+    division?: string;
+    method?: string;
+    note?: string;
+  }
 ): Promise<{ message: string }> {
   return request(`/events/${eventId}/report-payment`, {
     method: "POST",
