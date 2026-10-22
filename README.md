@@ -206,7 +206,7 @@ servidor público.
 Datos que crea el seed:
 
 - **Ana López** — alumna con cuenta propia e historial completo: 4 graduaciones de
-  cinturón, 13 registros de asistencia, 4 mensualidades y 3 observaciones.
+  cinta, 13 registros de asistencia, 4 mensualidades y 3 observaciones.
 - **Diego López** — hermano menor de Ana, sin cuenta propia. Sirve para ver cómo un
   alumno existe en el sistema sin poder iniciar sesión.
 - **Marta López** (`tutor@dojo.com`) — madre de los dos. Al entrar ve ambos
@@ -435,7 +435,7 @@ El proyecto usa **Git Flow**: `main` (producción) ← `develop` (integración) 
 main
  └── develop
       ├── feature/auth        login, registro, JWT
-      ├── feature/students    alumnos y cinturones
+      ├── feature/students    alumnos y cintas
       ├── feature/teachers    profesores y horarios
       ├── feature/payments    mensualidades
       ├── feature/reports     reportes

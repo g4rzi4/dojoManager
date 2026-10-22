@@ -243,7 +243,7 @@ async function main() {
   // -------------------------------------------------------------------------
 
   // Graduaciones: borramos y recreamos para que el seed sea idempotente
-  // sin necesitar una clave única sobre (alumno, cinturón).
+  // sin necesitar una clave única sobre (alumno, cinta).
   await prisma.beltPromotion.deleteMany({ where: { studentId: ana.id } });
   await prisma.beltPromotion.createMany({
     data: [
@@ -331,7 +331,7 @@ async function main() {
     data: [
       {
         studentId: ana.id,
-        body: "Muy constante en los entrenamientos. Lista para preparar el examen de cinturón azul.",
+        body: "Muy constante en los entrenamientos. Lista para preparar el examen de cinta azul.",
         authorId: profesor.id,
       },
       {
@@ -365,11 +365,11 @@ async function main() {
     { title: "Clase de karate infantil", day: 3, time: "17:00", category: EventCategory.CLASE },
     { title: "Clase de adultos", day: 3, time: "19:00", category: EventCategory.CLASE },
     { title: "Cobro de mensualidades", day: 5, time: null, category: EventCategory.PAGO },
-    { title: "Examen de cinturón amarillo", day: 12, time: "10:00", category: EventCategory.EXAMEN },
+    { title: "Examen de cinta amarilla", day: 12, time: "10:00", category: EventCategory.EXAMEN },
     { title: "Clase de adultos", day: 12, time: "19:00", category: EventCategory.CLASE },
     { title: "Torneo regional", day: 18, time: "09:00", category: EventCategory.TORNEO },
     { title: "Clase de karate infantil", day: 21, time: "17:00", category: EventCategory.CLASE },
-    { title: "Examen de cinturón verde", day: 26, time: "11:00", category: EventCategory.EXAMEN },
+    { title: "Examen de cinta verde", day: 26, time: "11:00", category: EventCategory.EXAMEN },
     { title: "Junta de profesores", day: 28, time: "18:00", category: EventCategory.CLASE },
   ];
 
