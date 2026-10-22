@@ -27,8 +27,10 @@ Antes de ejecutar el proyecto instala:
 
 - Node.js 22 o superior
 - Git
-- PostgreSQL 17
-- DBeaver (opcional)
+- **Para la base de datos, una de estas dos opciones:**
+  - Docker Desktop — recomendado, no tienes que instalar nada más
+  - PostgreSQL 17 instalado en tu máquina
+- DBeaver (opcional, para ver la base de datos con interfaz gráfica)
 
 ---
 
@@ -41,6 +43,40 @@ cd dojoManager
 
 > **Si vas a colaborar en el proyecto, lee primero [CONTRIBUTING.md](CONTRIBUTING.md).**
 > Ahí está el reparto de módulos, la estructura de ramas y el flujo de Pull Requests.
+
+---
+
+# Base de datos
+
+**Haz esto antes de configurar el backend**, porque las migraciones de Prisma fallan si
+la base de datos no existe todavía.
+
+### Opción A — con Docker (recomendado)
+
+Desde la raíz del proyecto:
+
+```bash
+docker compose up -d --wait
+```
+
+Eso levanta PostgreSQL 17 con la base `dojomanager` ya creada. Para detenerlo:
+
+```bash
+docker compose down        # conserva los datos
+docker compose down -v     # borra los datos
+```
+
+> **Si ya tienes PostgreSQL instalado en tu máquina**, Docker va a fallar con
+> `port is already allocated`, porque ambos quieren el puerto 5432. O detienes el tuyo
+> (`brew services stop postgresql@17`), o te saltas Docker y usas la Opción B.
+
+### Opción B — con PostgreSQL instalado localmente
+
+Crear la base de datos a mano:
+
+```bash
+createdb dojomanager
+```
 
 ---
 
@@ -64,7 +100,8 @@ Crear tu archivo `.env` a partir de la plantilla:
 cp .env.example .env
 ```
 
-Luego edita `.env` y reemplaza `TU_USUARIO` por tu usuario de PostgreSQL:
+El `.env.example` trae las dos opciones comentadas. Si usas **Docker**, funciona tal
+cual. Si usas **PostgreSQL local**, descomenta la segunda línea y pon tu usuario:
 
 ```env
 DATABASE_URL="postgresql://juan@localhost:5432/dojomanager"
@@ -129,20 +166,34 @@ http://localhost:5173
 
 *(Si el puerto está ocupado, Vite usará otro puerto, por ejemplo `5174`.)*
 
+> El frontend apunta al backend con la URL escrita a mano en
+> [frontend/src/services/api.ts](frontend/src/services/api.ts)
+> (`http://localhost:3000`). Si cambias el puerto del backend, cámbiala ahí también.
+
 ---
 
-# Base de datos
+# Probar que todo funciona
 
-Crear una base de datos llamada:
+Con el backend y el frontend corriendo:
 
-```
-dojomanager
-```
+1. Abre `http://localhost:5173`
+2. Entra con el usuario de prueba:
 
-Si aún no existe:
+   ```
+   Correo:      admin@dojo.com
+   Contraseña:  123456
+   ```
+
+Ese usuario está **escrito a mano** en
+[backend/src/routes/auth.routes.ts](backend/src/routes/auth.routes.ts) y no toca la
+base de datos. Es un placeholder para que el equipo pueda trabajar mientras
+`feature/auth` implementa la autenticación real contra la tabla `User`.
+
+Para comprobar solo el backend:
 
 ```bash
-createdb dojomanager
+curl http://localhost:3000
+# {"message":"Backend funcionando 🚀"}
 ```
 
 ---

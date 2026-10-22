@@ -1,0 +1,34 @@
+# PostgreSQL para desarrollo local.
+#
+# Con esto nadie del equipo necesita instalar PostgreSQL en su máquina:
+#
+#   docker compose up -d      arranca la base de datos
+#   docker compose down       la detiene (los datos se conservan)
+#   docker compose down -v    la detiene y BORRA los datos
+#
+# Si usas este contenedor, tu backend/.env debe tener:
+#   DATABASE_URL="postgresql://dojo:dojo@localhost:5432/dojomanager"
+
+services:
+  db:
+    image: postgres:17
+    container_name: dojomanager-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dojo
+      POSTGRES_PASSWORD: dojo
+      POSTGRES_DB: dojomanager
+    ports:
+      - "5432:5432"
+    volumes:
+      - dojomanager_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Prisma falla si migra antes de que Postgres acepte conexiones.
+      # Con esto, `docker compose up -d --wait` espera a que esté listo.
+      test: ["CMD-SHELL", "pg_isready -U dojo -d dojomanager"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dojomanager_pgdata:

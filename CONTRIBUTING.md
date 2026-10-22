@@ -39,26 +39,51 @@ Llena esta tabla en la primera reunión para que quede claro quién toca qué:
 
 ## 2. Tu primer día
 
+Copia y pega esto completo. El orden importa: las migraciones de Prisma fallan si la
+base de datos no existe todavía.
+
 ```bash
 git clone https://github.com/g4rzi4/dojoManager.git
 cd dojoManager
 
-# Backend
+# 1. Base de datos PRIMERO (con Docker, no necesitas instalar PostgreSQL)
+docker compose up -d --wait
+#    Sin Docker: instala PostgreSQL 17 y corre  createdb dojomanager
+
+# 2. Backend
 cd backend
 npm install
-cp .env.example .env     # edita .env y pon tu usuario de PostgreSQL
-npx prisma generate
+cp .env.example .env     # con Docker funciona sin editar nada
+npx prisma generate      # genera el cliente en src/generated/ (no se sube a git)
 npx prisma migrate dev
 cd ..
 
-# Frontend
-cd frontend
+# 3. Frontend
+cd ../frontend
 npm install
 cd ..
 
-# Cámbiate a tu rama
+# 4. Cámbiate a tu rama — nunca trabajes en develop ni main
 git switch feature/TU_MODULO
 ```
+
+Para levantarlo necesitas **dos terminales**: `npm run dev` dentro de `backend/` y otro
+`npm run dev` dentro de `frontend/`. Luego entra a `http://localhost:5173` con
+`admin@dojo.com` / `123456` (usuario de prueba, ver README).
+
+### Si algo falla en la instalación
+
+| Error                                                                | Causa y solución                                                                                                                                                                         |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Bind for 0.0.0.0:5432 failed: port is already allocated`            | Ya tienes PostgreSQL instalado y corriendo en tu máquina, ocupando el puerto. **O** detienes el tuyo (`brew services stop postgresql@17`), **o** no uses Docker y sigue la Opción B.      |
+| `Cannot find package 'dotenv'`                                       | Te falta correr `npm install` dentro de `backend/`. Prisma lee `prisma.config.ts`, que importa `dotenv`.                                                                                  |
+| `Can't reach database server at localhost:5432`                      | La base de datos no está arriba. Con Docker: `docker compose ps` y `docker compose up -d --wait`.                                                                                        |
+| `ts-node-dev: command not found`                                     | Mismo caso: `npm install` en `backend/`.                                                                                                                                                 |
+| `Environment variable not found: DATABASE_URL`                       | No creaste tu `.env`: `cp .env.example .env` dentro de `backend/`.                                                                                                                       |
+
+> **Nota:** el `node_modules` del backend que estaba subido a git venía **incompleto**
+> (le faltaban `express`, `cors`, `dotenv`, `ts-node-dev` y `typescript`). Ya lo
+> quitamos del repositorio, así que `npm install` es obligatorio y no opcional.
 
 ---
 
