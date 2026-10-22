@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { beltLabel } from "./belts";
 import {
   NotificationKind,
   NotificationTopic,
@@ -132,7 +133,7 @@ export async function syncPaymentNotifications(studentIds: number[]) {
   return createAutomatic(entries);
 }
 
-/** Llamar al registrar una graduación de cinturón. */
+/** Llamar al registrar una graduación de cinta. */
 export async function notifyBeltPromotion(
   promotionId: number,
   studentId: number,
@@ -145,7 +146,7 @@ export async function notifyBeltPromotion(
       userId,
       topic: NotificationTopic.GRADUACION,
       title: "Nueva graduación",
-      body: `Se registró el cinturón ${belt.toLowerCase()}. ¡Felicidades!`,
+      body: `Se registró la cinta ${beltLabel(belt)}. ¡Felicidades!`,
       link: "/mi-tarjeta",
       dedupeKey: `graduacion-${promotionId}-${userId}`,
     }))

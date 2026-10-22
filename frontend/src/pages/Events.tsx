@@ -115,7 +115,7 @@ function Events() {
             Eventos
           </h1>
           <p className="mt-2 text-slate-600">
-            Clases, exámenes de cinturón, torneos y fechas de cobro.
+            Clases, exámenes de cinta, torneos y fechas de cobro.
           </p>
         </div>
 

@@ -174,7 +174,7 @@ model StudentGuardian {
 // Historial del alumno
 // ---------------------------------------------------------------------------
 
-/// Cada cambio de cinturón. `Student.currentBelt` es el cinturón vigente;
+/// Cada cambio de cinta. `Student.currentBelt` es la cinta vigente;
 /// esta tabla guarda cómo llegó hasta ahí.
 model BeltPromotion {
   id         Int      @id @default(autoincrement())

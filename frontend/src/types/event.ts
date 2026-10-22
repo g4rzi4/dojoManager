@@ -17,7 +17,7 @@ export type DojoEvent = {
 
 export const CATEGORY_LABELS: Record<EventCategory, string> = {
   CLASE: "Clase",
-  EXAMEN: "Examen de cinturón",
+  EXAMEN: "Examen de cinta",
   TORNEO: "Torneo",
   PAGO: "Cobro de mensualidad",
 };

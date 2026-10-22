@@ -10,16 +10,16 @@ export type Belt =
 export type PaymentStatus = "PAGADO" | "PENDIENTE" | "VENCIDO";
 
 export const BELT_LABELS: Record<Belt, string> = {
-  BLANCO: "Blanco",
-  AMARILLO: "Amarillo",
+  BLANCO: "Blanca",
+  AMARILLO: "Amarilla",
   NARANJA: "Naranja",
   VERDE: "Verde",
   AZUL: "Azul",
   MARRON: "Marrón",
-  NEGRO: "Negro",
+  NEGRO: "Negra",
 };
 
-/** Clases del badge de cinturón. Mantienen contraste 4.5:1 del texto. */
+/** Clases del badge de cinta. Mantienen contraste 4.5:1 del texto. */
 export const BELT_STYLES: Record<Belt, string> = {
   BLANCO: "bg-white text-slate-800 border-slate-300",
   AMARILLO: "bg-yellow-300 text-yellow-950 border-yellow-500",

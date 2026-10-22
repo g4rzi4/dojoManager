@@ -179,7 +179,7 @@ function FamilyHome() {
                                 BELT_STYLES[s.currentBelt]
                               }`}
                             >
-                              Cinturón {BELT_LABELS[s.currentBelt]}
+                              Cinta {BELT_LABELS[s.currentBelt].toLowerCase()}
                             </span>
                           </div>
 

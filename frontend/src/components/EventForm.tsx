@@ -79,7 +79,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Examen de cinturón azul"
+            placeholder="Examen de cinta azul"
             className={inputClase}
           />
         </div>

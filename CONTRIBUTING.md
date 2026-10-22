@@ -12,7 +12,7 @@ main                 producción. Nadie commitea aquí directo.
  └── develop         integración. Aquí se juntan todos los módulos.
       ├── feature/dashboard  panel, roles y expediente  (en revisión: PR #1)
       ├── feature/auth       login, registro, JWT
-      ├── feature/students   alumnos: alta, baja, cinturones
+      ├── feature/students   alumnos: alta, baja, cintas
       ├── feature/teachers   profesores y horarios
       ├── feature/events     calendario: crear y editar eventos
       ├── feature/payments   mensualidades y cobros
