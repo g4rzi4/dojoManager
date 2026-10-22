@@ -4,7 +4,7 @@ import type { MyStudent, PaymentsResponse } from "../types/payment";
 import type { AppNotification, Audience } from "../types/notification";
 import type { DojoEvent, EventCategory } from "../types/event";
 import type { Teacher, TeacherCard, TeacherUpdate } from "../types/teacher";
-import type { EventEnrollment } from "../types/eventPayment";
+import type { CategoryCatalog, EventEnrollment } from "../types/eventPayment";
 import type {
   EnrollGuardianPayload,
   EnrollStudentPayload,
@@ -338,7 +338,10 @@ export async function reportEventPayment(
     studentId?: number;
     /** Modalidades elegidas. Obligatorio si el evento tiene modalidades. */
     modalityIds?: number[];
-    division?: string;
+    /** Los tres van juntos o ninguno. */
+    gender?: string;
+    beltClass?: string;
+    ageCategory?: string;
     method?: string;
     note?: string;
   }
@@ -347,6 +350,15 @@ export async function reportEventPayment(
     method: "POST",
     body: params,
   });
+}
+
+/**
+ * El catálogo de categorías de competencia, con sus rangos de edad.
+ *
+ * Lo sirve el backend para no duplicar la tabla en el frontend.
+ */
+export async function getCategoryCatalog(): Promise<CategoryCatalog> {
+  return request<CategoryCatalog & { success: boolean }>("/events/categories");
 }
 
 /** Los reportes de pago de un evento. El profesor ve los de su clave. */

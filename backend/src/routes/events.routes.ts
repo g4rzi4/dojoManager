@@ -11,14 +11,39 @@ import { normalizeTeacherCode } from "../lib/teacherCode";
 import { requireAuth, requirePermission } from "../middleware/auth";
 import { can } from "../permissions";
 import {
+  CATEGORIAS,
+  categoriaValida,
+  categoriasDe,
+  infoDeCategoria,
+  rangoLegible,
+} from "../lib/competitionCategories";
+import {
+  AgeCategory,
+  BeltClass,
+  CompetitionGender,
   EventCategory,
-  EventDivision,
   EventPaymentStatus,
   PaymentMethod,
   Role,
 } from "../generated/prisma/enums";
 
 const router = Router();
+
+/** Arma el texto de la categoría: "Infantil 8-9 años · femenil · color". */
+function describirCategoria(
+  gender: CompetitionGender | null,
+  beltClass: BeltClass | null,
+  ageCategory: AgeCategory | null
+): string | null {
+  if (!gender || !beltClass || !ageCategory) return null;
+
+  const info = infoDeCategoria(ageCategory);
+  if (!info) return null;
+
+  const rama = beltClass === BeltClass.NEGRA ? "cinta negra" : "cinta de color";
+
+  return `${info.label} ${rangoLegible(info)} · ${gender.toLowerCase()} · ${rama}`;
+}
 
 /**
  * GET /events
@@ -95,8 +120,39 @@ router.get(
   }
 );
 
-/** Las categorías válidas, para validar lo que llega del cliente. */
-const CATEGORIAS = Object.values(EventCategory) as string[];
+/**
+ * GET /events/categories
+ *
+ * El catálogo de categorías de competencia, con sus rangos de edad.
+ *
+ * Lo sirve el backend para que el frontend no duplique la tabla: si algún
+ * día cambian los rangos, se cambian en un solo lugar.
+ *
+ * Va ANTES de /:id para que Express no tome "categories" por un id.
+ */
+router.get(
+  "/categories",
+  requireAuth,
+  requirePermission("events:read"),
+  async (_req, res) => {
+    return res.json({
+      success: true,
+      generos: Object.values(CompetitionGender),
+      ramas: Object.values(BeltClass),
+      categorias: CATEGORIAS.map((c) => ({
+        value: c.category,
+        label: c.label,
+        rango: rangoLegible(c),
+        minAge: c.minAge,
+        maxAge: c.maxAge,
+        beltClasses: c.beltClasses,
+      })),
+    });
+  }
+);
+
+/** Tipos de evento válidos (clase, examen, torneo, pago). */
+const CATEGORIAS_EVENTO = Object.values(EventCategory) as string[];
 
 // ---------------------------------------------------------------------------
 // Pago e inscripción a eventos
@@ -125,8 +181,16 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     });
   }
 
-  const { teacherCode, studentId, method, note, modalityIds, division } =
-    req.body ?? {};
+  const {
+    teacherCode,
+    studentId,
+    method,
+    note,
+    modalityIds,
+    gender,
+    beltClass,
+    ageCategory,
+  } = req.body ?? {};
 
   if (typeof teacherCode !== "string" || teacherCode.trim().length === 0) {
     return res.status(400).json({
@@ -217,20 +281,71 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     total = event.priceCents!;
   }
 
-  // División: opcional, y puede no coincidir con la edad del alumno a
-  // propósito, porque hay quien compite con adultos para foguearse.
-  const divisiones = Object.values(EventDivision) as string[];
+  /**
+   * Categoría de competencia: rama, tipo de cinta y rango de edad.
+   *
+   * Es opcional, pero los tres van juntos: una categoría a medias no sirve
+   * para armar las llaves de un torneo.
+   *
+   * NO se valida contra la edad real del alumno a propósito. Inscribir a un
+   * niño en una categoría mayor para foguearlo es un caso legítimo, y el
+   * sistema no debe estorbarlo. Lo único que se valida es que la categoría
+   * exista en la rama de cinta elegida, porque un "U10" en cintas de color
+   * simplemente no existe.
+   */
+  const hayCategoria =
+    gender !== undefined && gender !== null && gender !== "";
 
-  if (
-    division !== undefined &&
-    division !== null &&
-    division !== "" &&
-    !divisiones.includes(division)
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: `División no válida. Opciones: ${divisiones.join(", ")}.`,
-    });
+  let categoria: {
+    gender: CompetitionGender;
+    beltClass: BeltClass;
+    ageCategory: AgeCategory;
+  } | null = null;
+
+  if (hayCategoria) {
+    const generos = Object.values(CompetitionGender) as string[];
+    const ramas = Object.values(BeltClass) as string[];
+    const categorias = Object.values(AgeCategory) as string[];
+
+    if (!generos.includes(gender)) {
+      return res.status(400).json({
+        success: false,
+        message: `Rama no válida. Opciones: ${generos.join(", ")}.`,
+      });
+    }
+
+    if (typeof beltClass !== "string" || !ramas.includes(beltClass)) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica si compite en cintas de color o en cintas negras.",
+      });
+    }
+
+    if (typeof ageCategory !== "string" || !categorias.includes(ageCategory)) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica la categoría de edad.",
+      });
+    }
+
+    if (!categoriaValida(ageCategory as AgeCategory, beltClass as BeltClass)) {
+      const validas = categoriasDe(beltClass as BeltClass)
+        .map((c) => `${c.label} (${rangoLegible(c)})`)
+        .join(", ");
+
+      return res.status(400).json({
+        success: false,
+        message: `Esa categoría no existe en ${
+          beltClass === "NEGRA" ? "cintas negras" : "cintas de color"
+        }. Opciones: ${validas}.`,
+      });
+    }
+
+    categoria = {
+      gender: gender as CompetitionGender,
+      beltClass: beltClass as BeltClass,
+      ageCategory: ageCategory as AgeCategory,
+    };
   }
 
   // Qué alumno. Un alumno solo puede reportar por sí mismo; un tutor tiene
@@ -306,10 +421,9 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
       // El monto se congela al reportar: si el dojo cambia el precio
       // después, los cobros ya hechos no se alteran.
       amountCents: total,
-      division:
-        typeof division === "string" && divisiones.includes(division)
-          ? (division as EventDivision)
-          : null,
+      gender: categoria?.gender ?? null,
+      beltClass: categoria?.beltClass ?? null,
+      ageCategory: categoria?.ageCategory ?? null,
       method:
         typeof method === "string" &&
         Object.values(PaymentMethod).includes(method as PaymentMethod)
@@ -396,7 +510,11 @@ router.get(
         amountCents: e.amountCents,
         status: e.status,
         enrolled: e.enrolled,
-        division: e.division,
+        gender: e.gender,
+        beltClass: e.beltClass,
+        ageCategory: e.ageCategory,
+        /** Texto listo para mostrar: "Infantil 8-9 años · femenil". */
+        categoriaLegible: describirCategoria(e.gender, e.beltClass, e.ageCategory),
         /** Desglose: qué modalidades y cuánto costó cada una. */
         modalidades: e.modalities.map((m) => ({
           name: m.modality.name,
@@ -534,10 +652,10 @@ router.post(
       });
     }
 
-    if (typeof category !== "string" || !CATEGORIAS.includes(category)) {
+    if (typeof category !== "string" || !CATEGORIAS_EVENTO.includes(category)) {
       return res.status(400).json({
         success: false,
-        message: `Categoría no válida. Opciones: ${CATEGORIAS.join(", ")}.`,
+        message: `Categoría no válida. Opciones: ${CATEGORIAS_EVENTO.join(", ")}.`,
       });
     }
 

@@ -496,15 +496,52 @@ model EventModality {
   @@unique([eventId, name])
 }
 
-/// División en la que compite el alumno.
+/// Rama de la categoría: femenil o varonil.
+enum CompetitionGender {
+  FEMENIL
+  VARONIL
+}
+
+/// Las categorías se dividen por tipo de cinta, y los rangos de edad NO son
+/// los mismos en cada rama.
+enum BeltClass {
+  /// De blanca a marrón.
+  COLOR
+  /// Cinta negra. Usa la nomenclatura U10, U12, Cadete, Junior, U21...
+  NEGRA
+}
+
+/// Categoría de edad.
 ///
-/// Se elige al inscribir y PUEDE no coincidir con su edad: hay alumnos a
-/// los que se fogea con adultos a propósito. Por eso es un dato de la
-/// inscripción y no algo que se calcule de la fecha de nacimiento.
-enum EventDivision {
-  INFANTIL
-  JUVENIL
-  ADULTO
+/// Reúne las dos tablas en un solo enum porque una inscripción solo puede
+/// estar en una. Qué valores son válidos depende de `BeltClass`, y eso se
+/// valida en src/lib/competitionCategories.ts, no aquí: Prisma no puede
+/// expresar "este enum depende de aquel campo".
+///
+/// MASTERS existe en las dos ramas con el mismo rango, así que es un solo
+/// valor compartido.
+enum AgeCategory {
+  // --- Cintas de color ---
+  INFANTIL_4_5
+  INFANTIL_6_7
+  INFANTIL_8_9
+  INFANTIL_10_11
+  INFANTIL_12_13
+  JUVENIL_14_15
+  JUVENIL_16_17
+  ADULTOS_18_35
+
+  // --- Cintas negras ---
+  U10_8_9
+  U12_10_11
+  U14_12_13
+  CADETE_14_15
+  JUNIOR_16_17
+  U21_18_20
+  SENIOR_21_35
+
+  // --- Común a las dos ramas ---
+  MASTERS_36_MAS
 }
 
 enum EventPaymentStatus {
@@ -544,8 +581,15 @@ model EventEnrollment {
   /// cobros ya hechos.
   amountCents Int
 
-  /// División en la que compite. Nula si el evento no la distingue.
-  division EventDivision?
+  /// Categoría en la que compite: rama, tipo de cinta y rango de edad.
+  ///
+  /// Los tres van juntos o ninguno. Se ELIGEN al inscribir y la edad PUEDE
+  /// no coincidir con el rango, a propósito: hay alumnos a los que se foguea
+  /// con una categoría mayor. Por eso no se calculan de la fecha de
+  /// nacimiento, solo se sugieren.
+  gender      CompetitionGender?
+  beltClass   BeltClass?
+  ageCategory AgeCategory?
 
   /// Modalidades a las que entra. Un alumno puede ir a kata y kumite.
   modalities EventEnrollmentModality[]

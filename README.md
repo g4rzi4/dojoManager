@@ -313,14 +313,47 @@ El flujo, de principio a fin:
 5. **Al confirmar, el alumno queda inscrito** en el mismo movimiento, y el cobro
    aparece en el historial de ese profesor. A la familia le llega la notificación.
 
-## Excepciones al inscribirse
+## Categorías de competencia
 
-Además de las modalidades, cada inscripción guarda:
+Cada inscripción lleva su categoría, en tres ejes: **rama** (femenil o varonil),
+**tipo de cinta** y **rango de edad**. Los rangos **no son los mismos** en las dos
+ramas de cinta.
 
-- **División** — infantil, juvenil o adulto. Se elige al inscribir y **puede no
-  coincidir con la edad del alumno**, a propósito: hay quien foguea a su hijo con
-  adultos. Por eso es un dato de la inscripción y no algo que se calcule de la fecha
-  de nacimiento.
+### Cintas de color
+
+| Categoría | Edad |
+| --- | --- |
+| Infantil | 4-5 · 6-7 · 8-9 · 10-11 · 12-13 años |
+| Juvenil | 14-15 · 16-17 años |
+| Adultos | 18-35 años |
+| Masters | 36 años en adelante |
+
+### Cintas negras
+
+| Categoría | Edad |
+| --- | --- |
+| U10 | 8-9 años |
+| U12 | 10-11 años |
+| U14 | 12-13 años |
+| Cadete | 14-15 años |
+| Junior | 16-17 años |
+| U21 | 18-20 años |
+| Senior | 21-35 años |
+| Masters | 36 años en adelante |
+
+El catálogo vive en
+[backend/src/lib/competitionCategories.ts](backend/src/lib/competitionCategories.ts) y
+el frontend lo **pide** a `GET /events/categories` en lugar de duplicarlo: si cambian
+los rangos, se cambian en un solo lugar.
+
+**Lo que se valida y lo que no.** El sistema rechaza una categoría que no exista en la
+rama elegida —un "U10" en cintas de color simplemente no existe— pero **nunca bloquea
+por la edad del alumno**. Inscribir a una alumna de 14 años en Adultos para foguearla
+con las grandes es un caso legítimo, y el sistema no debe estorbarlo. La edad solo
+sirve para sugerir.
+
+Además, cada inscripción guarda:
+
 - **Método de pago** — efectivo o transferencia, para los que pagan en la mano.
 - **Nota libre** — para la excepción que no encaje en ningún campo.
 

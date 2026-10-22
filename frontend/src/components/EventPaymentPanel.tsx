@@ -4,6 +4,7 @@ import { Check, KeyRound, Receipt, X } from "lucide-react";
 import Card from "./Card";
 import {
   ApiError,
+  getCategoryCatalog,
   getEventEnrollments,
   reportEventPayment,
   resolveEventPayment,
@@ -12,10 +13,13 @@ import { can, getUser } from "../services/session";
 import type { DojoEvent } from "../types/event";
 import type { EventEnrollment } from "../types/eventPayment";
 import {
-  DIVISION_LABELS,
+  BELT_CLASS_LABELS,
   EVENT_PAYMENT_LABELS,
   EVENT_PAYMENT_STYLES,
-  type EventDivision,
+  GENDER_LABELS,
+  type AgeCategoryInfo,
+  type BeltClass,
+  type CompetitionGender,
 } from "../types/eventPayment";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "../types/payment";
 import type { MyStudent } from "../types/payment";
@@ -69,7 +73,11 @@ function ReportarPago({
   const [teacherCode, setTeacherCode] = useState("");
   /** Modalidades elegidas. Un alumno puede entrar a kata y kumite. */
   const [elegidas, setElegidas] = useState<number[]>([]);
-  const [division, setDivision] = useState<EventDivision | "">("");
+  const [gender, setGender] = useState<CompetitionGender | "">("");
+  const [beltClass, setBeltClass] = useState<BeltClass | "">("");
+  const [ageCategory, setAgeCategory] = useState("");
+  /** El catálogo lo manda el backend; aquí no se duplica la tabla. */
+  const [catalogo, setCatalogo] = useState<AgeCategoryInfo[]>([]);
   const [metodo, setMetodo] = useState<PaymentMethod | "">("");
   const [nota, setNota] = useState("");
   const [studentId, setStudentId] = useState<number | "">(
@@ -78,6 +86,21 @@ function ReportarPago({
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
   const [exito, setExito] = useState("");
+
+  useEffect(() => {
+    let activo = true;
+
+    getCategoryCatalog()
+      .then((c) => {
+        if (activo) setCatalogo(c.categorias);
+      })
+      // Sin catálogo se puede reportar el pago igual, solo sin categoría.
+      .catch(() => {});
+
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   // Lo que ya reportaron los alumnos a cargo, según el backend.
   const yaReportados = event.misAlumnos ?? [];
@@ -120,7 +143,9 @@ function ReportarPago({
               : undefined
             : Number(studentId),
         modalityIds: tieneModalidades ? elegidas : undefined,
-        division: division || undefined,
+        gender: gender || undefined,
+        beltClass: beltClass || undefined,
+        ageCategory: ageCategory || undefined,
         method: metodo || undefined,
         note: nota.trim() || undefined,
       });
@@ -275,39 +300,103 @@ function ReportarPago({
             </fieldset>
           )}
 
-          {/* División: puede no coincidir con su edad, a propósito */}
-          <div className="space-y-2">
-            <label
-              htmlFor={`ep-division-${event.id}`}
-              className="block text-sm font-medium text-slate-700"
-            >
-              División{" "}
+          {/* Categoría de competencia: rama, tipo de cinta y edad.
+              Los rangos de edad NO son los mismos en color y en negras. */}
+          <fieldset className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <legend className="px-1 text-sm font-medium text-slate-700">
+              Categoría de competencia{" "}
               <span className="font-normal text-slate-500">(opcional)</span>
-            </label>
-            <select
-              id={`ep-division-${event.id}`}
-              value={division}
-              onChange={(e) =>
-                setDivision(e.target.value as EventDivision | "")
-              }
-              aria-describedby={`ep-division-ayuda-${event.id}`}
-              className={`${inputClase} cursor-pointer`}
-            >
-              <option value="">Sin especificar</option>
-              {(Object.keys(DIVISION_LABELS) as EventDivision[]).map((d) => (
-                <option key={d} value={d}>
-                  {DIVISION_LABELS[d]}
-                </option>
-              ))}
-            </select>
-            <p
-              id={`ep-division-ayuda-${event.id}`}
-              className="text-xs text-slate-500"
-            >
-              Puede no coincidir con su edad: hay alumnos a los que se foguea
-              con adultos.
-            </p>
-          </div>
+            </legend>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label
+                  htmlFor={`ep-rama-${event.id}`}
+                  className="block text-sm font-medium text-slate-700"
+                >
+                  Rama
+                </label>
+                <select
+                  id={`ep-rama-${event.id}`}
+                  value={gender}
+                  onChange={(e) =>
+                    setGender(e.target.value as CompetitionGender | "")
+                  }
+                  className={`${inputClase} cursor-pointer`}
+                >
+                  <option value="">Sin especificar</option>
+                  {(Object.keys(GENDER_LABELS) as CompetitionGender[]).map(
+                    (g) => (
+                      <option key={g} value={g}>
+                        {GENDER_LABELS[g]}
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`ep-cinta-${event.id}`}
+                  className="block text-sm font-medium text-slate-700"
+                >
+                  Tipo de cinta
+                </label>
+                <select
+                  id={`ep-cinta-${event.id}`}
+                  value={beltClass}
+                  onChange={(e) => {
+                    setBeltClass(e.target.value as BeltClass | "");
+                    // Las categorías cambian con la rama: una elegida para
+                    // color no existe en negras, así que se limpia.
+                    setAgeCategory("");
+                  }}
+                  className={`${inputClase} cursor-pointer`}
+                >
+                  <option value="">Sin especificar</option>
+                  {(Object.keys(BELT_CLASS_LABELS) as BeltClass[]).map((b) => (
+                    <option key={b} value={b}>
+                      {BELT_CLASS_LABELS[b]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {beltClass && (
+              <div className="space-y-2">
+                <label
+                  htmlFor={`ep-categoria-${event.id}`}
+                  className="block text-sm font-medium text-slate-700"
+                >
+                  Categoría de edad
+                </label>
+                <select
+                  id={`ep-categoria-${event.id}`}
+                  value={ageCategory}
+                  onChange={(e) => setAgeCategory(e.target.value)}
+                  aria-describedby={`ep-categoria-ayuda-${event.id}`}
+                  className={`${inputClase} cursor-pointer`}
+                >
+                  <option value="">Sin especificar</option>
+                  {catalogo
+                    .filter((c) => c.beltClasses.includes(beltClass))
+                    .map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label} — {c.rango}
+                      </option>
+                    ))}
+                </select>
+                <p
+                  id={`ep-categoria-ayuda-${event.id}`}
+                  className="text-xs text-slate-500"
+                >
+                  Puede no coincidir con su edad: hay alumnos a los que se
+                  foguea en una categoría mayor.
+                </p>
+              </div>
+            )}
+          </fieldset>
 
           <div className="space-y-2">
             <label
@@ -534,12 +623,18 @@ function GestionCobros({
                 <p className="text-sm font-semibold text-slate-900">
                   {e.studentName}
                 </p>
+                {e.categoriaLegible && (
+                  <p className="mt-0.5 text-xs font-medium text-slate-800">
+                    {e.categoriaLegible}
+                  </p>
+                )}
+
                 {e.modalidades.length > 0 && (
                   <p className="mt-0.5 text-xs text-slate-700">
                     {e.modalidades
                       .map((m) => `${m.name} ${formatMoney(m.priceCents)}`)
                       .join(" + ")}
-                    {e.division && ` · división ${DIVISION_LABELS[e.division].toLowerCase()}`}
+
                   </p>
                 )}
 

@@ -14,12 +14,41 @@ export const EVENT_PAYMENT_STYLES: Record<EventPaymentStatus, string> = {
   RECHAZADO: "bg-red-50 text-red-800 border-red-200",
 };
 
-export type EventDivision = "INFANTIL" | "JUVENIL" | "ADULTO";
+export type CompetitionGender = "FEMENIL" | "VARONIL";
+export type BeltClass = "COLOR" | "NEGRA";
 
-export const DIVISION_LABELS: Record<EventDivision, string> = {
-  INFANTIL: "Infantil",
-  JUVENIL: "Juvenil",
-  ADULTO: "Adulto",
+export const GENDER_LABELS: Record<CompetitionGender, string> = {
+  FEMENIL: "Femenil",
+  VARONIL: "Varonil",
+};
+
+export const BELT_CLASS_LABELS: Record<BeltClass, string> = {
+  COLOR: "Cintas de color",
+  NEGRA: "Cintas negras",
+};
+
+/**
+ * Una categoría del catálogo, tal como la manda el backend.
+ *
+ * El catálogo NO se duplica aquí: se pide a GET /events/categories. Si algún
+ * día cambian los rangos de edad, se cambian en un solo lugar.
+ */
+export type AgeCategoryInfo = {
+  value: string;
+  /** "Infantil", "U10", "Cadete"... */
+  label: string;
+  /** "8-9 años" o "36 años en adelante". */
+  rango: string;
+  minAge: number;
+  maxAge: number | null;
+  /** En qué ramas de cinta existe. Masters está en las dos. */
+  beltClasses: BeltClass[];
+};
+
+export type CategoryCatalog = {
+  generos: CompetitionGender[];
+  ramas: BeltClass[];
+  categorias: AgeCategoryInfo[];
 };
 
 /** Modalidad de un evento con su costo: kata, kumite, equipos... */
@@ -44,8 +73,12 @@ export type EventEnrollment = {
   status: EventPaymentStatus;
   /** Inscrito en el evento. Se pone en true al confirmar el pago. */
   enrolled: boolean;
-  /** División en la que compite. Puede no coincidir con su edad. */
-  division: EventDivision | null;
+  /** Categoría: rama, tipo de cinta y rango de edad. */
+  gender: CompetitionGender | null;
+  beltClass: BeltClass | null;
+  ageCategory: string | null;
+  /** Texto listo para mostrar, armado por el backend. */
+  categoriaLegible: string | null;
   /** Qué modalidades eligió y cuánto costó cada una. */
   modalidades: EnrollmentModality[];
   method: PaymentMethod | null;
