@@ -1,9 +1,21 @@
 import { Router } from "express";
 
 import { prisma } from "../lib/prisma";
-import { notifyNewEvent } from "../lib/notifications";
+import { familyStudentIds } from "../lib/access";
+import {
+  notifyEventPaymentReported,
+  notifyEventPaymentResolved,
+  notifyNewEvent,
+} from "../lib/notifications";
+import { normalizeTeacherCode } from "../lib/teacherCode";
 import { requireAuth, requirePermission } from "../middleware/auth";
-import { EventCategory, Role } from "../generated/prisma/enums";
+import { can } from "../permissions";
+import {
+  EventCategory,
+  EventPaymentStatus,
+  PaymentMethod,
+  Role,
+} from "../generated/prisma/enums";
 
 const router = Router();
 
@@ -20,30 +32,363 @@ router.get(
   "/",
   requireAuth,
   requirePermission("events:read"),
-  async (_req, res) => {
-    const events = await prisma.event.findMany({
-      orderBy: [{ date: "asc" }, { time: "asc" }],
-      include: { createdBy: { select: { name: true } } },
-    });
+  async (req, res) => {
+    // Alumnos a cargo de quien consulta: con eso sabemos en qué eventos ya
+    // reportó pago, para no ofrecerle reportarlo otra vez.
+    const propios = await familyStudentIds(req.user!);
+
+    const [events, misInscripciones] = await Promise.all([
+      prisma.event.findMany({
+        orderBy: [{ date: "asc" }, { time: "asc" }],
+        include: {
+          createdBy: { select: { name: true } },
+          _count: { select: { enrollments: true } },
+        },
+      }),
+      propios.length === 0
+        ? []
+        : prisma.eventEnrollment.findMany({
+            where: { studentId: { in: propios } },
+            select: {
+              eventId: true,
+              studentId: true,
+              status: true,
+              enrolled: true,
+            },
+          }),
+    ]);
 
     return res.json({
       success: true,
-      events: events.map((e) => ({
-        id: String(e.id),
-        title: e.title,
-        // Las columnas @db.Date vienen como medianoche UTC: leer en UTC da
-        // la fecha correcta. Con getters locales, en México daría un día menos.
-        date: e.date.toISOString().slice(0, 10),
-        time: e.time ?? undefined,
-        category: e.category,
-        createdBy: e.createdBy?.name ?? null,
-      })),
+      events: events.map((e) => {
+        const mias = misInscripciones.filter((i) => i.eventId === e.id);
+
+        return {
+          id: String(e.id),
+          title: e.title,
+          // Las columnas @db.Date vienen como medianoche UTC: leer en UTC da
+          // la fecha correcta. Con getters locales, en México daría un día menos.
+          date: e.date.toISOString().slice(0, 10),
+          time: e.time ?? undefined,
+          category: e.category,
+          createdBy: e.createdBy?.name ?? null,
+          requiresPayment: e.requiresPayment,
+          priceCents: e.priceCents,
+          /** Cuántos reportes de pago lleva, para admin y profesores. */
+          reportes: e._count.enrollments,
+          /** Estado de los alumnos a cargo de quien consulta. */
+          misAlumnos: mias.map((i) => ({
+            studentId: i.studentId,
+            status: i.status,
+            enrolled: i.enrolled,
+          })),
+        };
+      }),
     });
   }
 );
 
 /** Las categorías válidas, para validar lo que llega del cliente. */
 const CATEGORIAS = Object.values(EventCategory) as string[];
+
+// ---------------------------------------------------------------------------
+// Pago e inscripción a eventos
+//
+// El flujo: el profesor comparte su clave, el alumno reporta el pago
+// escribiéndola, y el profesor confirma. Al confirmar queda inscrito, y el
+// cobro aparece en el historial de ESE profesor.
+// ---------------------------------------------------------------------------
+
+/**
+ * POST /events/:id/report-payment
+ *
+ * El alumno o su tutor reportan que ya pagaron, con la clave del profesor.
+ *
+ * El alumno NO elige a quién se le acredita por id: escribe la clave, y el
+ * servidor la resuelve. Si pudiera mandar un id, cualquiera podría acreditar
+ * cobros a un profesor que nunca vio el dinero.
+ */
+router.post("/:id/report-payment", requireAuth, async (req, res) => {
+  const eventId = Number(req.params.id);
+
+  if (!Number.isInteger(eventId) || eventId < 1) {
+    return res.status(400).json({
+      success: false,
+      message: "El id del evento no es válido.",
+    });
+  }
+
+  const { teacherCode, studentId, method, note } = req.body ?? {};
+
+  if (typeof teacherCode !== "string" || teacherCode.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Escribe la clave que te dio tu profesor.",
+    });
+  }
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, requiresPayment: true, priceCents: true, title: true },
+  });
+
+  if (!event) {
+    return res.status(404).json({
+      success: false,
+      message: "No existe ese evento.",
+    });
+  }
+
+  if (!event.requiresPayment || event.priceCents === null) {
+    return res.status(400).json({
+      success: false,
+      message: "Este evento no requiere pago.",
+    });
+  }
+
+  // Qué alumno. Un alumno solo puede reportar por sí mismo; un tutor tiene
+  // que decir cuál de sus hijos, y solo puede elegir entre los suyos.
+  const propios = await familyStudentIds(req.user!);
+
+  if (propios.length === 0) {
+    return res.status(403).json({
+      success: false,
+      message: "Tu cuenta no tiene alumnos a su cargo.",
+    });
+  }
+
+  let alumnoId: number;
+
+  if (studentId === undefined || studentId === null) {
+    if (propios.length > 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica a cuál de tus hijos corresponde el pago.",
+      });
+    }
+
+    alumnoId = propios[0];
+  } else {
+    const pedido = Number(studentId);
+
+    if (!propios.includes(pedido)) {
+      return res.status(403).json({
+        success: false,
+        message: "Ese alumno no está a tu cargo.",
+      });
+    }
+
+    alumnoId = pedido;
+  }
+
+  // Resolver la clave del profesor.
+  const code = normalizeTeacherCode(teacherCode);
+
+  const teacher = await prisma.user.findUnique({
+    where: { teacherCode: code },
+    select: { id: true, active: true, name: true },
+  });
+
+  if (!teacher || !teacher.active) {
+    return res.status(400).json({
+      success: false,
+      message: `No encontramos un profesor activo con la clave ${code}. Revísala con tu profesor.`,
+    });
+  }
+
+  const yaReportado = await prisma.eventEnrollment.findUnique({
+    where: { eventId_studentId: { eventId, studentId: alumnoId } },
+    select: { id: true, status: true },
+  });
+
+  if (yaReportado) {
+    return res.status(409).json({
+      success: false,
+      message:
+        yaReportado.status === EventPaymentStatus.CONFIRMADO
+          ? "Ese pago ya está confirmado y el alumno quedó inscrito."
+          : "Ya reportaste este pago. Espera a que tu profesor lo confirme.",
+    });
+  }
+
+  const enrollment = await prisma.eventEnrollment.create({
+    data: {
+      eventId,
+      studentId: alumnoId,
+      creditedToId: teacher.id,
+      // El monto se congela al reportar: si el dojo cambia el precio
+      // después, los cobros ya hechos no se alteran.
+      amountCents: event.priceCents,
+      method:
+        typeof method === "string" &&
+        Object.values(PaymentMethod).includes(method as PaymentMethod)
+          ? (method as PaymentMethod)
+          : null,
+      note: typeof note === "string" ? note.trim() || null : null,
+    },
+    select: { id: true },
+  });
+
+  // Avisarle al profesor que tiene un pago por confirmar.
+  try {
+    await notifyEventPaymentReported(
+      enrollment.id,
+      teacher.id,
+      event.title,
+      event.priceCents
+    );
+  } catch (error) {
+    console.error("[events] no se pudo notificar el pago reportado", error);
+  }
+
+  return res.status(201).json({
+    success: true,
+    message: `Listo. Le avisamos a ${teacher.name} para que confirme tu pago.`,
+  });
+});
+
+/**
+ * GET /events/:id/enrollments
+ *
+ * Quién reportó pago y quién está inscrito.
+ *
+ * El ADMIN ve todos. Un PROFESOR ve solo los acreditados a su clave: son los
+ * que a él le toca confirmar.
+ */
+router.get(
+  "/:id/enrollments",
+  requireAuth,
+  requirePermission("events:write"),
+  async (req, res) => {
+    const eventId = Number(req.params.id);
+
+    if (!Number.isInteger(eventId) || eventId < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "El id del evento no es válido.",
+      });
+    }
+
+    const esAdmin = req.user!.role === Role.ADMIN;
+
+    const enrollments = await prisma.eventEnrollment.findMany({
+      where: {
+        eventId,
+        ...(esAdmin ? {} : { creditedToId: req.user!.id }),
+      },
+      orderBy: { reportedAt: "asc" },
+      include: {
+        student: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        creditedTo: { select: { id: true, name: true } },
+      },
+    });
+
+    return res.json({
+      success: true,
+      alcance: esAdmin ? "todos" : "mi-clave",
+      enrollments: enrollments.map((e) => ({
+        id: e.id,
+        studentId: e.student.id,
+        studentName: `${e.student.firstName} ${e.student.lastName}`,
+        amountCents: e.amountCents,
+        status: e.status,
+        enrolled: e.enrolled,
+        method: e.method,
+        note: e.note,
+        acreditadoA: e.creditedTo?.name ?? null,
+        reportedAt: e.reportedAt.toISOString(),
+        confirmedAt: e.confirmedAt?.toISOString() ?? null,
+      })),
+    });
+  }
+);
+
+/**
+ * PATCH /events/:eventId/enrollments/:id
+ *
+ * El profesor confirma o rechaza el pago reportado.
+ *
+ * Al CONFIRMAR, el alumno queda inscrito en el mismo movimiento: no hay un
+ * paso aparte de "inscribir".
+ *
+ * Solo lo resuelve el profesor al que se acreditó el cobro, o el admin. Si
+ * un alumno escribió por error la clave de otro profesor, ese profesor verá
+ * el reporte y podrá rechazarlo.
+ */
+router.patch(
+  "/:eventId/enrollments/:id",
+  requireAuth,
+  requirePermission("events:write"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    const { confirmar } = req.body ?? {};
+
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "El id del registro no es válido.",
+      });
+    }
+
+    if (typeof confirmar !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "Indica si confirmas o rechazas el pago.",
+      });
+    }
+
+    const enrollment = await prisma.eventEnrollment.findUnique({
+      where: { id },
+      select: { id: true, creditedToId: true, status: true, studentId: true },
+    });
+
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: "No existe ese registro.",
+      });
+    }
+
+    const esAdmin = req.user!.role === Role.ADMIN;
+    const esSuCobro = enrollment.creditedToId === req.user!.id;
+
+    if (!esAdmin && !esSuCobro) {
+      return res.status(403).json({
+        success: false,
+        message: "Ese pago no se acreditó a tu clave.",
+      });
+    }
+
+    await prisma.eventEnrollment.update({
+      where: { id },
+      data: {
+        status: confirmar
+          ? EventPaymentStatus.CONFIRMADO
+          : EventPaymentStatus.RECHAZADO,
+        // Confirmar el pago inscribe; rechazarlo desinscribe.
+        enrolled: confirmar,
+        confirmedAt: new Date(),
+        confirmedById: req.user!.id,
+      },
+    });
+
+    // Avisarle a la familia cómo quedó.
+    try {
+      await notifyEventPaymentResolved(enrollment.id, enrollment.studentId, confirmar);
+    } catch (error) {
+      console.error("[events] no se pudo notificar la resolución", error);
+    }
+
+    return res.json({
+      success: true,
+      message: confirmar
+        ? "Pago confirmado. El alumno quedó inscrito."
+        : "Pago rechazado.",
+    });
+  }
+);
 
 /**
  * POST /events
@@ -58,7 +403,8 @@ router.post(
   requireAuth,
   requirePermission("events:write"),
   async (req, res) => {
-    const { title, date, time, category } = req.body ?? {};
+    const { title, date, time, category, requiresPayment, priceCents } =
+      req.body ?? {};
 
     if (typeof title !== "string" || title.trim().length === 0) {
       return res.status(400).json({
@@ -95,6 +441,24 @@ router.post(
       hora = time.trim();
     }
 
+    // Pago: si el evento lo requiere, el precio es obligatorio y en centavos.
+    const conPago = requiresPayment === true;
+    let precio: number | null = null;
+
+    if (conPago) {
+      const cents = Number(priceCents);
+
+      if (!Number.isInteger(cents) || cents <= 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Si el evento requiere pago, indica el costo en centavos como un entero mayor a cero.",
+        });
+      }
+
+      precio = cents;
+    }
+
     const [year, month, day] = date.trim().split("-").map(Number);
 
     const event = await prisma.event.create({
@@ -104,6 +468,8 @@ router.post(
         date: new Date(Date.UTC(year, month - 1, day)),
         time: hora,
         category: category as EventCategory,
+        requiresPayment: conPago,
+        priceCents: precio,
         createdById: req.user!.id,
       },
     });
@@ -134,6 +500,8 @@ router.post(
         date: event.date.toISOString().slice(0, 10),
         time: event.time ?? undefined,
         category: event.category,
+        requiresPayment: event.requiresPayment,
+        priceCents: event.priceCents,
       },
     });
   }

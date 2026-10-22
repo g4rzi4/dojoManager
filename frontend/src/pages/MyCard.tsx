@@ -53,7 +53,7 @@ function MyCard() {
           Hola, {user?.name ?? "alumno"}
         </h1>
         <p className="mt-2 text-slate-600">
-          Esta es tu tarjeta de información: tus cinturones, asistencia, pagos
+          Esta es tu tarjeta de información: tus cintas, asistencia, pagos
           y las observaciones de tus profesores.
         </p>
       </header>

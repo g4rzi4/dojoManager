@@ -12,7 +12,7 @@ main                 producción. Nadie commitea aquí directo.
  └── develop         integración. Aquí se juntan todos los módulos.
       ├── feature/dashboard  panel, roles y expediente  (en revisión: PR #1)
       ├── feature/auth       login, registro, JWT
-      ├── feature/students   alumnos: alta, baja, cinturones
+      ├── feature/students   alumnos: alta, baja, cintas
       ├── feature/teachers   profesores y horarios
       ├── feature/events     calendario: crear y editar eventos
       ├── feature/payments   mensualidades y cobros
@@ -375,6 +375,30 @@ No tienes que averiguar a quién avisarle: `audienceForStudent` ya resuelve que 
 
 Todas llevan `dedupeKey`, así que llamarlas dos veces por el mismo hecho no genera
 notificaciones duplicadas.
+
+### Endpoints públicos
+
+Hay exactamente **dos** superficies sin autenticación: el login y el formulario de
+inscripción. Si agregas una tercera, piénsalo dos veces y protégela igual:
+
+```ts
+import { rateLimit } from "../middleware/rateLimit";
+
+const limite = rateLimit({ maximo: 20, ventanaSegundos: 600 });
+
+router.post("/publico", limite, async (req, res) => { ... });
+```
+
+Reglas para cualquier endpoint sin sesión:
+
+1. **Limitador de peticiones.** Sin él, alguien prueba tokens o contraseñas a miles
+   por minuto.
+2. **Nunca devuelvas más de lo necesario.** Mira
+   `GET /invitations/public/:token`: regresa el tipo de formulario y el nombre de
+   quien invita, y nada más. No los datos del alumno ligado completo.
+3. **Si consume un recurso de un solo uso, séllalo en la misma transacción** que crea
+   los datos. Si lo sellas después, dos peticiones simultáneas pasan las dos. Así lo
+   hace el `updateMany` con `usedAt: null` en `invitations.routes.ts`.
 
 ### Contraseñas
 

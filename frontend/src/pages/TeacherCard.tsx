@@ -1,0 +1,438 @@
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Award,
+  CalendarDays,
+  KeyRound,
+  Lock,
+  Mail,
+  Phone,
+  Receipt,
+  Users,
+} from "lucide-react";
+
+import DashboardLayout from "../layouts/DashboardLayout";
+import Card from "../components/Card";
+import { ApiError, getTeacherCard } from "../services/api";
+import { can, getUser } from "../services/session";
+import type { TeacherCard as TeacherCardData } from "../types/teacher";
+import { BELT_LABELS, BELT_STYLES } from "../types/student";
+import { formatLongDate, fromDateKey } from "../utils/date";
+import { formatMoney, formatPeriod } from "../utils/format";
+
+type Estado =
+  | { status: "cargando" }
+  | { status: "ok"; teacher: TeacherCardData }
+  | { status: "error"; message: string };
+
+/**
+ * Ficha del profesor.
+ *
+ * La ve el ADMIN de cualquier profesor, y cada PROFESOR la suya. Un profesor
+ * NO puede abrir la de otro: ahí van las notas del administrador y el dinero
+ * que maneja. El backend responde 403 y esta pantalla lo muestra tal cual.
+ */
+function TeacherCard() {
+  const { id } = useParams<{ id: string }>();
+  const user = getUser();
+
+  const teacherId = Number(id);
+  const idValido = Number.isInteger(teacherId) && teacherId >= 1;
+
+  const [estado, setEstado] = useState<Estado>({ status: "cargando" });
+
+  useEffect(() => {
+    if (!idValido) return;
+
+    let activo = true;
+
+    getTeacherCard(teacherId)
+      .then((res) => {
+        if (activo) setEstado({ status: "ok", teacher: res.teacher });
+      })
+      .catch((e: unknown) => {
+        if (activo) {
+          setEstado({
+            status: "error",
+            message:
+              e instanceof ApiError
+                ? e.message
+                : "No fue posible cargar la ficha.",
+          });
+        }
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, [teacherId, idValido]);
+
+  const estadoFinal: Estado = idValido
+    ? estado
+    : { status: "error", message: "El identificador no es válido." };
+
+  // El admin vuelve a la lista; un profesor viendo su ficha, a su panel.
+  const esAdmin = can(user, "teachers:read");
+
+  return (
+    <DashboardLayout>
+      <Link
+        to={esAdmin ? "/profesores" : "/dashboard"}
+        className="
+          inline-flex items-center gap-2 rounded-lg py-2 text-sm font-semibold
+          text-blue-700 transition-colors duration-200
+          motion-reduce:transition-none
+          hover:text-blue-900
+          focus:ring-2 focus:ring-blue-600 focus:outline-none
+        "
+      >
+        <ArrowLeft size={17} aria-hidden="true" />
+        {esAdmin ? "Volver a profesores" : "Volver al panel"}
+      </Link>
+
+      <h1 className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">
+        Ficha del profesor
+      </h1>
+
+      <div className="mt-6">
+        {estadoFinal.status === "cargando" && (
+          <div className="space-y-6">
+            <Card className="h-56 animate-pulse motion-reduce:animate-none" />
+            <Card className="h-64 animate-pulse motion-reduce:animate-none" />
+          </div>
+        )}
+
+        {estadoFinal.status === "error" && (
+          <Card className="border-red-200 p-6">
+            <p className="font-semibold text-red-800">
+              No se pudo mostrar la ficha
+            </p>
+            <p className="mt-1 text-sm text-red-700">{estadoFinal.message}</p>
+          </Card>
+        )}
+
+        {estadoFinal.status === "ok" && (
+          <Ficha teacher={estadoFinal.teacher} />
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}
+
+function Ficha({ teacher }: { teacher: TeacherCardData }) {
+  const { resumen, historialCobros } = teacher;
+
+  return (
+    <div className="space-y-6">
+      {/* Cabecera */}
+      <Card className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-start gap-5">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white">
+            {teacher.name.charAt(0).toUpperCase()}
+          </span>
+
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+              {teacher.name}
+            </h2>
+
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {teacher.belt && (
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                    BELT_STYLES[teacher.belt]
+                  }`}
+                >
+                  Cinta {BELT_LABELS[teacher.belt].toLowerCase()}
+                </span>
+              )}
+
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                  teacher.active
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : "border-slate-300 bg-slate-100 text-slate-700"
+                }`}
+              >
+                {teacher.active ? "Activo" : "Dado de baja"}
+              </span>
+            </div>
+
+            {teacher.specialty && (
+              <p className="mt-3 text-sm text-slate-700">
+                {teacher.specialty}
+              </p>
+            )}
+          </div>
+
+          {/* La clave: en monoespaciada porque se dicta y se copia */}
+          {teacher.teacherCode && (
+            <div className="shrink-0 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-center">
+              <p className="flex items-center justify-center gap-1.5 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                <KeyRound size={13} aria-hidden="true" />
+                Su clave
+              </p>
+              <p className="mt-1 font-mono text-lg font-bold text-slate-900">
+                {teacher.teacherCode}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <dl className="mt-6 grid gap-5 border-t border-slate-200 pt-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Dato icon={Mail} label="Correo" valor={teacher.email} />
+          <Dato
+            icon={Phone}
+            label="Teléfono"
+            valor={teacher.phone ?? "No registrado"}
+          />
+          <Dato
+            icon={CalendarDays}
+            label="En el dojo desde"
+            valor={
+              teacher.hiredAt
+                ? formatLongDate(fromDateKey(teacher.hiredAt))
+                : "No registrado"
+            }
+          />
+        </dl>
+
+        {/* Notas internas: el backend solo las manda al administrador */}
+        {teacher.adminNotes && (
+          <div className="mt-5 flex gap-3 rounded-xl border border-slate-300 bg-slate-50 p-4">
+            <Lock
+              size={18}
+              aria-hidden="true"
+              className="mt-0.5 shrink-0 text-slate-500"
+            />
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                Notas del administrador
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                {teacher.adminNotes}
+              </p>
+              <p className="mt-2 text-xs text-slate-500">
+                El profesor no las ve.
+              </p>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Resumen */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Tile
+          label="Alumnos"
+          valor={String(resumen.alumnos)}
+          pista={`${resumen.alumnosActivos} activos`}
+        />
+        <Tile
+          label="Recaudado"
+          valor={formatMoney(resumen.totalRecaudadoCents)}
+          pista="eventos y mensualidades"
+        />
+        <Tile
+          label="Cobros de evento"
+          valor={formatMoney(resumen.totalEventosCents)}
+          pista={`${resumen.cobrosEvento} confirmados`}
+        />
+        <Tile
+          label="Mensualidades"
+          valor={formatMoney(resumen.totalMensualidadesCents)}
+          pista={`${resumen.mensualidadesCobradas} cobradas`}
+        />
+      </div>
+
+      {/* Sus alumnos */}
+      <Card className="p-5 sm:p-6">
+        <h3 className="flex items-center gap-2 font-bold text-slate-900">
+          <Users size={18} aria-hidden="true" className="text-slate-400" />
+          Sus alumnos
+        </h3>
+
+        {teacher.alumnos.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-600">
+            Todavía no tiene alumnos asignados. Se le asignan al registrarlos
+            con su clave.
+          </p>
+        ) : (
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {teacher.alumnos.map((a) => (
+              <li key={a.id}>
+                <Link
+                  to={`/alumnos/${a.id}`}
+                  className="
+                    flex items-center gap-2 rounded-xl border border-slate-200
+                    bg-slate-50 px-3 py-2 text-sm
+                    transition-colors duration-200
+                    motion-reduce:transition-none
+                    hover:bg-slate-100
+                    focus:ring-2 focus:ring-blue-600 focus:outline-none
+                  "
+                >
+                  <span className="font-medium text-slate-900">
+                    {a.firstName} {a.lastName}
+                  </span>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                      BELT_STYLES[a.currentBelt]
+                    }`}
+                  >
+                    {BELT_LABELS[a.currentBelt]}
+                  </span>
+                  {!a.active && (
+                    <span className="text-xs text-slate-500">(inactivo)</span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* Historial de cobros */}
+      <Card className="p-5 sm:p-6">
+        <h3 className="flex items-center gap-2 font-bold text-slate-900">
+          <Receipt size={18} aria-hidden="true" className="text-slate-400" />
+          Historial de cobros
+        </h3>
+
+        {/* Eventos */}
+        <h4 className="mt-5 flex items-center gap-2 text-sm font-semibold text-slate-900">
+          <Award size={15} aria-hidden="true" className="text-slate-400" />
+          Eventos acreditados a su clave
+        </h4>
+
+        {historialCobros.eventos.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-600">
+            Sin cobros de eventos. Aparecen cuando un alumno reporta un pago
+            con su clave y él lo confirma.
+          </p>
+        ) : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-slate-600">
+                  <th scope="col" className="pb-2 pr-4 font-semibold">Alumno</th>
+                  <th scope="col" className="pb-2 pr-4 font-semibold">Evento</th>
+                  <th scope="col" className="pb-2 pr-4 font-semibold">Monto</th>
+                  <th scope="col" className="pb-2 font-semibold">Confirmado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historialCobros.eventos.map((c) => (
+                  <tr key={c.id} className="border-b border-slate-100">
+                    <td className="py-2 pr-4 font-medium text-slate-900">
+                      {c.alumno}
+                    </td>
+                    <td className="py-2 pr-4 text-slate-700">{c.evento}</td>
+                    <td className="py-2 pr-4 text-slate-900">
+                      {formatMoney(c.amountCents)}
+                    </td>
+                    <td className="py-2 text-slate-600">
+                      {c.confirmadoEn
+                        ? new Date(c.confirmadoEn).toLocaleDateString("es-MX", {
+                            day: "numeric",
+                            month: "long",
+                          })
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Mensualidades */}
+        <h4 className="mt-6 flex items-center gap-2 text-sm font-semibold text-slate-900">
+          <Receipt size={15} aria-hidden="true" className="text-slate-400" />
+          Mensualidades de sus alumnos
+        </h4>
+
+        {historialCobros.mensualidades.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-600">
+            Sin mensualidades pagadas todavía.
+          </p>
+        ) : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-slate-600">
+                  <th scope="col" className="pb-2 pr-4 font-semibold">Alumno</th>
+                  <th scope="col" className="pb-2 pr-4 font-semibold">Mes</th>
+                  <th scope="col" className="pb-2 font-semibold">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historialCobros.mensualidades.map((m) => (
+                  <tr key={m.id} className="border-b border-slate-100">
+                    <td className="py-2 pr-4 font-medium text-slate-900">
+                      {m.alumno}
+                    </td>
+                    <td className="py-2 pr-4 text-slate-700 first-letter:uppercase">
+                      {formatPeriod(m.periodYear, m.periodMonth)}
+                    </td>
+                    <td className="py-2 text-slate-900">
+                      {formatMoney(m.amountCents)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function Dato({
+  icon: Icon,
+  label,
+  valor,
+}: {
+  icon: typeof Mail;
+  label: string;
+  valor: string;
+}) {
+  return (
+    <div className="flex gap-3">
+      <Icon
+        size={18}
+        aria-hidden="true"
+        className="mt-0.5 shrink-0 text-slate-400"
+      />
+      <div className="min-w-0">
+        <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+          {label}
+        </dt>
+        <dd className="mt-1 text-sm break-words text-slate-900">{valor}</dd>
+      </div>
+    </div>
+  );
+}
+
+function Tile({
+  label,
+  valor,
+  pista,
+}: {
+  label: string;
+  valor: string;
+  pista: string;
+}) {
+  return (
+    <Card className="p-4">
+      <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-bold text-slate-900">{valor}</p>
+      <p className="mt-1 text-xs text-slate-600">{pista}</p>
+    </Card>
+  );
+}
+
+export default TeacherCard;

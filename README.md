@@ -194,6 +194,9 @@ distinta, según su rol:
 | Administrador | `admin@dojo.com` | `123456` | — | Todo el dojo, incluyendo Profesores |
 | Profesor | `profesor@dojo.com` | `123456` | `PROF-7K2M` | **Solo** Ana y Diego |
 | Profesor | `profesora@dojo.com` | `123456` | `PROF-3XQ8` | **Solo** Luis |
+
+> Los profesores necesitan **los tres datos**: correo, contraseña y clave. En el login
+> hay que elegir "Profesor" para que aparezca el campo de la clave.
 | Tutor | `tutor@dojo.com` | `123456` | — | Panel familiar con **sus dos hijos** |
 | Alumno | `alumno@dojo.com` | `123456` | — | Panel familiar con su propio expediente |
 
@@ -206,7 +209,7 @@ servidor público.
 Datos que crea el seed:
 
 - **Ana López** — alumna con cuenta propia e historial completo: 4 graduaciones de
-  cinturón, 13 registros de asistencia, 4 mensualidades y 3 observaciones.
+  cinta, 13 registros de asistencia, 4 mensualidades y 3 observaciones.
 - **Diego López** — hermano menor de Ana, sin cuenta propia. Sirve para ver cómo un
   alumno existe en el sistema sin poder iniciar sesión.
 - **Marta López** (`tutor@dojo.com`) — madre de los dos. Al entrar ve ambos
@@ -241,6 +244,75 @@ profesores y la configuración del dojo.
 | Configuración del dojo | ✅ | ❌ | ❌ | ❌ |
 | Ver el calendario | ✅ | ✅ | ✅ | ✅ |
 | Ver sus notificaciones | ✅ | ✅ | ✅ | ✅ |
+
+## Inicio de sesión de los profesores
+
+Un profesor necesita **tres datos**, no dos: correo, contraseña **y su clave**. Alumnos,
+tutores y el administrador entran con correo y contraseña nada más.
+
+En la pantalla de login hay un selector "Alumno o tutor / Profesor". Existe por una
+razón concreta: si a un profesor le falta la clave, el backend responde el **mismo**
+mensaje que ante una contraseña incorrecta, a propósito. Decir "falta la clave" le
+confirmaría a quien ya robó una contraseña que ese correo es de un profesor y que solo
+le falta ese dato. El selector evita que un profesor se quede sin entender por qué no
+entra.
+
+La comparación ignora mayúsculas y espacios, porque la clave se dicta en voz alta.
+
+---
+
+# Ficha del profesor
+
+Cada profesor tiene su ficha, en **Profesores → Ver ficha**:
+
+- Datos de contacto, grado (un sensei también tiene su cinta), especialidad y fecha de
+  ingreso
+- Su clave, para dictarla o copiarla
+- Sus alumnos asignados
+- **Lo que ha recaudado**: las mensualidades de sus alumnos y los cobros de eventos
+  acreditados a su clave, con el detalle de cada uno
+
+Quién la ve:
+
+| | Admin | El propio profesor | Otro profesor |
+| --- | :-: | :-: | :-: |
+| Ver la ficha | ✅ | ✅ | ❌ |
+| Ver las notas internas del admin | ✅ | ❌ | ❌ |
+| Editar contacto, grado, especialidad | ✅ | ✅ | ❌ |
+| Editar las notas internas | ✅ | ❌ | ❌ |
+
+Un profesor **no** puede abrir la ficha de otro: ahí están las notas del administrador
+y el dinero que maneja.
+
+---
+
+# Eventos con costo
+
+Un torneo o un examen pueden requerir pago. Al crear el evento se marca **Requiere
+pago** y se pone el costo.
+
+El flujo, de principio a fin:
+
+1. El **profesor comparte su clave** con sus alumnos (la misma `PROF-7K2M`).
+2. El alumno paga en el dojo y entra a **Eventos → Pagar**, donde escribe la clave y
+   reporta el pago. Un tutor con varios hijos elige de quién es.
+3. Al profesor le llega una **notificación** de pago por confirmar.
+4. El profesor entra a **Eventos → Pagos**, y confirma o rechaza.
+5. **Al confirmar, el alumno queda inscrito** en el mismo movimiento, y el cobro
+   aparece en el historial de ese profesor. A la familia le llega la notificación.
+
+Detalles que importan:
+
+- **El alumno nunca manda el id del profesor**, solo la clave. Si pudiera mandar un
+  id, cualquiera podría acreditar cobros a un profesor que nunca vio el dinero.
+- **Un profesor solo ve y resuelve los cobros de su clave.** El admin ve todos. Si un
+  alumno escribe por error la clave de otro profesor, ese profesor verá el reporte y
+  podrá rechazarlo.
+- **El monto se congela al reportar.** Si el dojo cambia el precio del evento después,
+  los cobros ya hechos no se alteran.
+- Un alumno no puede reportar dos veces el mismo evento.
+
+---
 
 ## La clave del profesor
 
@@ -346,6 +418,95 @@ Registrar y editar cobros corresponde al módulo `feature/payments`.
 
 ---
 
+# Inscripción por QR
+
+Un profesor o el admin genera una invitación y comparte el **QR o el enlace**. La
+persona llena el formulario desde su celular, sin tener cuenta, y queda registrada
+en el grupo del profesor que la invitó.
+
+Hay dos formularios:
+
+| Tipo | Qué pide |
+| --- | --- |
+| **Alumno** | Nombre, apellido, fecha de nacimiento, correo, celular, datos del tutor e información médica |
+| **Tutor** | Sus datos y los de **cada uno de sus hijos** (hasta 10), más su parentesco |
+
+En los dos casos la persona elige su contraseña, así que al terminar ya puede entrar.
+El profesor no tiene que capturar nada ni inventar contraseñas.
+
+Dónde se genera:
+
+- **Alumnos → Invitar por QR** — para un alumno nuevo o un tutor nuevo.
+- **Dentro de la tarjeta de un alumno → Invitar a un tutor** — para sumarle un tutor
+  a un expediente que ya existe. El tutor queda ligado a ese alumno además de los
+  hijos que dé de alta.
+
+## Lo que protege ese formulario
+
+Es la única pantalla, además del login, que se abre **sin sesión**. Las defensas:
+
+- **Un solo uso.** Al enviarse, la invitación se sella y el enlace deja de servir.
+  El sellado va dentro de la misma transacción que crea las cuentas, así que dos
+  envíos simultáneos no pueden colarse los dos.
+- **Caduca en 14 días.**
+- **Token de 192 bits** generado con `crypto.randomBytes`, no con `Math.random`, que
+  es predecible. Adivinarlo por fuerza bruta no es viable.
+- **Límite de peticiones**: 20 cada 10 minutos por IP en el formulario, y 10 cada 5
+  minutos en el login. Ver [rateLimit.ts](backend/src/middleware/rateLimit.ts), que
+  documenta sus límites: el conteo vive en memoria del proceso, así que con varias
+  instancias habría que cambiarlo por Redis.
+- **No revela nada.** El endpoint público solo devuelve el tipo de formulario y el
+  nombre de quien invita. Nunca datos de otras familias.
+- Un profesor **no puede** generar invitaciones ligadas a alumnos de otro profesor.
+
+> ⚠️ Cualquiera con el enlace puede llenar el formulario: eso es inherente a un QR
+> que se manda por WhatsApp. Por eso es de un solo uso y caduca. Manda cada enlace
+> solo a la persona que se va a inscribir, y si te equivocas, revócalo.
+
+## Para que el QR funcione desde un celular
+
+**Con la configuración por omisión no funciona**, y la razón es importante: los
+enlaces se generan apuntando a `localhost`, y en un teléfono `localhost` significa
+*el teléfono mismo*. Escanear el QR lo manda a buscarse a sí mismo.
+
+Hay que usar la IP de tu computadora en la red local. Para averiguarla:
+
+```bash
+ipconfig getifaddr en0     # macOS
+hostname -I                # Linux
+ipconfig                   # Windows: busca "Dirección IPv4"
+```
+
+Suponiendo que sea `192.168.1.77`, en **`backend/.env`**:
+
+```env
+PUBLIC_APP_URL="http://192.168.1.77:5173"
+CORS_ORIGIN="http://localhost:5173,http://192.168.1.77:5173"
+```
+
+Y en **`frontend/.env`**:
+
+```env
+VITE_API_URL="http://192.168.1.77:3000"
+```
+
+Reinicia los dos servidores. Vite ya escucha en la red (`server.host: true` en
+[vite.config.ts](frontend/vite.config.ts)) e imprime la dirección al arrancar.
+
+Tres cosas que hay que tener en cuenta:
+
+- **El celular y la computadora tienen que estar en la misma red wifi.** Una red de
+  invitados o de empresa puede aislar los dispositivos entre sí y lo bloquea.
+- **La IP cambia** al cambiar de red, y hay que volver a ajustar los `.env`.
+- `CORS_ORIGIN` acepta varios orígenes separados por coma, para que sigas pudiendo
+  trabajar en `localhost` mientras pruebas desde el celular. `PUBLIC_APP_URL` es uno
+  solo, porque un enlace solo puede apuntar a una dirección.
+
+En producción, `PUBLIC_APP_URL` sería el dominio real del dojo y este problema
+desaparece.
+
+---
+
 # Estructura del proyecto
 
 ```
@@ -388,7 +549,7 @@ El proyecto usa **Git Flow**: `main` (producción) ← `develop` (integración) 
 main
  └── develop
       ├── feature/auth        login, registro, JWT
-      ├── feature/students    alumnos y cinturones
+      ├── feature/students    alumnos y cintas
       ├── feature/teachers    profesores y horarios
       ├── feature/payments    mensualidades
       ├── feature/reports     reportes

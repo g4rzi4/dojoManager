@@ -17,10 +17,16 @@ function EventForm({ onCreado, onCancelar }: Props) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [category, setCategory] = useState<EventCategory>("CLASE");
+  const [requiresPayment, setRequiresPayment] = useState(false);
+  /** En pesos: se convierte a centavos al enviar. */
+  const [precio, setPrecio] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
-  const valido = title.trim().length > 0 && date.length > 0;
+  const precioValido =
+    !requiresPayment || (Number(precio) > 0 && Number.isFinite(Number(precio)));
+
+  const valido = title.trim().length > 0 && date.length > 0 && precioValido;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -36,11 +42,19 @@ function EventForm({ onCreado, onCancelar }: Props) {
         date,
         time: time || undefined,
         category,
+        requiresPayment,
+        // El backend espera centavos como entero. Math.round evita que
+        // 450.1 se convierta en 45009.999...
+        priceCents: requiresPayment
+          ? Math.round(Number(precio) * 100)
+          : undefined,
       });
 
       setTitle("");
       setDate("");
       setTime("");
+      setRequiresPayment(false);
+      setPrecio("");
 
       await onCreado();
     } catch (e: unknown) {
@@ -79,7 +93,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Examen de cinturón azul"
+            placeholder="Examen de cinta azul"
             className={inputClase}
           />
         </div>
@@ -143,6 +157,48 @@ function EventForm({ onCreado, onCancelar }: Props) {
             </select>
           </div>
         </div>
+
+        {/* Pago: para torneos y exámenes que cuestan */}
+        <fieldset className="border-t border-slate-200 pt-5">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={requiresPayment}
+              onChange={(e) => setRequiresPayment(e.target.checked)}
+              className="mt-1 cursor-pointer"
+            />
+            <span>
+              <span className="block text-sm font-medium text-slate-700">
+                Requiere pago para participar
+              </span>
+              <span className="mt-0.5 block text-xs text-slate-600">
+                Los alumnos reportarán el pago con la clave de su profesor, y
+                quedan inscritos cuando él lo confirme.
+              </span>
+            </span>
+          </label>
+
+          {requiresPayment && (
+            <div className="mt-4 max-w-xs space-y-2">
+              <label
+                htmlFor="ev-precio"
+                className="block text-sm font-medium text-slate-700"
+              >
+                Costo en pesos
+              </label>
+              <input
+                id="ev-precio"
+                type="number"
+                min="1"
+                step="0.01"
+                value={precio}
+                onChange={(e) => setPrecio(e.target.value)}
+                placeholder="450.00"
+                className={inputClase}
+              />
+            </div>
+          )}
+        </fieldset>
 
         {error && (
           <p className="text-sm font-medium text-red-700" role="alert">

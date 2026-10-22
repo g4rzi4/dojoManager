@@ -19,6 +19,8 @@ export type SessionUser = {
   name: string;
   email: string;
   role: Role;
+  /** Clave del profesor. Null para los demás roles. */
+  teacherCode: string | null;
   /** Expediente del alumno, si esta cuenta es de un alumno. */
   studentId: number | null;
   /**

@@ -13,11 +13,20 @@ export type DojoEvent = {
   /** Hora en formato HH:MM. Opcional: un evento puede durar todo el día. */
   time?: string;
   category: EventCategory;
+
+  /** Si hay que pagar para participar. Un torneo o un examen suelen costar. */
+  requiresPayment?: boolean;
+  /** Costo en centavos. Nulo si es gratuito. */
+  priceCents?: number | null;
+  /** Cuántos reportes de pago lleva. Solo lo usan admin y profesores. */
+  reportes?: number;
+  /** Estado de los alumnos a cargo de quien consulta. */
+  misAlumnos?: import("./eventPayment").MyEnrollment[];
 };
 
 export const CATEGORY_LABELS: Record<EventCategory, string> = {
   CLASE: "Clase",
-  EXAMEN: "Examen de cinturón",
+  EXAMEN: "Examen de cinta",
   TORNEO: "Torneo",
   PAGO: "Cobro de mensualidad",
 };

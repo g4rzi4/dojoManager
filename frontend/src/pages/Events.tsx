@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CalendarPlus, Clock, Trash2 } from "lucide-react";
+import { CalendarDays, CalendarPlus, Clock, Receipt, Trash2 } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import EventForm from "../components/EventForm";
-import { ApiError, deleteEvent, getEvents } from "../services/api";
+import EventPaymentPanel from "../components/EventPaymentPanel";
+import { ApiError, deleteEvent, getEvents, getMyStudents } from "../services/api";
 import { can, getUser } from "../services/session";
 import type { DojoEvent } from "../types/event";
+import type { MyStudent } from "../types/payment";
 import { CATEGORY_LABELS, CATEGORY_STYLES } from "../types/event";
 import { formatLongDate, fromDateKey, toDateKey } from "../utils/date";
+import { formatMoney } from "../utils/format";
 
 function Events() {
   const user = getUser();
@@ -19,6 +22,9 @@ function Events() {
   const [error, setError] = useState("");
   const [agregando, setAgregando] = useState(false);
   const [borrando, setBorrando] = useState<string | null>(null);
+  const [misAlumnos, setMisAlumnos] = useState<MyStudent[]>([]);
+  /** Qué evento tiene abierto su panel de pago. */
+  const [abierto, setAbierto] = useState<string | null>(null);
 
   function cargar() {
     return getEvents()
@@ -34,6 +40,14 @@ function Events() {
 
   useEffect(() => {
     let activo = true;
+
+    // Los alumnos a cargo se piden en paralelo: un alumno o tutor necesita
+    // saber de quién es cada pago. Si falla, no rompe el calendario.
+    getMyStudents()
+      .then((data) => {
+        if (activo) setMisAlumnos(data);
+      })
+      .catch(() => {});
 
     getEvents()
       .then((data) => {
@@ -115,7 +129,7 @@ function Events() {
             Eventos
           </h1>
           <p className="mt-2 text-slate-600">
-            Clases, exámenes de cinturón, torneos y fechas de cobro.
+            Clases, exámenes de cinta, torneos y fechas de cobro.
           </p>
         </div>
 
@@ -221,6 +235,34 @@ function Events() {
                           {CATEGORY_LABELS[event.category]}
                         </span>
 
+                        {event.requiresPayment && (
+                          <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
+                            {formatMoney(event.priceCents ?? 0)}
+                          </span>
+                        )}
+
+                        {event.requiresPayment && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAbierto((a) => (a === event.id ? null : event.id))
+                            }
+                            aria-expanded={abierto === event.id}
+                            className="
+                              flex shrink-0 cursor-pointer items-center gap-1.5
+                              rounded-lg border border-slate-300 bg-white px-3 py-2
+                              text-xs font-semibold text-slate-700
+                              transition-colors duration-200
+                              motion-reduce:transition-none
+                              hover:bg-slate-50
+                              focus:ring-2 focus:ring-blue-600 focus:outline-none
+                            "
+                          >
+                            <Receipt size={14} aria-hidden="true" />
+                            {puedeEditar ? "Pagos" : "Pagar"}
+                          </button>
+                        )}
+
                         {puedeEditar && (
                           <button
                             type="button"
@@ -241,6 +283,16 @@ function Events() {
                           </button>
                         )}
                       </Card>
+
+                      {abierto === event.id && event.requiresPayment && (
+                        <div className="mt-2">
+                          <EventPaymentPanel
+                            event={event}
+                            misAlumnos={misAlumnos}
+                            onCambio={cargar}
+                          />
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

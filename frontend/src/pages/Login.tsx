@@ -13,6 +13,16 @@ function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [teacherCode, setTeacherCode] = useState("");
+  /**
+   * Un interruptor en lugar de un campo siempre visible.
+   *
+   * El backend responde el mismo mensaje genérico si a un profesor le falta
+   * la clave, así que sin este interruptor un profesor que la olvidara vería
+   * "correo o contraseña incorrectos" sin entender por qué. Eligiendo
+   * "profesor" sabe que el campo es obligatorio.
+   */
+  const [comoProfesor, setComoProfesor] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,7 +31,11 @@ function Login() {
     setError("");
 
     try {
-      const data = await login(email, password);
+      const data = await login(
+        email,
+        password,
+        comoProfesor ? teacherCode : undefined
+      );
 
       // Guardamos también el usuario, no solo el token: el saludo necesita
       // su nombre y el sidebar sus permisos.
@@ -90,6 +104,55 @@ function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+
+            {/* Selector de tipo de cuenta */}
+            <fieldset>
+              <legend className="text-sm font-medium text-gray-700">
+                ¿Cómo entras?
+              </legend>
+
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                {[
+                  { valor: false, etiqueta: "Alumno o tutor" },
+                  { valor: true, etiqueta: "Profesor" },
+                ].map(({ valor, etiqueta }) => (
+                  <label
+                    key={etiqueta}
+                    className={`
+                      flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3
+                      text-sm font-medium transition-colors duration-200
+                      motion-reduce:transition-none
+                      ${
+                        comoProfesor === valor
+                          ? "border-blue-600 bg-blue-50 text-blue-900"
+                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                      }
+                    `}
+                  >
+                    <input
+                      type="radio"
+                      name="tipo-cuenta"
+                      checked={comoProfesor === valor}
+                      onChange={() => setComoProfesor(valor)}
+                      className="cursor-pointer"
+                    />
+                    {etiqueta}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            {/* La clave es el tercer factor de los profesores */}
+            {comoProfesor && (
+              <Input
+                label="Clave de profesor"
+                type="text"
+                placeholder="PROF-7K2M"
+                value={teacherCode}
+                onChange={(e) => setTeacherCode(e.target.value)}
+                className="font-mono"
+              />
+            )}
 
             {error && (
               <p className="text-sm text-red-600">

@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ChevronRight, IdCard, Receipt, Users } from "lucide-react";
+import { Bell, Receipt, Users } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import EventCalendar from "../components/EventCalendar";
+import FamilyStudentCards from "../components/FamilyStudentCards";
 import { ApiError, getEvents, getMyStudents, getNotifications, getPayments } from "../services/api";
 import { getUser } from "../services/session";
 import type { DojoEvent } from "../types/event";
 import type { MyStudent, PaymentsResponse } from "../types/payment";
 import type { AppNotification } from "../types/notification";
-import { BELT_LABELS, BELT_STYLES } from "../types/student";
 import { formatMoney } from "../utils/format";
 
 /**
@@ -127,105 +127,20 @@ function FamilyHome() {
             />
           </div>
 
-          {/* Expedientes */}
+          {/* Expedientes completos */}
           <section className="mt-8" aria-labelledby="titulo-expedientes">
             <h2
               id="titulo-expedientes"
               className="mb-4 text-sm font-semibold tracking-wide text-slate-500 uppercase"
             >
-              {esTutor ? "Mis hijos" : "Mi expediente"}
+              {esTutor
+                ? students.length > 1
+                  ? "Tarjetas de mis hijos"
+                  : "Tarjeta de mi hijo"
+                : "Mi tarjeta"}
             </h2>
 
-            {students.length === 0 ? (
-              <Card className="p-8 text-center">
-                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-                  <IdCard size={26} aria-hidden="true" />
-                </span>
-                <h3 className="mt-4 font-bold text-slate-900">
-                  No hay expedientes ligados a tu cuenta
-                </h3>
-                <p className="mt-2 text-sm text-slate-600">
-                  {esTutor
-                    ? "Pide al administrador del dojo que ligue a tus hijos a tu cuenta de tutor."
-                    : "Pide al administrador del dojo que ligue tu expediente a tu cuenta."}
-                </p>
-              </Card>
-            ) : (
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {students.map((s) => (
-                  <li key={s.id}>
-                    <Link
-                      to={`/alumnos/${s.id}`}
-                      className="
-                        block rounded-2xl transition-shadow duration-200
-                        motion-reduce:transition-none
-                        hover:shadow-xl
-                        focus:ring-2 focus:ring-blue-600 focus:outline-none
-                      "
-                    >
-                      <Card className="cursor-pointer p-5">
-                        <div className="flex items-start gap-4">
-                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white">
-                            {s.firstName.charAt(0).toUpperCase()}
-                            {s.lastName.charAt(0).toUpperCase()}
-                          </span>
-
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-slate-900">
-                              {s.firstName} {s.lastName}
-                            </p>
-                            <span
-                              className={`mt-1.5 inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                                BELT_STYLES[s.currentBelt]
-                              }`}
-                            >
-                              Cinturón {BELT_LABELS[s.currentBelt]}
-                            </span>
-                          </div>
-
-                          <ChevronRight
-                            size={20}
-                            aria-hidden="true"
-                            className="shrink-0 text-slate-400"
-                          />
-                        </div>
-
-                        <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-slate-100 pt-4 text-center">
-                          <div>
-                            <dt className="text-xs text-slate-600">
-                              Graduaciones
-                            </dt>
-                            <dd className="mt-0.5 font-bold text-slate-900">
-                              {s.graduaciones}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt className="text-xs text-slate-600">Clases</dt>
-                            <dd className="mt-0.5 font-bold text-slate-900">
-                              {s.asistencias}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt className="text-xs text-slate-600">
-                              Por pagar
-                            </dt>
-                            <dd
-                              className={`mt-0.5 font-bold ${
-                                s.totalPendienteCents > 0
-                                  ? "text-amber-700"
-                                  : "text-slate-900"
-                              }`}
-                            >
-                              {formatMoney(s.totalPendienteCents)}
-                            </dd>
-                          </div>
-                        </dl>
-                      </Card>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <FamilyStudentCards students={students} />
           </section>
 
           {/* Calendario */}

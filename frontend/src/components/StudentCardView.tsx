@@ -85,7 +85,7 @@ function StudentCardView({ student }: Props) {
                   BELT_STYLES[student.currentBelt]
                 }`}
               >
-                Cinturón {BELT_LABELS[student.currentBelt]}
+                Cinta {BELT_LABELS[student.currentBelt].toLowerCase()}
               </span>
 
               <span
@@ -207,7 +207,7 @@ function StudentCardView({ student }: Props) {
         <StatTile
           label="Graduaciones"
           value={String(resumen.graduaciones)}
-          hint="cambios de cinturón"
+          hint="cambios de cinta"
         />
         <StatTile
           label="Asistencia"
@@ -287,7 +287,7 @@ function StudentCardView({ student }: Props) {
                     />
                     <div className="min-w-0 border-b border-slate-100 pb-4">
                       <p className="font-semibold text-slate-900">
-                        Cinturón {BELT_LABELS[g.belt]}
+                        Cinta {BELT_LABELS[g.belt].toLowerCase()}
                       </p>
                       <p className="mt-0.5 text-sm text-slate-600 first-letter:uppercase">
                         {formatLongDate(fromDateKey(g.promotedAt))}
