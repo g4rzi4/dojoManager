@@ -56,6 +56,7 @@ npm install
 cp .env.example .env     # con Docker funciona sin editar nada
 npx prisma generate      # genera el cliente en src/generated/ (no se sube a git)
 npx prisma migrate dev
+npx prisma db seed       # crea las cuentas de prueba de los 3 roles
 cd ..
 
 # 3. Frontend
@@ -81,6 +82,8 @@ Para levantarlo necesitas **dos terminales**: `npm run dev` dentro de `backend/`
 | `tsx: command not found`                                             | Mismo caso: `npm install` en `backend/`.                                                                                                                                                 |
 | `Cannot find module './internal/class.js'`                           | Estás corriendo el backend con `ts-node` o `ts-node-dev`. Usa `npm run dev`, que usa `tsx` (ver §9).                                                                                     |
 | `Environment variable not found: DATABASE_URL`                       | No creaste tu `.env`: `cp .env.example .env` dentro de `backend/`.                                                                                                                       |
+| `Falta la variable de entorno JWT_SECRET`                            | Tu `.env` es de una versión anterior. Compáralo con `.env.example` y agrega lo que falte: el backend no arranca sin esa llave.                                                            |
+| `401` en todo después de actualizar                                  | Cambió el `JWT_SECRET` o se recreó la base: los tokens viejos ya no valen. Cierra sesión en el navegador y vuelve a entrar.                                                              |
 
 > **Nota:** el `node_modules` del backend que estaba subido a git venía **incompleto**
 > (le faltaban `express`, `cors`, `dotenv`, `ts-node-dev` y `typescript`). Ya lo
@@ -238,6 +241,63 @@ const nuevo = await prisma.user.create({
 Si todos importamos el mismo [`src/lib/prisma.ts`](backend/src/lib/prisma.ts),
 compartimos un solo pool de conexiones. Si cada módulo instancia el suyo, entre 6
 personas agotamos las conexiones de PostgreSQL y empieza a fallar sin razón aparente.
+
+### Proteger tus endpoints (obligatorio)
+
+Hay tres roles: `ADMIN`, `PROFESOR` (subadministrador) y `ALUMNO`. La matriz de
+permisos está en [`backend/src/permissions.ts`](backend/src/permissions.ts) y es la
+**única** fuente de verdad.
+
+Todo endpoint nuevo se protege con dos middlewares:
+
+```ts
+import { requireAuth, requirePermission } from "../middleware/auth";
+
+// Leer: cualquiera que pueda ver alumnos
+router.get("/", requireAuth, requirePermission("students:read"), handler);
+
+// Escribir: exige el permiso de escritura
+router.post("/", requireAuth, requirePermission("students:write"), handler);
+```
+
+Dentro del handler, `req.user` trae `{ id, role }` — **sacado del token**, no del
+body. Nunca leas el rol de lo que manda el cliente: cualquiera puede escribir
+`{"role":"ADMIN"}` en una petición.
+
+```ts
+router.post("/", requireAuth, requirePermission("students:write"), async (req, res) => {
+  const autorId = req.user!.id;  // ✅ viene del token firmado
+  // const autorId = req.body.userId;  ❌ el cliente podría poner cualquiera
+});
+```
+
+**Si el recurso es "propio" del usuario**, el permiso no alcanza: hay que comparar
+contra el token. Así lo hace la tarjeta del alumno en
+[`students.routes.ts`](backend/src/routes/students.routes.ts):
+
+```ts
+const esSuPropioExpediente = student.userId === req.user!.id;
+
+if (!can(req.user!.role, "students:read") && !esSuPropioExpediente) {
+  return res.status(403).json({ success: false, message: "..." });
+}
+```
+
+> ⚠️ **Ocultar un botón en el frontend no protege nada.** El menú se esconde solo
+> para no ofrecer algo que va a fallar. Cualquiera puede llamar a tu endpoint con
+> `curl` y un token de alumno. Si no pusiste `requirePermission`, entra.
+
+### Contraseñas
+
+Nunca guardes una contraseña en texto plano ni la devuelvas en una respuesta. Usa
+los helpers que ya existen:
+
+```ts
+import { hashPassword, verifyPassword } from "../lib/password";
+
+const hash = await hashPassword("la-que-escribio-el-usuario");
+const correcta = await verifyPassword("intento", usuario.password);
+```
 
 ### Si cambias el modelo de datos
 

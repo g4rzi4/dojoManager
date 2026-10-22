@@ -110,6 +110,10 @@ DATABASE_URL="postgresql://juan@localhost:5432/dojomanager"
 > El `.env` **no se sube a git** (contiene tus credenciales). El `.env.example` sí, y
 > es donde se documenta cada variable nueva que agregue el equipo.
 
+El `.env.example` también trae `JWT_SECRET` con un valor de desarrollo.
+**El backend no arranca sin esa variable**: es la llave con la que se firman las
+sesiones, y falla de inmediato con un mensaje claro si falta.
+
 Generar el cliente de Prisma:
 
 ```bash
@@ -120,6 +124,13 @@ Ejecutar las migraciones:
 
 ```bash
 npx prisma migrate dev
+```
+
+Cargar los datos iniciales (crea las cuentas de prueba y un alumno con
+historial completo):
+
+```bash
+npx prisma db seed
 ```
 
 Iniciar el backend:
@@ -174,20 +185,22 @@ http://localhost:5173
 
 # Probar que todo funciona
 
-Con el backend y el frontend corriendo:
+Con el backend y el frontend corriendo, abre `http://localhost:5173` y entra con
+cualquiera de las tres cuentas que crea el seed. Cada una lleva a una pantalla
+distinta, según su rol:
 
-1. Abre `http://localhost:5173`
-2. Entra con el usuario de prueba:
+| Rol          | Correo              | Contraseña | Qué ve al entrar                              |
+| ------------ | ------------------- | ---------- | --------------------------------------------- |
+| Administrador | `admin@dojo.com`    | `123456`   | Panel completo, incluyendo Profesores         |
+| Profesor     | `profesor@dojo.com` | `123456`   | Igual, **sin** la sección de Profesores       |
+| Alumno       | `alumno@dojo.com`   | `123456`   | Solo su propia tarjeta de información         |
 
-   ```
-   Correo:      admin@dojo.com
-   Contraseña:  123456
-   ```
+Las contraseñas se guardan con hash de **bcrypt** y la sesión viaja en un **JWT**
+firmado con tu `JWT_SECRET`. Son cuentas de **desarrollo local**: no las subas a un
+servidor público.
 
-Ese usuario está **escrito a mano** en
-[backend/src/routes/auth.routes.ts](backend/src/routes/auth.routes.ts) y no toca la
-base de datos. Es un placeholder para que el equipo pueda trabajar mientras
-`feature/auth` implementa la autenticación real contra la tabla `User`.
+El alumno de prueba (Ana López) viene con historial completo: 4 graduaciones de
+cinturón, 13 registros de asistencia, 4 mensualidades y 3 observaciones del profesor.
 
 Para comprobar solo el backend:
 
@@ -195,6 +208,38 @@ Para comprobar solo el backend:
 curl http://localhost:3000
 # {"message":"Backend funcionando 🚀"}
 ```
+
+---
+
+# Roles y permisos
+
+Hay tres roles. El profesor es **subadministrador**: puede todo menos administrar
+profesores y la configuración del dojo.
+
+| Permiso           | Administrador | Profesor | Alumno |
+| ----------------- | :-----------: | :------: | :----: |
+| Ver alumnos       |       ✅       |    ✅     |   —    |
+| Editar alumnos    |       ✅       |    ✅     |   —    |
+| Ver/editar eventos |      ✅       |    ✅     |   —    |
+| Ver/editar pagos  |       ✅       |    ✅     |   —    |
+| Ver reportes      |       ✅       |    ✅     |   —    |
+| Administrar profesores |   ✅      |    ❌     |   —    |
+| Configuración del dojo |   ✅      |    ❌     |   —    |
+| Ver su propia tarjeta  |   ✅      |    ✅     |   ✅    |
+
+La matriz vive en un solo lugar:
+[backend/src/permissions.ts](backend/src/permissions.ts). El frontend **no la
+duplica**: el backend le envía al iniciar sesión la lista de permisos ya resuelta, y
+el menú se arma con eso.
+
+> ⚠️ Ocultar un menú **no es seguridad**. Quien sabe la URL puede entrar, y quien
+> sabe usar la consola del navegador puede editar su `localStorage`. Lo que de verdad
+> protege los datos es que cada ruta del backend valida el token y el permiso. Si
+> agregas un endpoint, protégelo con `requireAuth` y `requirePermission` — ver
+> [CONTRIBUTING.md](CONTRIBUTING.md).
+
+El alumno solo puede ver **su propio** expediente: `GET /students/:id` compara el id
+del expediente contra el del token y responde `403` si no coincide.
 
 ---
 

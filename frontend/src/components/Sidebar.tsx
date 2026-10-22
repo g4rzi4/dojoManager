@@ -4,11 +4,13 @@ import {
   Users,
   GraduationCap,
   CalendarDays,
+  IdCard,
   LogOut,
   X,
 } from "lucide-react";
 
-import { clearSession, getUser } from "../services/session";
+import { can, clearSession, getUser } from "../services/session";
+import { ROLE_LABELS, type Permission } from "../types/user";
 
 type Props = {
   /** En móvil el sidebar se muestra como panel deslizable. */
@@ -16,16 +18,56 @@ type Props = {
   onClose: () => void;
 };
 
-const NAV_ITEMS = [
-  { to: "/dashboard", label: "Inicio", icon: LayoutDashboard },
-  { to: "/profesores", label: "Profesores", icon: GraduationCap },
-  { to: "/alumnos", label: "Alumnos", icon: Users },
-  { to: "/eventos", label: "Eventos", icon: CalendarDays },
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  /** Permiso necesario para ver esta entrada. */
+  permission: Permission;
+};
+
+/**
+ * Entradas del menú con el permiso que cada una exige.
+ *
+ * Un PROFESOR no verá "Profesores" porque no tiene teachers:read. Ocultarlo
+ * es solo para no ofrecer algo que va a fallar: la puerta de verdad la cierra
+ * el backend.
+ */
+const NAV_ITEMS: NavItem[] = [
+  {
+    to: "/dashboard",
+    label: "Inicio",
+    icon: LayoutDashboard,
+    permission: "students:read",
+  },
+  {
+    to: "/profesores",
+    label: "Profesores",
+    icon: GraduationCap,
+    permission: "teachers:read",
+  },
+  {
+    to: "/alumnos",
+    label: "Alumnos",
+    icon: Users,
+    permission: "students:read",
+  },
+  {
+    to: "/eventos",
+    label: "Eventos",
+    icon: CalendarDays,
+    permission: "events:read",
+  },
 ];
 
 function Sidebar({ open, onClose }: Props) {
   const navigate = useNavigate();
   const user = getUser();
+
+  const visibleItems = NAV_ITEMS.filter((item) => can(user, item.permission));
+
+  // El alumno no administra nada: su única pantalla es su propia tarjeta.
+  const esAlumno = user?.role === "ALUMNO";
 
   function handleLogout() {
     clearSession();
@@ -52,7 +94,7 @@ function Sidebar({ open, onClose }: Props) {
           lg:static lg:z-auto lg:translate-x-0
           ${open ? "translate-x-0" : "-translate-x-full"}
         `}
-        aria-label="Navegación de administración"
+        aria-label="Navegación principal"
       >
         {/* Encabezado */}
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
@@ -62,7 +104,9 @@ function Sidebar({ open, onClose }: Props) {
             </span>
             <div>
               <p className="font-bold text-slate-900">DojoManager</p>
-              <p className="text-xs text-slate-600">Administración</p>
+              <p className="text-xs text-slate-600">
+                {esAlumno ? "Mi expediente" : "Administración"}
+              </p>
             </div>
           </div>
 
@@ -85,43 +129,27 @@ function Sidebar({ open, onClose }: Props) {
         {/* Navegación */}
         <nav className="flex-1 overflow-y-auto px-3 py-5">
           <p className="px-3 pb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-            Administración
+            {esAlumno ? "Mi cuenta" : "Administración"}
           </p>
 
           <ul className="space-y-1">
-            {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-              <li key={to}>
-                <NavLink
-                  to={to}
-                  onClick={onClose}
-                  className={({ isActive }) => `
-                    flex items-center gap-3 rounded-xl px-3 py-3
-                    text-sm font-medium transition-colors duration-200
-                    motion-reduce:transition-none
-                    focus:ring-2 focus:ring-blue-600 focus:outline-none
-                    ${
-                      isActive
-                        ? "bg-blue-50 text-blue-700"
-                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
-                    }
-                  `}
-                >
-                  {({ isActive }) => (
-                    <>
-                      <Icon
-                        size={20}
-                        aria-hidden="true"
-                        className={isActive ? "text-blue-700" : "text-slate-500"}
-                      />
-                      {label}
-                      {/* Marca el activo sin depender solo del color */}
-                      {isActive && (
-                        <span className="ml-auto h-6 w-1 rounded-full bg-blue-600" />
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              </li>
+            {esAlumno && (
+              <SidebarLink
+                to="/mi-tarjeta"
+                label="Mi tarjeta"
+                icon={IdCard}
+                onClose={onClose}
+              />
+            )}
+
+            {visibleItems.map(({ to, label, icon }) => (
+              <SidebarLink
+                key={to}
+                to={to}
+                label={label}
+                icon={icon}
+                onClose={onClose}
+              />
             ))}
           </ul>
         </nav>
@@ -137,7 +165,7 @@ function Sidebar({ open, onClose }: Props) {
                 {user?.name ?? "Invitado"}
               </p>
               <p className="truncate text-xs text-slate-600">
-                {user?.email ?? "Sin sesión"}
+                {user ? ROLE_LABELS[user.role] : "Sin sesión"}
               </p>
             </div>
           </div>
@@ -159,6 +187,50 @@ function Sidebar({ open, onClose }: Props) {
         </div>
       </aside>
     </>
+  );
+}
+
+type SidebarLinkProps = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  onClose: () => void;
+};
+
+function SidebarLink({ to, label, icon: Icon, onClose }: SidebarLinkProps) {
+  return (
+    <li>
+      <NavLink
+        to={to}
+        onClick={onClose}
+        className={({ isActive }) => `
+          flex items-center gap-3 rounded-xl px-3 py-3
+          text-sm font-medium transition-colors duration-200
+          motion-reduce:transition-none
+          focus:ring-2 focus:ring-blue-600 focus:outline-none
+          ${
+            isActive
+              ? "bg-blue-50 text-blue-700"
+              : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+          }
+        `}
+      >
+        {({ isActive }) => (
+          <>
+            <Icon
+              size={20}
+              aria-hidden="true"
+              className={isActive ? "text-blue-700" : "text-slate-500"}
+            />
+            {label}
+            {/* Marca el activo sin depender solo del color */}
+            {isActive && (
+              <span className="ml-auto h-6 w-1 rounded-full bg-blue-600" />
+            )}
+          </>
+        )}
+      </NavLink>
+    </li>
   );
 }
 

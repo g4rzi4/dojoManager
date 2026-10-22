@@ -1,8 +1,4 @@
-export type SessionUser = {
-  id: number;
-  name: string;
-  email: string;
-};
+import type { Permission, SessionUser } from "../types/user";
 
 const TOKEN_KEY = "token";
 const USER_KEY = "user";
@@ -19,8 +15,8 @@ export function getToken(): string | null {
 /**
  * Devuelve el usuario de la sesión actual, o null si no hay sesión.
  *
- * Lee de localStorage, que puede contener basura de una versión anterior de
- * la app o de alguien editándolo a mano, así que el parseo va en try/catch.
+ * Lee de localStorage, que puede traer basura de una versión anterior de la
+ * app o de alguien editándolo a mano, así que validamos la forma mínima.
  */
 export function getUser(): SessionUser | null {
   const raw = localStorage.getItem(USER_KEY);
@@ -28,7 +24,15 @@ export function getUser(): SessionUser | null {
 
   try {
     const parsed = JSON.parse(raw) as SessionUser;
-    if (typeof parsed?.name !== "string") return null;
+
+    if (
+      typeof parsed?.name !== "string" ||
+      typeof parsed?.role !== "string" ||
+      !Array.isArray(parsed?.permissions)
+    ) {
+      return null;
+    }
+
     return parsed;
   } catch {
     return null;
@@ -38,4 +42,27 @@ export function getUser(): SessionUser | null {
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+}
+
+/**
+ * ¿El usuario tiene este permiso?
+ *
+ * Solo para decidir qué se muestra en pantalla. La autorización real la
+ * aplica el backend en cada petición: ocultar un botón no protege nada,
+ * porque cualquiera puede llamar a la API directamente.
+ */
+export function can(
+  user: SessionUser | null,
+  permission: Permission
+): boolean {
+  return user?.permissions.includes(permission) ?? false;
+}
+
+/** A dónde mandar al usuario después de iniciar sesión, según su rol. */
+export function homePathFor(user: SessionUser): string {
+  if (user.role === "ALUMNO") {
+    return "/mi-tarjeta";
+  }
+
+  return "/dashboard";
 }
