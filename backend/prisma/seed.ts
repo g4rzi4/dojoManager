@@ -397,15 +397,28 @@ async function main() {
     day: number;
     time: string | null;
     category: EventCategory;
-    /** Costo en centavos si el evento requiere pago. */
+    /** Costo en centavos si el evento cobra una cuota única. */
     precio?: number;
+    /** Modalidades con su costo. Si hay, el total es la suma de las elegidas. */
+    modalidades?: { name: string; priceCents: number }[];
   }[] = [
     { title: "Clase de karate infantil", day: 3, time: "17:00", category: EventCategory.CLASE },
     { title: "Clase de adultos", day: 3, time: "19:00", category: EventCategory.CLASE },
     { title: "Cobro de mensualidades", day: 5, time: null, category: EventCategory.PAGO },
     { title: "Examen de cinta amarilla", day: 12, time: "10:00", category: EventCategory.EXAMEN },
     { title: "Clase de adultos", day: 12, time: "19:00", category: EventCategory.CLASE },
-    { title: "Torneo regional", day: 18, time: "09:00", category: EventCategory.TORNEO, precio: 45000 },
+    {
+      title: "Torneo regional",
+      day: 18,
+      time: "09:00",
+      category: EventCategory.TORNEO,
+      // Un torneo cobra por modalidad: hay quien entra a las dos y paga ambas.
+      modalidades: [
+        { name: "Kata", priceCents: 45000 },
+        { name: "Kumite", priceCents: 45000 },
+        { name: "Equipos", priceCents: 30000 },
+      ],
+    },
     { title: "Clase de karate infantil", day: 21, time: "17:00", category: EventCategory.CLASE },
     { title: "Examen de cinta verde", day: 26, time: "11:00", category: EventCategory.EXAMEN, precio: 30000 },
     { title: "Junta de profesores", day: 28, time: "18:00", category: EventCategory.CLASE },
@@ -426,9 +439,10 @@ async function main() {
         date: fecha(y, m, ev.day),
         time: ev.time,
         category: ev.category,
-        requiresPayment: ev.precio !== undefined,
+        requiresPayment: ev.precio !== undefined || ev.modalidades !== undefined,
         priceCents: ev.precio ?? null,
         createdById: profesor.id,
+        modalities: ev.modalidades ? { create: ev.modalidades } : undefined,
       },
     });
   }
@@ -474,7 +488,9 @@ async function main() {
   console.log(`  Alumnos: ${ana.firstName} ${ana.lastName} (historial completo, con cuenta),`);
   console.log(`           ${diego.firstName} ${diego.lastName} (hijo de la tutora, sin cuenta),`);
   console.log(`           ${luis.firstName} ${luis.lastName} (sin tutor ni cuenta)`);
-  console.log(`  Eventos del mes: ${eventos.length} (2 con costo: torneo $450, examen $300)`);
+  console.log(`  Eventos del mes: ${eventos.length}`);
+  console.log("    - Torneo regional: kata $450, kumite $450, equipos $300");
+  console.log("    - Examen de cinta verde: cuota unica $300");
 }
 
 main()

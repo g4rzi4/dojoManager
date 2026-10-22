@@ -289,7 +289,19 @@ y el dinero que maneja.
 # Eventos con costo
 
 Un torneo o un examen pueden requerir pago. Al crear el evento se marca **Requiere
-pago** y se pone el costo.
+pago**, y hay dos formas de cobrar:
+
+| Forma | Cuándo | Ejemplo |
+| --- | --- | --- |
+| **Cuota única** | El evento cobra lo mismo a todos | Examen de cinta: $300 |
+| **Por modalidad** | Cada modalidad cuesta aparte y el alumno paga la **suma** de las que elija | Torneo: kata $450, kumite $450, equipos $300 |
+
+Las modalidades **las define cada evento**, no una lista fija: un torneo tiene kata y
+kumite, otro puede tener equipos o formas con arma, y agregar una nueva no exige tocar
+el código.
+
+Esto existe porque el caso real no es uniforme: **hay padres que inscriben a su hijo
+en kata y kumite**, y pagan las dos.
 
 El flujo, de principio a fin:
 
@@ -301,8 +313,58 @@ El flujo, de principio a fin:
 5. **Al confirmar, el alumno queda inscrito** en el mismo movimiento, y el cobro
    aparece en el historial de ese profesor. A la familia le llega la notificación.
 
+## Categorías de competencia
+
+Cada inscripción lleva su categoría, en tres ejes: **rama** (femenil o varonil),
+**tipo de cinta** y **rango de edad**. Los rangos **no son los mismos** en las dos
+ramas de cinta.
+
+### Cintas de color
+
+| Categoría | Edad |
+| --- | --- |
+| Infantil | 4-5 · 6-7 · 8-9 · 10-11 · 12-13 años |
+| Juvenil | 14-15 · 16-17 años |
+| Adultos | 18-35 años |
+| Masters | 36 años en adelante |
+
+### Cintas negras
+
+| Categoría | Edad |
+| --- | --- |
+| U10 | 8-9 años |
+| U12 | 10-11 años |
+| U14 | 12-13 años |
+| Cadete | 14-15 años |
+| Junior | 16-17 años |
+| U21 | 18-20 años |
+| Senior | 21-35 años |
+| Masters | 36 años en adelante |
+
+El catálogo vive en
+[backend/src/lib/competitionCategories.ts](backend/src/lib/competitionCategories.ts) y
+el frontend lo **pide** a `GET /events/categories` en lugar de duplicarlo: si cambian
+los rangos, se cambian en un solo lugar.
+
+**Lo que se valida y lo que no.** El sistema rechaza una categoría que no exista en la
+rama elegida —un "U10" en cintas de color simplemente no existe— pero **nunca bloquea
+por la edad del alumno**. Inscribir a una alumna de 14 años en Adultos para foguearla
+con las grandes es un caso legítimo, y el sistema no debe estorbarlo. La edad solo
+sirve para sugerir.
+
+Además, cada inscripción guarda:
+
+- **Método de pago** — efectivo o transferencia, para los que pagan en la mano.
+- **Nota libre** — para la excepción que no encaje en ningún campo.
+
+El profesor ve el desglose completo al confirmar: qué modalidades, en qué división,
+cómo pagó y la nota.
+
 Detalles que importan:
 
+- **Los precios se congelan al reportar.** Si el dojo sube el costo del kata después,
+  los cobros ya hechos siguen en el monto original. Cada inscripción guarda el precio
+  de cada modalidad por separado, así que el desglose se puede reconstruir siempre.
 - **El alumno nunca manda el id del profesor**, solo la clave. Si pudiera mandar un
   id, cualquiera podría acreditar cobros a un profesor que nunca vio el dinero.
 - **Un profesor solo ve y resuelve los cobros de su clave.** El admin ve todos. Si un

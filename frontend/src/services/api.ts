@@ -4,7 +4,7 @@ import type { MyStudent, PaymentsResponse } from "../types/payment";
 import type { AppNotification, Audience } from "../types/notification";
 import type { DojoEvent, EventCategory } from "../types/event";
 import type { Teacher, TeacherCard, TeacherUpdate } from "../types/teacher";
-import type { EventEnrollment } from "../types/eventPayment";
+import type { CategoryCatalog, EventEnrollment } from "../types/eventPayment";
 import type {
   EnrollGuardianPayload,
   EnrollStudentPayload,
@@ -312,8 +312,10 @@ export async function createEvent(params: {
   category: EventCategory;
   /** Si hay que pagar para participar. */
   requiresPayment?: boolean;
-  /** Costo en CENTAVOS como entero. Obligatorio si requiresPayment. */
+  /** Costo en CENTAVOS. Se usa solo si el evento NO tiene modalidades. */
   priceCents?: number;
+  /** Modalidades con su costo. Si hay, el total es la suma de las elegidas. */
+  modalities?: { name: string; priceCents: number }[];
 }): Promise<{ event: DojoEvent }> {
   return request("/events", { method: "POST", body: params });
 }
@@ -331,12 +333,32 @@ export async function deleteEvent(id: string): Promise<void> {
  */
 export async function reportEventPayment(
   eventId: string,
-  params: { teacherCode: string; studentId?: number; method?: string; note?: string }
+  params: {
+    teacherCode: string;
+    studentId?: number;
+    /** Modalidades elegidas. Obligatorio si el evento tiene modalidades. */
+    modalityIds?: number[];
+    /** Los tres van juntos o ninguno. */
+    gender?: string;
+    beltClass?: string;
+    ageCategory?: string;
+    method?: string;
+    note?: string;
+  }
 ): Promise<{ message: string }> {
   return request(`/events/${eventId}/report-payment`, {
     method: "POST",
     body: params,
   });
+}
+
+/**
+ * El catálogo de categorías de competencia, con sus rangos de edad.
+ *
+ * Lo sirve el backend para no duplicar la tabla en el frontend.
+ */
+export async function getCategoryCatalog(): Promise<CategoryCatalog> {
+  return request<CategoryCatalog & { success: boolean }>("/events/categories");
 }
 
 /** Los reportes de pago de un evento. El profesor ve los de su clave. */

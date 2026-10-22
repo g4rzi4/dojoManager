@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
 
 import Card from "./Card";
 import { ApiError, createEvent } from "../services/api";
@@ -20,11 +21,29 @@ function EventForm({ onCreado, onCancelar }: Props) {
   const [requiresPayment, setRequiresPayment] = useState(false);
   /** En pesos: se convierte a centavos al enviar. */
   const [precio, setPrecio] = useState("");
+  /**
+   * Modalidades con su costo. Si hay al menos una, el costo del evento sale
+   * de la suma de las que elija cada alumno, y el precio único se ignora.
+   *
+   * Es para torneos: hay padres que inscriben a su hijo en kata y kumite,
+   * y pagan las dos.
+   */
+  const [porModalidades, setPorModalidades] = useState(false);
+  const [modalidades, setModalidades] = useState<
+    { name: string; precio: string }[]
+  >([{ name: "Kata", precio: "" }, { name: "Kumite", precio: "" }]);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
-  const precioValido =
-    !requiresPayment || (Number(precio) > 0 && Number.isFinite(Number(precio)));
+  const modalidadesLlenas = modalidades.filter(
+    (m) => m.name.trim().length > 0 && Number(m.precio) > 0
+  );
+
+  const precioValido = !requiresPayment
+    ? true
+    : porModalidades
+      ? modalidadesLlenas.length > 0
+      : Number(precio) > 0 && Number.isFinite(Number(precio));
 
   const valido = title.trim().length > 0 && date.length > 0 && precioValido;
 
@@ -45,9 +64,17 @@ function EventForm({ onCreado, onCancelar }: Props) {
         requiresPayment,
         // El backend espera centavos como entero. Math.round evita que
         // 450.1 se convierta en 45009.999...
-        priceCents: requiresPayment
-          ? Math.round(Number(precio) * 100)
-          : undefined,
+        priceCents:
+          requiresPayment && !porModalidades
+            ? Math.round(Number(precio) * 100)
+            : undefined,
+        modalities:
+          requiresPayment && porModalidades
+            ? modalidadesLlenas.map((m) => ({
+                name: m.name.trim(),
+                priceCents: Math.round(Number(m.precio) * 100),
+              }))
+            : undefined,
       });
 
       setTitle("");
@@ -55,6 +82,11 @@ function EventForm({ onCreado, onCancelar }: Props) {
       setTime("");
       setRequiresPayment(false);
       setPrecio("");
+      setPorModalidades(false);
+      setModalidades([
+        { name: "Kata", precio: "" },
+        { name: "Kumite", precio: "" },
+      ]);
 
       await onCreado();
     } catch (e: unknown) {
@@ -179,24 +211,141 @@ function EventForm({ onCreado, onCancelar }: Props) {
           </label>
 
           {requiresPayment && (
-            <div className="mt-4 max-w-xs space-y-2">
-              <label
-                htmlFor="ev-precio"
-                className="block text-sm font-medium text-slate-700"
-              >
-                Costo en pesos
+            <>
+              <label className="mt-4 flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={porModalidades}
+                  onChange={(e) => setPorModalidades(e.target.checked)}
+                  className="mt-1 cursor-pointer"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-slate-700">
+                    Cobrar por modalidad
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-600">
+                    Para torneos: cada modalidad tiene su costo y el alumno
+                    paga la suma de las que elija. Hay quien entra a kata y
+                    kumite.
+                  </span>
+                </span>
               </label>
-              <input
-                id="ev-precio"
-                type="number"
-                min="1"
-                step="0.01"
-                value={precio}
-                onChange={(e) => setPrecio(e.target.value)}
-                placeholder="450.00"
-                className={inputClase}
-              />
-            </div>
+
+              {porModalidades ? (
+                <div className="mt-4 space-y-3">
+                  {modalidades.map((m, i) => (
+                    <div key={i} className="flex flex-wrap items-end gap-3">
+                      <div className="min-w-40 flex-1 space-y-2">
+                        <label
+                          htmlFor={`mod-nombre-${i}`}
+                          className="block text-sm font-medium text-slate-700"
+                        >
+                          Modalidad {i + 1}
+                        </label>
+                        <input
+                          id={`mod-nombre-${i}`}
+                          type="text"
+                          value={m.name}
+                          onChange={(e) =>
+                            setModalidades((prev) =>
+                              prev.map((x, idx) =>
+                                idx === i ? { ...x, name: e.target.value } : x
+                              )
+                            )
+                          }
+                          placeholder="Kata"
+                          className={inputClase}
+                        />
+                      </div>
+
+                      <div className="w-36 space-y-2">
+                        <label
+                          htmlFor={`mod-precio-${i}`}
+                          className="block text-sm font-medium text-slate-700"
+                        >
+                          Costo
+                        </label>
+                        <input
+                          id={`mod-precio-${i}`}
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          value={m.precio}
+                          onChange={(e) =>
+                            setModalidades((prev) =>
+                              prev.map((x, idx) =>
+                                idx === i ? { ...x, precio: e.target.value } : x
+                              )
+                            )
+                          }
+                          placeholder="450.00"
+                          className={inputClase}
+                        />
+                      </div>
+
+                      {modalidades.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setModalidades((prev) =>
+                              prev.filter((_, idx) => idx !== i)
+                            )
+                          }
+                          aria-label={`Quitar la modalidad ${i + 1}`}
+                          className="
+                            flex h-11 w-11 shrink-0 cursor-pointer items-center
+                            justify-center rounded-lg text-slate-500
+                            transition-colors duration-200
+                            motion-reduce:transition-none
+                            hover:bg-red-50 hover:text-red-700
+                            focus:ring-2 focus:ring-blue-600 focus:outline-none
+                          "
+                        >
+                          <Trash2 size={17} aria-hidden="true" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setModalidades((prev) => [...prev, { name: "", precio: "" }])
+                    }
+                    className="
+                      flex cursor-pointer items-center gap-2 rounded-xl border
+                      border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold
+                      text-slate-700 transition-colors duration-200
+                      motion-reduce:transition-none
+                      hover:bg-slate-50
+                      focus:ring-2 focus:ring-blue-600 focus:outline-none
+                    "
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                    Agregar modalidad
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 max-w-xs space-y-2">
+                  <label
+                    htmlFor="ev-precio"
+                    className="block text-sm font-medium text-slate-700"
+                  >
+                    Costo en pesos
+                  </label>
+                  <input
+                    id="ev-precio"
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={precio}
+                    onChange={(e) => setPrecio(e.target.value)}
+                    placeholder="450.00"
+                    className={inputClase}
+                  />
+                </div>
+              )}
+            </>
           )}
         </fieldset>
 

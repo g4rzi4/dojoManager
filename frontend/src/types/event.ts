@@ -16,8 +16,10 @@ export type DojoEvent = {
 
   /** Si hay que pagar para participar. Un torneo o un examen suelen costar. */
   requiresPayment?: boolean;
-  /** Costo en centavos. Nulo si es gratuito. */
+  /** Costo en centavos cuando el evento NO tiene modalidades. */
   priceCents?: number | null;
+  /** Modalidades con su propio costo. Si hay, el total es la suma. */
+  modalities?: import("./eventPayment").EventModality[];
   /** Cuántos reportes de pago lleva. Solo lo usan admin y profesores. */
   reportes?: number;
   /** Estado de los alumnos a cargo de quien consulta. */

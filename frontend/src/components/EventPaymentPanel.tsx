@@ -4,6 +4,7 @@ import { Check, KeyRound, Receipt, X } from "lucide-react";
 import Card from "./Card";
 import {
   ApiError,
+  getCategoryCatalog,
   getEventEnrollments,
   reportEventPayment,
   resolveEventPayment,
@@ -12,9 +13,15 @@ import { can, getUser } from "../services/session";
 import type { DojoEvent } from "../types/event";
 import type { EventEnrollment } from "../types/eventPayment";
 import {
+  BELT_CLASS_LABELS,
   EVENT_PAYMENT_LABELS,
   EVENT_PAYMENT_STYLES,
+  GENDER_LABELS,
+  type AgeCategoryInfo,
+  type BeltClass,
+  type CompetitionGender,
 } from "../types/eventPayment";
+import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "../types/payment";
 import type { MyStudent } from "../types/payment";
 import { formatMoney } from "../utils/format";
 
@@ -64,12 +71,36 @@ function ReportarPago({
   onCambio: () => void | Promise<void>;
 }) {
   const [teacherCode, setTeacherCode] = useState("");
+  /** Modalidades elegidas. Un alumno puede entrar a kata y kumite. */
+  const [elegidas, setElegidas] = useState<number[]>([]);
+  const [gender, setGender] = useState<CompetitionGender | "">("");
+  const [beltClass, setBeltClass] = useState<BeltClass | "">("");
+  const [ageCategory, setAgeCategory] = useState("");
+  /** El catálogo lo manda el backend; aquí no se duplica la tabla. */
+  const [catalogo, setCatalogo] = useState<AgeCategoryInfo[]>([]);
+  const [metodo, setMetodo] = useState<PaymentMethod | "">("");
+  const [nota, setNota] = useState("");
   const [studentId, setStudentId] = useState<number | "">(
     misAlumnos.length === 1 ? misAlumnos[0].id : ""
   );
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
   const [exito, setExito] = useState("");
+
+  useEffect(() => {
+    let activo = true;
+
+    getCategoryCatalog()
+      .then((c) => {
+        if (activo) setCatalogo(c.categorias);
+      })
+      // Sin catálogo se puede reportar el pago igual, solo sin categoría.
+      .catch(() => {});
+
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   // Lo que ya reportaron los alumnos a cargo, según el backend.
   const yaReportados = event.misAlumnos ?? [];
@@ -78,9 +109,20 @@ function ReportarPago({
     (a) => !yaReportados.some((r) => r.studentId === a.id)
   );
 
+  const modalidades = event.modalities ?? [];
+  const tieneModalidades = modalidades.length > 0;
+
+  /** El total es la SUMA de las elegidas: hay quien entra a las dos. */
+  const total = tieneModalidades
+    ? modalidades
+        .filter((m) => elegidas.includes(m.id))
+        .reduce((suma, m) => suma + m.priceCents, 0)
+    : (event.priceCents ?? 0);
+
   const valido =
     teacherCode.trim().length > 0 &&
-    (pendientes.length === 1 || studentId !== "");
+    (pendientes.length === 1 || studentId !== "") &&
+    (!tieneModalidades || elegidas.length > 0);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,10 +142,18 @@ function ReportarPago({
               ? pendientes[0].id
               : undefined
             : Number(studentId),
+        modalityIds: tieneModalidades ? elegidas : undefined,
+        gender: gender || undefined,
+        beltClass: beltClass || undefined,
+        ageCategory: ageCategory || undefined,
+        method: metodo || undefined,
+        note: nota.trim() || undefined,
       });
 
       setExito(res.message);
       setTeacherCode("");
+      setElegidas([]);
+      setNota("");
       await onCambio();
     } catch (err: unknown) {
       setError(
@@ -129,11 +179,9 @@ function ReportarPago({
         Pago del evento
       </h3>
       <p className="mt-1 text-sm text-slate-600">
-        Cuesta{" "}
-        <strong className="text-slate-900">
-          {formatMoney(event.priceCents ?? 0)}
-        </strong>
-        . Paga con tu profesor y luego repórtalo aquí con su clave.
+        {tieneModalidades
+          ? "Cada modalidad tiene su costo. Paga con tu profesor y luego repórtalo aquí con su clave."
+          : `Cuesta ${formatMoney(event.priceCents ?? 0)}. Paga con tu profesor y luego repórtalo aquí con su clave.`}
       </p>
 
       {/* Estado de los que ya reportaron */}
@@ -195,6 +243,202 @@ function ReportarPago({
               </select>
             </div>
           )}
+
+          {/* Modalidades: se pueden elegir varias y el total se suma */}
+          {tieneModalidades && (
+            <fieldset>
+              <legend className="text-sm font-medium text-slate-700">
+                ¿A qué modalidades entra?
+              </legend>
+
+              <div className="mt-2 space-y-2">
+                {modalidades.map((m) => (
+                  <label
+                    key={m.id}
+                    className={`
+                      flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3
+                      transition-colors duration-200
+                      motion-reduce:transition-none
+                      ${
+                        elegidas.includes(m.id)
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-slate-300 bg-white hover:bg-slate-50"
+                      }
+                    `}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={elegidas.includes(m.id)}
+                      onChange={(e) =>
+                        setElegidas((prev) =>
+                          e.target.checked
+                            ? [...prev, m.id]
+                            : prev.filter((x) => x !== m.id)
+                        )
+                      }
+                      className="cursor-pointer"
+                    />
+                    <span className="flex-1 text-sm font-medium text-slate-900">
+                      {m.name}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {formatMoney(m.priceCents)}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {/* El total, para que no haya sorpresas al pagar */}
+              <p className="mt-3 flex items-center justify-between rounded-xl bg-slate-100 px-4 py-3">
+                <span className="text-sm font-medium text-slate-700">
+                  Total a pagar
+                </span>
+                <span className="text-lg font-bold text-slate-900">
+                  {formatMoney(total)}
+                </span>
+              </p>
+            </fieldset>
+          )}
+
+          {/* Categoría de competencia: rama, tipo de cinta y edad.
+              Los rangos de edad NO son los mismos en color y en negras. */}
+          <fieldset className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <legend className="px-1 text-sm font-medium text-slate-700">
+              Categoría de competencia{" "}
+              <span className="font-normal text-slate-500">(opcional)</span>
+            </legend>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label
+                  htmlFor={`ep-rama-${event.id}`}
+                  className="block text-sm font-medium text-slate-700"
+                >
+                  Rama
+                </label>
+                <select
+                  id={`ep-rama-${event.id}`}
+                  value={gender}
+                  onChange={(e) =>
+                    setGender(e.target.value as CompetitionGender | "")
+                  }
+                  className={`${inputClase} cursor-pointer`}
+                >
+                  <option value="">Sin especificar</option>
+                  {(Object.keys(GENDER_LABELS) as CompetitionGender[]).map(
+                    (g) => (
+                      <option key={g} value={g}>
+                        {GENDER_LABELS[g]}
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`ep-cinta-${event.id}`}
+                  className="block text-sm font-medium text-slate-700"
+                >
+                  Tipo de cinta
+                </label>
+                <select
+                  id={`ep-cinta-${event.id}`}
+                  value={beltClass}
+                  onChange={(e) => {
+                    setBeltClass(e.target.value as BeltClass | "");
+                    // Las categorías cambian con la rama: una elegida para
+                    // color no existe en negras, así que se limpia.
+                    setAgeCategory("");
+                  }}
+                  className={`${inputClase} cursor-pointer`}
+                >
+                  <option value="">Sin especificar</option>
+                  {(Object.keys(BELT_CLASS_LABELS) as BeltClass[]).map((b) => (
+                    <option key={b} value={b}>
+                      {BELT_CLASS_LABELS[b]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {beltClass && (
+              <div className="space-y-2">
+                <label
+                  htmlFor={`ep-categoria-${event.id}`}
+                  className="block text-sm font-medium text-slate-700"
+                >
+                  Categoría de edad
+                </label>
+                <select
+                  id={`ep-categoria-${event.id}`}
+                  value={ageCategory}
+                  onChange={(e) => setAgeCategory(e.target.value)}
+                  aria-describedby={`ep-categoria-ayuda-${event.id}`}
+                  className={`${inputClase} cursor-pointer`}
+                >
+                  <option value="">Sin especificar</option>
+                  {catalogo
+                    .filter((c) => c.beltClasses.includes(beltClass))
+                    .map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label} — {c.rango}
+                      </option>
+                    ))}
+                </select>
+                <p
+                  id={`ep-categoria-ayuda-${event.id}`}
+                  className="text-xs text-slate-500"
+                >
+                  Puede no coincidir con su edad: hay alumnos a los que se
+                  foguea en una categoría mayor.
+                </p>
+              </div>
+            )}
+          </fieldset>
+
+          <div className="space-y-2">
+            <label
+              htmlFor={`ep-metodo-${event.id}`}
+              className="block text-sm font-medium text-slate-700"
+            >
+              ¿Cómo pagaste?{" "}
+              <span className="font-normal text-slate-500">(opcional)</span>
+            </label>
+            <select
+              id={`ep-metodo-${event.id}`}
+              value={metodo}
+              onChange={(e) => setMetodo(e.target.value as PaymentMethod | "")}
+              className={`${inputClase} cursor-pointer`}
+            >
+              <option value="">Sin especificar</option>
+              <option value="EFECTIVO">
+                {PAYMENT_METHOD_LABELS.EFECTIVO}
+              </option>
+              <option value="TRANSFERENCIA">
+                {PAYMENT_METHOD_LABELS.TRANSFERENCIA}
+              </option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor={`ep-nota-${event.id}`}
+              className="block text-sm font-medium text-slate-700"
+            >
+              Nota para el profesor{" "}
+              <span className="font-normal text-slate-500">(opcional)</span>
+            </label>
+            <input
+              id={`ep-nota-${event.id}`}
+              type="text"
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              placeholder="Pagué en efectivo el martes"
+              className={inputClase}
+            />
+          </div>
 
           <div className="space-y-2">
             <label
@@ -379,8 +623,25 @@ function GestionCobros({
                 <p className="text-sm font-semibold text-slate-900">
                   {e.studentName}
                 </p>
+                {e.categoriaLegible && (
+                  <p className="mt-0.5 text-xs font-medium text-slate-800">
+                    {e.categoriaLegible}
+                  </p>
+                )}
+
+                {e.modalidades.length > 0 && (
+                  <p className="mt-0.5 text-xs text-slate-700">
+                    {e.modalidades
+                      .map((m) => `${m.name} ${formatMoney(m.priceCents)}`)
+                      .join(" + ")}
+
+                  </p>
+                )}
+
                 <p className="mt-0.5 text-xs text-slate-600">
-                  {formatMoney(e.amountCents)} · reportado el{" "}
+                  {formatMoney(e.amountCents)}
+                  {e.method && ` · ${PAYMENT_METHOD_LABELS[e.method].toLowerCase()}`}
+                  {" · reportado el "}
                   {new Date(e.reportedAt).toLocaleDateString("es-MX", {
                     day: "numeric",
                     month: "long",
@@ -389,6 +650,12 @@ function GestionCobros({
                     e.acreditadoA &&
                     ` · a ${e.acreditadoA}`}
                 </p>
+
+                {e.note && (
+                  <p className="mt-1 text-xs text-slate-600 italic">
+                    "{e.note}"
+                  </p>
+                )}
               </div>
 
               <span

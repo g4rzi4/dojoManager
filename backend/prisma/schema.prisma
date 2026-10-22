@@ -450,8 +450,15 @@ model Event {
   /// Si hay que pagar para participar. Un torneo o un examen suelen costar.
   requiresPayment Boolean @default(false)
 
-  /// Costo en CENTAVOS. Nulo si el evento es gratuito.
+  /// Costo en CENTAVOS cuando el evento NO tiene modalidades.
+  ///
+  /// Un examen de cinta cobra una sola cuota y le basta este campo. Un
+  /// torneo define modalidades y entonces el costo sale de la suma de las
+  /// que elija cada alumno, y este campo se ignora.
   priceCents Int?
+
+  /// Modalidades con su propio costo: kata, kumite, equipos...
+  modalities EventModality[]
 
   createdById Int?
   createdBy   User? @relation("EventoCreadoPor", fields: [createdById], references: [id], onDelete: SetNull)
@@ -462,6 +469,79 @@ model Event {
   updatedAt DateTime @updatedAt
 
   @@index([date])
+}
+
+/// Una modalidad de un evento, con su costo propio.
+///
+/// Las define cada evento y no una lista fija del sistema: un torneo tiene
+/// kata y kumite, otro puede tener equipos o formas con arma, y agregar una
+/// nueva no debería exigir cambiar el código.
+model EventModality {
+  id Int @id @default(autoincrement())
+
+  eventId Int
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  /// "Kata", "Kumite", "Equipos"...
+  name String
+
+  /// Costo en CENTAVOS de esta modalidad.
+  priceCents Int
+
+  createdAt DateTime @default(now())
+
+  enrollments EventEnrollmentModality[]
+
+  /// No tiene sentido repetir el nombre dentro del mismo evento.
+  @@unique([eventId, name])
+}
+
+/// Rama de la categoría: femenil o varonil.
+enum CompetitionGender {
+  FEMENIL
+  VARONIL
+}
+
+/// Las categorías se dividen por tipo de cinta, y los rangos de edad NO son
+/// los mismos en cada rama.
+enum BeltClass {
+  /// De blanca a marrón.
+  COLOR
+  /// Cinta negra. Usa la nomenclatura U10, U12, Cadete, Junior, U21...
+  NEGRA
+}
+
+/// Categoría de edad.
+///
+/// Reúne las dos tablas en un solo enum porque una inscripción solo puede
+/// estar en una. Qué valores son válidos depende de `BeltClass`, y eso se
+/// valida en src/lib/competitionCategories.ts, no aquí: Prisma no puede
+/// expresar "este enum depende de aquel campo".
+///
+/// MASTERS existe en las dos ramas con el mismo rango, así que es un solo
+/// valor compartido.
+enum AgeCategory {
+  // --- Cintas de color ---
+  INFANTIL_4_5
+  INFANTIL_6_7
+  INFANTIL_8_9
+  INFANTIL_10_11
+  INFANTIL_12_13
+  JUVENIL_14_15
+  JUVENIL_16_17
+  ADULTOS_18_35
+
+  // --- Cintas negras ---
+  U10_8_9
+  U12_10_11
+  U14_12_13
+  CADETE_14_15
+  JUNIOR_16_17
+  U21_18_20
+  SENIOR_21_35
+
+  // --- Común a las dos ramas ---
+  MASTERS_36_MAS
 }
 
 enum EventPaymentStatus {
@@ -494,9 +574,25 @@ model EventEnrollment {
   creditedToId Int?
   creditedTo   User? @relation("CobroAcreditadoA", fields: [creditedToId], references: [id], onDelete: SetNull)
 
-  /// Monto en centavos. Se copia del precio del evento al reportar, para que
-  /// cambiar el precio después no altere los cobros ya hechos.
+  /// Monto TOTAL en centavos: la suma de las modalidades elegidas, o el
+  /// precio del evento si no tiene modalidades.
+  ///
+  /// Se congela al reportar, para que cambiar precios después no altere los
+  /// cobros ya hechos.
   amountCents Int
+
+  /// Categoría en la que compite: rama, tipo de cinta y rango de edad.
+  ///
+  /// Los tres van juntos o ninguno. Se ELIGEN al inscribir y la edad PUEDE
+  /// no coincidir con el rango, a propósito: hay alumnos a los que se foguea
+  /// con una categoría mayor. Por eso no se calculan de la fecha de
+  /// nacimiento, solo se sugieren.
+  gender      CompetitionGender?
+  beltClass   BeltClass?
+  ageCategory AgeCategory?
+
+  /// Modalidades a las que entra. Un alumno puede ir a kata y kumite.
+  modalities EventEnrollmentModality[]
 
   status EventPaymentStatus @default(REPORTADO)
 
@@ -516,4 +612,21 @@ model EventEnrollment {
   @@unique([eventId, studentId])
   @@index([creditedToId])
   @@index([status])
+}
+
+/// Qué modalidades eligió un alumno, con el precio congelado de cada una.
+model EventEnrollmentModality {
+  id Int @id @default(autoincrement())
+
+  enrollmentId Int
+  enrollment   EventEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  modalityId Int
+  modality   EventModality @relation(fields: [modalityId], references: [id], onDelete: Cascade)
+
+  /// Precio de esa modalidad cuando se inscribió. Guardarlo aquí permite
+  /// reconstruir el desglose del cobro aunque el evento cambie de precio.
+  priceCents Int
+
+  @@unique([enrollmentId, modalityId])
 }

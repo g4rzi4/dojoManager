@@ -11,6 +11,16 @@ import { normalizeTeacherCode } from "../lib/teacherCode";
 import { requireAuth, requirePermission } from "../middleware/auth";
 import { can } from "../permissions";
 import {
+  CATEGORIAS,
+  categoriaValida,
+  categoriasDe,
+  infoDeCategoria,
+  rangoLegible,
+} from "../lib/competitionCategories";
+import {
+  AgeCategory,
+  BeltClass,
+  CompetitionGender,
   EventCategory,
   EventPaymentStatus,
   PaymentMethod,
@@ -18,6 +28,22 @@ import {
 } from "../generated/prisma/enums";
 
 const router = Router();
+
+/** Arma el texto de la categoría: "Infantil 8-9 años · femenil · color". */
+function describirCategoria(
+  gender: CompetitionGender | null,
+  beltClass: BeltClass | null,
+  ageCategory: AgeCategory | null
+): string | null {
+  if (!gender || !beltClass || !ageCategory) return null;
+
+  const info = infoDeCategoria(ageCategory);
+  if (!info) return null;
+
+  const rama = beltClass === BeltClass.NEGRA ? "cinta negra" : "cinta de color";
+
+  return `${info.label} ${rangoLegible(info)} · ${gender.toLowerCase()} · ${rama}`;
+}
 
 /**
  * GET /events
@@ -42,6 +68,7 @@ router.get(
         orderBy: [{ date: "asc" }, { time: "asc" }],
         include: {
           createdBy: { select: { name: true } },
+          modalities: { orderBy: { id: "asc" } },
           _count: { select: { enrollments: true } },
         },
       }),
@@ -74,6 +101,11 @@ router.get(
           createdBy: e.createdBy?.name ?? null,
           requiresPayment: e.requiresPayment,
           priceCents: e.priceCents,
+          modalities: e.modalities.map((m) => ({
+            id: m.id,
+            name: m.name,
+            priceCents: m.priceCents,
+          })),
           /** Cuántos reportes de pago lleva, para admin y profesores. */
           reportes: e._count.enrollments,
           /** Estado de los alumnos a cargo de quien consulta. */
@@ -88,8 +120,39 @@ router.get(
   }
 );
 
-/** Las categorías válidas, para validar lo que llega del cliente. */
-const CATEGORIAS = Object.values(EventCategory) as string[];
+/**
+ * GET /events/categories
+ *
+ * El catálogo de categorías de competencia, con sus rangos de edad.
+ *
+ * Lo sirve el backend para que el frontend no duplique la tabla: si algún
+ * día cambian los rangos, se cambian en un solo lugar.
+ *
+ * Va ANTES de /:id para que Express no tome "categories" por un id.
+ */
+router.get(
+  "/categories",
+  requireAuth,
+  requirePermission("events:read"),
+  async (_req, res) => {
+    return res.json({
+      success: true,
+      generos: Object.values(CompetitionGender),
+      ramas: Object.values(BeltClass),
+      categorias: CATEGORIAS.map((c) => ({
+        value: c.category,
+        label: c.label,
+        rango: rangoLegible(c),
+        minAge: c.minAge,
+        maxAge: c.maxAge,
+        beltClasses: c.beltClasses,
+      })),
+    });
+  }
+);
+
+/** Tipos de evento válidos (clase, examen, torneo, pago). */
+const CATEGORIAS_EVENTO = Object.values(EventCategory) as string[];
 
 // ---------------------------------------------------------------------------
 // Pago e inscripción a eventos
@@ -118,7 +181,16 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     });
   }
 
-  const { teacherCode, studentId, method, note } = req.body ?? {};
+  const {
+    teacherCode,
+    studentId,
+    method,
+    note,
+    modalityIds,
+    gender,
+    beltClass,
+    ageCategory,
+  } = req.body ?? {};
 
   if (typeof teacherCode !== "string" || teacherCode.trim().length === 0) {
     return res.status(400).json({
@@ -129,7 +201,13 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, requiresPayment: true, priceCents: true, title: true },
+    select: {
+      id: true,
+      requiresPayment: true,
+      priceCents: true,
+      title: true,
+      modalities: { select: { id: true, name: true, priceCents: true } },
+    },
   });
 
   if (!event) {
@@ -139,11 +217,135 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     });
   }
 
-  if (!event.requiresPayment || event.priceCents === null) {
+  if (!event.requiresPayment) {
     return res.status(400).json({
       success: false,
       message: "Este evento no requiere pago.",
     });
+  }
+
+  const tieneModalidades = event.modalities.length > 0;
+
+  if (!tieneModalidades && event.priceCents === null) {
+    return res.status(400).json({
+      success: false,
+      message: "Este evento no tiene costo configurado. Avísale al dojo.",
+    });
+  }
+
+  /**
+   * Cuánto se cobra y por qué conceptos.
+   *
+   * Con modalidades, el total es la SUMA de las elegidas: hay padres que
+   * inscriben a su hijo en kata y kumite y pagan las dos. Sin modalidades,
+   * es el precio único del evento.
+   *
+   * Los precios se copian aquí y se guardan en la inscripción, para poder
+   * reconstruir el desglose aunque el evento cambie de precio después.
+   */
+  const elegidas: { id: number; priceCents: number }[] = [];
+  let total: number;
+
+  if (tieneModalidades) {
+    if (!Array.isArray(modalityIds) || modalityIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Elige al menos una modalidad: ${event.modalities
+          .map((m) => m.name)
+          .join(", ")}.`,
+      });
+    }
+
+    const vistos = new Set<number>();
+
+    for (const raw of modalityIds) {
+      const mid = Number(raw);
+      const modalidad = event.modalities.find((m) => m.id === mid);
+
+      if (!modalidad) {
+        return res.status(400).json({
+          success: false,
+          message: "Una de las modalidades no pertenece a este evento.",
+        });
+      }
+
+      // Elegir la misma dos veces no debe cobrarse doble.
+      if (vistos.has(mid)) continue;
+      vistos.add(mid);
+
+      elegidas.push({ id: mid, priceCents: modalidad.priceCents });
+    }
+
+    total = elegidas.reduce((suma, m) => suma + m.priceCents, 0);
+  } else {
+    total = event.priceCents!;
+  }
+
+  /**
+   * Categoría de competencia: rama, tipo de cinta y rango de edad.
+   *
+   * Es opcional, pero los tres van juntos: una categoría a medias no sirve
+   * para armar las llaves de un torneo.
+   *
+   * NO se valida contra la edad real del alumno a propósito. Inscribir a un
+   * niño en una categoría mayor para foguearlo es un caso legítimo, y el
+   * sistema no debe estorbarlo. Lo único que se valida es que la categoría
+   * exista en la rama de cinta elegida, porque un "U10" en cintas de color
+   * simplemente no existe.
+   */
+  const hayCategoria =
+    gender !== undefined && gender !== null && gender !== "";
+
+  let categoria: {
+    gender: CompetitionGender;
+    beltClass: BeltClass;
+    ageCategory: AgeCategory;
+  } | null = null;
+
+  if (hayCategoria) {
+    const generos = Object.values(CompetitionGender) as string[];
+    const ramas = Object.values(BeltClass) as string[];
+    const categorias = Object.values(AgeCategory) as string[];
+
+    if (!generos.includes(gender)) {
+      return res.status(400).json({
+        success: false,
+        message: `Rama no válida. Opciones: ${generos.join(", ")}.`,
+      });
+    }
+
+    if (typeof beltClass !== "string" || !ramas.includes(beltClass)) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica si compite en cintas de color o en cintas negras.",
+      });
+    }
+
+    if (typeof ageCategory !== "string" || !categorias.includes(ageCategory)) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica la categoría de edad.",
+      });
+    }
+
+    if (!categoriaValida(ageCategory as AgeCategory, beltClass as BeltClass)) {
+      const validas = categoriasDe(beltClass as BeltClass)
+        .map((c) => `${c.label} (${rangoLegible(c)})`)
+        .join(", ");
+
+      return res.status(400).json({
+        success: false,
+        message: `Esa categoría no existe en ${
+          beltClass === "NEGRA" ? "cintas negras" : "cintas de color"
+        }. Opciones: ${validas}.`,
+      });
+    }
+
+    categoria = {
+      gender: gender as CompetitionGender,
+      beltClass: beltClass as BeltClass,
+      ageCategory: ageCategory as AgeCategory,
+    };
   }
 
   // Qué alumno. Un alumno solo puede reportar por sí mismo; un tutor tiene
@@ -218,13 +420,25 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
       creditedToId: teacher.id,
       // El monto se congela al reportar: si el dojo cambia el precio
       // después, los cobros ya hechos no se alteran.
-      amountCents: event.priceCents,
+      amountCents: total,
+      gender: categoria?.gender ?? null,
+      beltClass: categoria?.beltClass ?? null,
+      ageCategory: categoria?.ageCategory ?? null,
       method:
         typeof method === "string" &&
         Object.values(PaymentMethod).includes(method as PaymentMethod)
           ? (method as PaymentMethod)
           : null,
       note: typeof note === "string" ? note.trim() || null : null,
+      modalities:
+        elegidas.length > 0
+          ? {
+              create: elegidas.map((m) => ({
+                modalityId: m.id,
+                priceCents: m.priceCents,
+              })),
+            }
+          : undefined,
     },
     select: { id: true },
   });
@@ -235,7 +449,7 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
       enrollment.id,
       teacher.id,
       event.title,
-      event.priceCents
+      total
     );
   } catch (error) {
     console.error("[events] no se pudo notificar el pago reportado", error);
@@ -282,6 +496,7 @@ router.get(
           select: { id: true, firstName: true, lastName: true },
         },
         creditedTo: { select: { id: true, name: true } },
+        modalities: { include: { modality: { select: { name: true } } } },
       },
     });
 
@@ -295,6 +510,16 @@ router.get(
         amountCents: e.amountCents,
         status: e.status,
         enrolled: e.enrolled,
+        gender: e.gender,
+        beltClass: e.beltClass,
+        ageCategory: e.ageCategory,
+        /** Texto listo para mostrar: "Infantil 8-9 años · femenil". */
+        categoriaLegible: describirCategoria(e.gender, e.beltClass, e.ageCategory),
+        /** Desglose: qué modalidades y cuánto costó cada una. */
+        modalidades: e.modalities.map((m) => ({
+          name: m.modality.name,
+          priceCents: m.priceCents,
+        })),
         method: e.method,
         note: e.note,
         acreditadoA: e.creditedTo?.name ?? null,
@@ -403,8 +628,15 @@ router.post(
   requireAuth,
   requirePermission("events:write"),
   async (req, res) => {
-    const { title, date, time, category, requiresPayment, priceCents } =
-      req.body ?? {};
+    const {
+      title,
+      date,
+      time,
+      category,
+      requiresPayment,
+      priceCents,
+      modalities,
+    } = req.body ?? {};
 
     if (typeof title !== "string" || title.trim().length === 0) {
       return res.status(400).json({
@@ -420,10 +652,10 @@ router.post(
       });
     }
 
-    if (typeof category !== "string" || !CATEGORIAS.includes(category)) {
+    if (typeof category !== "string" || !CATEGORIAS_EVENTO.includes(category)) {
       return res.status(400).json({
         success: false,
-        message: `Categoría no válida. Opciones: ${CATEGORIAS.join(", ")}.`,
+        message: `Categoría no válida. Opciones: ${CATEGORIAS_EVENTO.join(", ")}.`,
       });
     }
 
@@ -441,18 +673,55 @@ router.post(
       hora = time.trim();
     }
 
-    // Pago: si el evento lo requiere, el precio es obligatorio y en centavos.
+    // Pago. Un evento con modalidades saca el costo de ellas; uno sin
+    // modalidades usa un precio único.
     const conPago = requiresPayment === true;
     let precio: number | null = null;
 
-    if (conPago) {
+    const listaModalidades: { name: string; priceCents: number }[] = [];
+
+    if (conPago && Array.isArray(modalities) && modalities.length > 0) {
+      const vistos = new Set<string>();
+
+      for (const [i, m] of modalities.entries()) {
+        const name = typeof m?.name === "string" ? m.name.trim() : "";
+        const cents = Number(m?.priceCents);
+
+        if (name.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Falta el nombre de la modalidad ${i + 1}.`,
+          });
+        }
+
+        if (!Number.isInteger(cents) || cents <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `El costo de "${name}" debe ser un entero de centavos mayor a cero.`,
+          });
+        }
+
+        // El índice único de la base lo rechazaría igual, pero aquí el
+        // mensaje dice cuál es la repetida.
+        const clave = name.toLowerCase();
+        if (vistos.has(clave)) {
+          return res.status(400).json({
+            success: false,
+            message: `La modalidad "${name}" está repetida.`,
+          });
+        }
+        vistos.add(clave);
+
+        listaModalidades.push({ name, priceCents: cents });
+      }
+    } else if (conPago) {
       const cents = Number(priceCents);
 
       if (!Number.isInteger(cents) || cents <= 0) {
         return res.status(400).json({
           success: false,
           message:
-            "Si el evento requiere pago, indica el costo en centavos como un entero mayor a cero.",
+            "Si el evento requiere pago, indica el costo o define al menos una modalidad.",
         });
       }
 
@@ -471,7 +740,12 @@ router.post(
         requiresPayment: conPago,
         priceCents: precio,
         createdById: req.user!.id,
+        modalities:
+          listaModalidades.length > 0
+            ? { create: listaModalidades }
+            : undefined,
       },
+      include: { modalities: true },
     });
 
     // Avisa a las familias. Si falla, el evento ya quedó creado: no tiene
@@ -502,6 +776,11 @@ router.post(
         category: event.category,
         requiresPayment: event.requiresPayment,
         priceCents: event.priceCents,
+        modalities: event.modalities.map((m) => ({
+          id: m.id,
+          name: m.name,
+          priceCents: m.priceCents,
+        })),
       },
     });
   }
