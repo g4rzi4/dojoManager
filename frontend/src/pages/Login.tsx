@@ -6,6 +6,7 @@ import AuthLayout from "../layouts/AuthLayout";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import { login } from "../services/api";
+import { saveSession } from "../services/session";
 
 function Login() {
   const navigate = useNavigate();
@@ -23,12 +24,14 @@ function Login() {
       const data = await login(email, password);
 
       if (data.success) {
-        localStorage.setItem("token", data.token);
+        // Guardamos también el usuario, no solo el token: el dashboard
+        // necesita su nombre para el saludo y el sidebar para el avatar.
+        saveSession(data.token, data.user);
         navigate("/dashboard");
       } else {
         setError(data.message);
       }
-    } catch (err) {
+    } catch {
       setError("No fue posible conectar con el servidor.");
     } finally {
       setLoading(false);
