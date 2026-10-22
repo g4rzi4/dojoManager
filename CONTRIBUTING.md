@@ -190,3 +190,38 @@ git merge --abort
 | Ver el historial de forma legible              | `git log --oneline --graph --all`       |
 
 Si algo se ve muy roto: **no hagas `git push --force`**. Avisa en el grupo primero.
+
+---
+
+## 8. Protección de `main` y `develop`
+
+Intentamos activar la protección de ramas en GitHub, pero **no está disponible**: el
+repositorio es privado y la cuenta está en el plan gratuito, que no incluye reglas de
+protección en repos privados.
+
+Mientras eso no cambie, la protección es **un acuerdo entre nosotros, no un bloqueo
+técnico**. Git te va a dejar hacer `git push` a `main` — simplemente no lo hagas:
+
+- ❌ No commitees ni pushees directo a `main` ni a `develop`.
+- ❌ No hagas `git push --force` a ninguna rama compartida.
+- ✅ Todo cambio a `develop` entra por Pull Request con al menos 1 aprobación.
+- ✅ `main` solo recibe merges desde `develop`, cuando hay una versión estable.
+
+### Para volverlo un bloqueo real
+
+Cualquiera de estas tres opciones:
+
+1. **Hacer el repositorio público** — la protección de ramas pasa a ser gratuita.
+   Antes de hacerlo: confirmar que no hay credenciales en el historial.
+2. **GitHub Pro** (~4 USD/mes en la cuenta del dueño del repo) — habilita protección
+   en repos privados.
+3. **GitHub Team** — si el dojo o la escuela puede pagar una organización, además da
+   mejor manejo de permisos para los 6.
+
+Si se activa alguna, pedir al dueño del repo que configure en
+`Settings → Branches → Add rule`, para `main` y `develop`:
+
+- Require a pull request before merging → 1 approval
+- Dismiss stale pull request approvals when new commits are pushed
+- Do not allow force pushes
+- Do not allow deletions

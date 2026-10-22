@@ -212,7 +212,9 @@ git push
 gh pr create --base develop --fill
 ```
 
-`main` y `develop` están protegidas: los cambios entran por Pull Request revisado.
+**Acuerdo del equipo:** nadie commitea directo en `main` ni en `develop`. Los cambios
+entran por Pull Request con al menos una revisión. Hoy esto es una regla de equipo, no
+un bloqueo técnico (ver [CONTRIBUTING.md](CONTRIBUTING.md#8-protección-de-main-y-develop)).
 
 **El detalle completo —reparto de módulos, convención de commits, cómo resolver
 conflictos y comandos de rescate— está en [CONTRIBUTING.md](CONTRIBUTING.md).**
