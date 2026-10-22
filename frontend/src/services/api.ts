@@ -4,6 +4,14 @@ import type { MyStudent, PaymentsResponse } from "../types/payment";
 import type { AppNotification, Audience } from "../types/notification";
 import type { DojoEvent, EventCategory } from "../types/event";
 import type { Teacher } from "../types/teacher";
+import type {
+  EnrollGuardianPayload,
+  EnrollStudentPayload,
+  InvitationKind,
+  InvitationRow,
+  NewInvitation,
+  PublicInvitation,
+} from "../types/invitation";
 import { clearSession, getToken } from "./session";
 
 const API_URL = "http://localhost:3000";
@@ -206,6 +214,58 @@ export async function unlinkGuardian(
 ): Promise<void> {
   await request(`/guardians/${studentId}/${guardianId}`, {
     method: "DELETE",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Invitaciones de inscripción
+// ---------------------------------------------------------------------------
+
+/** Genera una invitación. Devuelve el enlace que se vuelve QR. */
+export async function createInvitation(params: {
+  kind: InvitationKind;
+  /** Para ligar el tutor a un alumno que ya existe. */
+  studentId?: number;
+  note?: string;
+}): Promise<{ invitation: NewInvitation }> {
+  return request("/invitations", { method: "POST", body: params });
+}
+
+export async function getInvitations(): Promise<InvitationRow[]> {
+  const data = await request<{ invitations: InvitationRow[] }>("/invitations");
+  return data.invitations;
+}
+
+export async function revokeInvitation(id: number): Promise<void> {
+  await request(`/invitations/${id}`, { method: "DELETE" });
+}
+
+/**
+ * Lee una invitación por su token. Sin sesión: la llama quien abre el enlace.
+ *
+ * `auth: false` es importante. Si mandara el token de quien tenga sesión
+ * abierta en ese navegador, el formulario se comportaría distinto según
+ * quién lo abra.
+ */
+export async function getPublicInvitation(
+  token: string
+): Promise<PublicInvitation> {
+  const data = await request<{ invitation: PublicInvitation }>(
+    `/invitations/public/${token}`,
+    { auth: false }
+  );
+  return data.invitation;
+}
+
+/** Envía el formulario de inscripción. Sin sesión. */
+export async function submitEnrollment(
+  token: string,
+  payload: EnrollStudentPayload | EnrollGuardianPayload
+): Promise<{ message: string }> {
+  return request(`/invitations/public/${token}`, {
+    method: "POST",
+    body: payload,
+    auth: false,
   });
 }
 

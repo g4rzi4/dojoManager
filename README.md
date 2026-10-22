@@ -346,6 +346,53 @@ Registrar y editar cobros corresponde al módulo `feature/payments`.
 
 ---
 
+# Inscripción por QR
+
+Un profesor o el admin genera una invitación y comparte el **QR o el enlace**. La
+persona llena el formulario desde su celular, sin tener cuenta, y queda registrada
+en el grupo del profesor que la invitó.
+
+Hay dos formularios:
+
+| Tipo | Qué pide |
+| --- | --- |
+| **Alumno** | Nombre, apellido, fecha de nacimiento, correo, celular, datos del tutor e información médica |
+| **Tutor** | Sus datos y los de **cada uno de sus hijos** (hasta 10), más su parentesco |
+
+En los dos casos la persona elige su contraseña, así que al terminar ya puede entrar.
+El profesor no tiene que capturar nada ni inventar contraseñas.
+
+Dónde se genera:
+
+- **Alumnos → Invitar por QR** — para un alumno nuevo o un tutor nuevo.
+- **Dentro de la tarjeta de un alumno → Invitar a un tutor** — para sumarle un tutor
+  a un expediente que ya existe. El tutor queda ligado a ese alumno además de los
+  hijos que dé de alta.
+
+## Lo que protege ese formulario
+
+Es la única pantalla, además del login, que se abre **sin sesión**. Las defensas:
+
+- **Un solo uso.** Al enviarse, la invitación se sella y el enlace deja de servir.
+  El sellado va dentro de la misma transacción que crea las cuentas, así que dos
+  envíos simultáneos no pueden colarse los dos.
+- **Caduca en 14 días.**
+- **Token de 192 bits** generado con `crypto.randomBytes`, no con `Math.random`, que
+  es predecible. Adivinarlo por fuerza bruta no es viable.
+- **Límite de peticiones**: 20 cada 10 minutos por IP en el formulario, y 10 cada 5
+  minutos en el login. Ver [rateLimit.ts](backend/src/middleware/rateLimit.ts), que
+  documenta sus límites: el conteo vive en memoria del proceso, así que con varias
+  instancias habría que cambiarlo por Redis.
+- **No revela nada.** El endpoint público solo devuelve el tipo de formulario y el
+  nombre de quien invita. Nunca datos de otras familias.
+- Un profesor **no puede** generar invitaciones ligadas a alumnos de otro profesor.
+
+> ⚠️ Cualquiera con el enlace puede llenar el formulario: eso es inherente a un QR
+> que se manda por WhatsApp. Por eso es de un solo uso y caduca. Manda cada enlace
+> solo a la persona que se va a inscribir, y si te equivocas, revócalo.
+
+---
+
 # Estructura del proyecto
 
 ```

@@ -56,6 +56,9 @@ model User {
   /// Alumnos de los que es profesor responsable, si es PROFESOR.
   studentsTaught Student[] @relation("AlumnoDeProfesor")
 
+  /// Invitaciones de inscripción que ha generado.
+  invitationsCreated Invitation[] @relation("InvitacionCreadaPor")
+
   /// Notificaciones que recibe.
   notifications     Notification[] @relation("NotificacionDestinatario")
   /// Avisos que redactó, si es ADMIN o PROFESOR.
@@ -130,6 +133,9 @@ model Student {
   attendance Attendance[]
   payments   Payment[]
   notes      StudentNote[]
+
+  /// Invitaciones generadas para sumar tutores a este expediente.
+  invitations Invitation[]
 
   @@index([lastName, firstName])
   @@index([active])
@@ -277,6 +283,62 @@ model StudentNote {
   createdAt DateTime @default(now())
 
   @@index([studentId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Invitaciones de inscripción
+// ---------------------------------------------------------------------------
+
+enum InvitationKind {
+  /// El formulario pide los datos del tutor y los de sus hijos.
+  TUTOR
+  /// El formulario pide los datos del propio alumno.
+  ALUMNO
+}
+
+/// Invitación para que un alumno o un tutor se registre él mismo.
+///
+/// El profesor genera una, comparte el enlace o el QR, y la persona llena el
+/// formulario sin necesidad de tener sesión. Al enviarlo queda registrada y
+/// ligada al profesor que generó la invitación.
+///
+/// Es de UN SOLO USO y caduca: el token viaja por WhatsApp o pegado en una
+/// pared, así que hay que asumir que puede acabar en manos de cualquiera.
+model Invitation {
+  id Int @id @default(autoincrement())
+
+  /// Token aleatorio que va en la URL. Lo único que protege el formulario,
+  /// así que se genera con 24 bytes de crypto.randomBytes, no con Math.random.
+  token String @unique
+
+  kind InvitationKind
+
+  /// Profesor o admin que la generó. El alumno queda asignado a él.
+  createdById Int
+  createdBy   User @relation("InvitacionCreadaPor", fields: [createdById], references: [id], onDelete: Cascade)
+
+  /// Alumno al que se ligará el tutor, si la invitación es para sumar un
+  /// tutor a un expediente que ya existe. Nulo si el tutor va a dar de alta
+  /// a sus hijos desde cero.
+  studentId Int?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  /// Nota para que el profesor recuerde a quién se la mandó.
+  note String?
+
+  expiresAt DateTime
+
+  /// Nulo mientras no se usa. Al usarse se sella y ya no sirve.
+  usedAt DateTime?
+
+  /// Qué se creó al usarla. Sirve para rastrear de dónde salió cada cuenta.
+  createdUserId    Int?
+  createdStudentId Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdById])
+  @@index([usedAt])
 }
 
 // ---------------------------------------------------------------------------

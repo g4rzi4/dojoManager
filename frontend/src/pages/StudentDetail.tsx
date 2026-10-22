@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, QrCode } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import StudentCardView from "../components/StudentCardView";
+import InvitationDialog from "../components/InvitationDialog";
 import { ApiError, getStudentCard } from "../services/api";
 import { can, getUser } from "../services/session";
 import type { StudentCard } from "../types/student";
@@ -41,6 +42,10 @@ function StudentDetail() {
   const idValido = Number.isInteger(studentId) && studentId >= 1;
 
   const [estado, setEstado] = useState<Estado>({ status: "cargando" });
+  const [invitandoTutor, setInvitandoTutor] = useState(false);
+
+  // Solo quien puede editar alumnos puede generar invitaciones.
+  const puedeInvitar = can(user, "students:write");
 
   useEffect(() => {
     if (!idValido) return;
@@ -88,9 +93,41 @@ function StudentDetail() {
         {volverTexto}
       </Link>
 
-      <h1 className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">
-        Tarjeta del alumno
-      </h1>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+          Tarjeta del alumno
+        </h1>
+
+        {puedeInvitar && estadoFinal.status === "ok" && (
+          <button
+            type="button"
+            onClick={() => setInvitandoTutor((v) => !v)}
+            aria-expanded={invitandoTutor}
+            className="
+              flex cursor-pointer items-center gap-2 rounded-xl border
+              border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold
+              text-slate-700 transition-colors duration-200
+              motion-reduce:transition-none
+              hover:bg-slate-50
+              focus:ring-2 focus:ring-blue-600 focus:outline-none
+            "
+          >
+            <QrCode size={17} aria-hidden="true" />
+            Invitar a un tutor
+          </button>
+        )}
+      </div>
+
+      {invitandoTutor && puedeInvitar && estadoFinal.status === "ok" && (
+        <div className="mt-6">
+          <InvitationDialog
+            studentId={estadoFinal.student.id}
+            studentName={`${estadoFinal.student.firstName} ${estadoFinal.student.lastName}`}
+            soloTipo="TUTOR"
+            onCerrar={() => setInvitandoTutor(false)}
+          />
+        </div>
+      )}
 
       <div className="mt-6">
         {estadoFinal.status === "cargando" && (

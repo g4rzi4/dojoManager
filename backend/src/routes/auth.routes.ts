@@ -4,9 +4,21 @@ import { prisma } from "../lib/prisma";
 import { signToken } from "../lib/jwt";
 import { verifyPassword } from "../lib/password";
 import { requireAuth } from "../middleware/auth";
+import { rateLimit } from "../middleware/rateLimit";
 import { ROLE_PERMISSIONS } from "../permissions";
 
 const router = Router();
+
+/**
+ * El login no exige sesión, así que es el lugar natural para probar
+ * contraseñas a lo bruto. 10 intentos cada 5 minutos por IP.
+ */
+const limiteLogin = rateLimit({
+  maximo: 10,
+  ventanaSegundos: 300,
+  mensaje:
+    "Demasiados intentos de inicio de sesión. Espera unos minutos y vuelve a intentarlo.",
+});
 
 /**
  * POST /auth/login
@@ -14,7 +26,7 @@ const router = Router();
  * Devuelve el token y el usuario, incluyendo sus permisos para que el
  * frontend sepa qué menús mostrar sin tener que duplicar la lógica.
  */
-router.post("/login", async (req, res) => {
+router.post("/login", limiteLogin, async (req, res) => {
   const { email, password } = req.body ?? {};
 
   if (typeof email !== "string" || typeof password !== "string") {

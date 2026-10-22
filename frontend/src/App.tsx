@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
+import Enroll from "./pages/Enroll";
 import Dashboard from "./pages/Dashboard";
 import FamilyHome from "./pages/FamilyHome";
 import Teachers from "./pages/Teachers";
@@ -26,6 +27,10 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+
+        {/* Pública: la abre una familia desde un QR, sin sesión. El token de
+            la URL es lo único que la autoriza, y el backend lo valida. */}
+        <Route path="/inscripcion/:token" element={<Enroll />} />
 
         {/* Administración */}
         <Route

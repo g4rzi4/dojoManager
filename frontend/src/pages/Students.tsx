@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, UserPlus, Users } from "lucide-react";
+import { ChevronRight, QrCode, UserPlus, Users } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import StudentForm from "../components/StudentForm";
+import InvitationDialog from "../components/InvitationDialog";
 import { ApiError, getStudents } from "../services/api";
 import type { StudentListItem } from "../types/student";
 import { BELT_LABELS, BELT_STYLES } from "../types/student";
@@ -14,6 +15,7 @@ function Students() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [registrando, setRegistrando] = useState(false);
+  const [invitando, setInvitando] = useState(false);
 
   function cargar() {
     return getStudents()
@@ -64,6 +66,24 @@ function Students() {
           </p>
         </div>
 
+        <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setInvitando((v) => !v)}
+          aria-expanded={invitando}
+          className="
+            flex cursor-pointer items-center gap-2 rounded-xl border
+            border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold
+            text-slate-700 transition-colors duration-200
+            motion-reduce:transition-none
+            hover:bg-slate-50
+            focus:ring-2 focus:ring-blue-600 focus:outline-none
+          "
+        >
+          <QrCode size={17} aria-hidden="true" />
+          Invitar por QR
+        </button>
+
         <button
           type="button"
           onClick={() => setRegistrando((v) => !v)}
@@ -80,7 +100,14 @@ function Students() {
           <UserPlus size={17} aria-hidden="true" />
           Registrar alumno
         </button>
+        </div>
       </header>
+
+      {invitando && (
+        <div className="mt-6">
+          <InvitationDialog onCerrar={() => setInvitando(false)} />
+        </div>
+      )}
 
       {registrando && (
         <div className="mt-6">

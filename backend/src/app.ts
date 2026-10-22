@@ -9,6 +9,7 @@ import paymentRoutes from "./routes/payments.routes";
 import eventRoutes from "./routes/events.routes";
 import teacherRoutes from "./routes/teachers.routes";
 import guardianRoutes from "./routes/guardians.routes";
+import invitationRoutes from "./routes/invitations.routes";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use("/payments", paymentRoutes);
 app.use("/events", eventRoutes);
 app.use("/teachers", teacherRoutes);
 app.use("/guardians", guardianRoutes);
+app.use("/invitations", invitationRoutes);
 
 // Ruta no encontrada
 app.use((_req, res) => {
