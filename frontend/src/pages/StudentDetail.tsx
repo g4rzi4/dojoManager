@@ -6,6 +6,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import StudentCardView from "../components/StudentCardView";
 import { ApiError, getStudentCard } from "../services/api";
+import { can, getUser } from "../services/session";
 import type { StudentCard } from "../types/student";
 
 /**
@@ -26,6 +27,14 @@ type Estado =
  */
 function StudentDetail() {
   const { id } = useParams<{ id: string }>();
+
+  // El tutor no tiene acceso a /alumnos, así que su enlace de regreso debe
+  // apuntar a su propio panel.
+  const user = getUser();
+  const volverA = can(user, "students:read") ? "/alumnos" : "/inicio";
+  const volverTexto = can(user, "students:read")
+    ? "Volver a alumnos"
+    : "Volver a mi panel";
 
   // La validez del id se deriva del render, no de un efecto.
   const studentId = Number(id);
@@ -66,7 +75,7 @@ function StudentDetail() {
   return (
     <DashboardLayout>
       <Link
-        to="/alumnos"
+        to={volverA}
         className="
           inline-flex items-center gap-2 rounded-lg py-2 text-sm font-semibold
           text-blue-700 transition-colors duration-200
@@ -76,7 +85,7 @@ function StudentDetail() {
         "
       >
         <ArrowLeft size={17} aria-hidden="true" />
-        Volver a alumnos
+        {volverTexto}
       </Link>
 
       <h1 className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">

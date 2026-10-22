@@ -5,6 +5,8 @@ import {
   GraduationCap,
   CalendarDays,
   IdCard,
+  Bell,
+  Receipt,
   LogOut,
   X,
 } from "lucide-react";
@@ -58,6 +60,20 @@ const NAV_ITEMS: NavItem[] = [
     icon: CalendarDays,
     permission: "events:read",
   },
+  {
+    to: "/pagos",
+    label: "Pagos",
+    icon: Receipt,
+    // self:read lo tienen los cuatro roles: el alcance de lo que se ve lo
+    // decide el backend (sus pagos, los de sus hijos, o todos).
+    permission: "self:read",
+  },
+  {
+    to: "/notificaciones",
+    label: "Notificaciones",
+    icon: Bell,
+    permission: "self:read",
+  },
 ];
 
 function Sidebar({ open, onClose }: Props) {
@@ -66,7 +82,8 @@ function Sidebar({ open, onClose }: Props) {
 
   const visibleItems = NAV_ITEMS.filter((item) => can(user, item.permission));
 
-  // El alumno no administra nada: su única pantalla es su propia tarjeta.
+  // Alumno y tutor no administran el dojo: entran a su propio panel.
+  const esFamilia = user?.role === "ALUMNO" || user?.role === "TUTOR";
   const esAlumno = user?.role === "ALUMNO";
 
   function handleLogout() {
@@ -105,7 +122,7 @@ function Sidebar({ open, onClose }: Props) {
             <div>
               <p className="font-bold text-slate-900">DojoManager</p>
               <p className="text-xs text-slate-600">
-                {esAlumno ? "Mi expediente" : "Administración"}
+                {esFamilia ? "Mi dojo" : "Administración"}
               </p>
             </div>
           </div>
@@ -129,10 +146,19 @@ function Sidebar({ open, onClose }: Props) {
         {/* Navegación */}
         <nav className="flex-1 overflow-y-auto px-3 py-5">
           <p className="px-3 pb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-            {esAlumno ? "Mi cuenta" : "Administración"}
+            {esFamilia ? "Mi cuenta" : "Administración"}
           </p>
 
           <ul className="space-y-1">
+            {esFamilia && (
+              <SidebarLink
+                to="/inicio"
+                label="Inicio"
+                icon={LayoutDashboard}
+                onClose={onClose}
+              />
+            )}
+
             {esAlumno && (
               <SidebarLink
                 to="/mi-tarjeta"

@@ -4,6 +4,9 @@ import cors from "cors";
 import { config } from "./config";
 import authRoutes from "./routes/auth.routes";
 import studentRoutes from "./routes/students.routes";
+import notificationRoutes from "./routes/notifications.routes";
+import paymentRoutes from "./routes/payments.routes";
+import eventRoutes from "./routes/events.routes";
 
 const app = express();
 
@@ -21,6 +24,9 @@ app.get("/", (_req, res) => {
 
 app.use("/auth", authRoutes);
 app.use("/students", studentRoutes);
+app.use("/notifications", notificationRoutes);
+app.use("/payments", paymentRoutes);
+app.use("/events", eventRoutes);
 
 // Ruta no encontrada
 app.use((_req, res) => {

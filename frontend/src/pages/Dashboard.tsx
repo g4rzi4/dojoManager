@@ -4,7 +4,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import EventCalendar from "../components/EventCalendar";
 import Card from "../components/Card";
 import { getUser } from "../services/session";
-import { getEvents } from "../services/events";
+import { getEvents } from "../services/api";
 import type { DojoEvent } from "../types/event";
 
 function Dashboard() {

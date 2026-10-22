@@ -3,7 +3,7 @@ import { CalendarDays, Clock } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
-import { getEvents } from "../services/events";
+import { getEvents } from "../services/api";
 import type { DojoEvent } from "../types/event";
 import { CATEGORY_LABELS, CATEGORY_STYLES } from "../types/event";
 import { formatLongDate, fromDateKey, toDateKey } from "../utils/date";

@@ -1,5 +1,8 @@
 import type { SessionUser } from "../types/user";
 import type { StudentCard, StudentListItem } from "../types/student";
+import type { MyStudent, PaymentsResponse } from "../types/payment";
+import type { AppNotification, Audience } from "../types/notification";
+import type { DojoEvent } from "../types/event";
 import { clearSession, getToken } from "./session";
 
 const API_URL = "http://localhost:3000";
@@ -92,4 +95,52 @@ export async function getStudentCard(
 ): Promise<StudentCard> {
   const data = await request<{ student: StudentCard }>(`/students/${id}`);
   return data.student;
+}
+
+/**
+ * Los alumnos que puede consultar quien tiene la sesión: su propio
+ * expediente si es alumno, sus hijos si es tutor.
+ *
+ * No recibe parámetros a propósito: el backend resuelve el alcance desde el
+ * token, así nadie puede pedir los hijos de otra familia.
+ */
+export async function getMyStudents(): Promise<MyStudent[]> {
+  const data = await request<{ students: MyStudent[] }>("/students/mine");
+  return data.students;
+}
+
+export async function getEvents(): Promise<DojoEvent[]> {
+  const data = await request<{ events: DojoEvent[] }>("/events");
+  return data.events;
+}
+
+export async function getPayments(): Promise<PaymentsResponse> {
+  return request<PaymentsResponse>("/payments");
+}
+
+export async function getNotifications(): Promise<{
+  unread: number;
+  notifications: AppNotification[];
+}> {
+  return request("/notifications");
+}
+
+export async function markNotificationRead(id: number): Promise<void> {
+  await request(`/notifications/${id}/read`, { method: "PATCH" });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await request("/notifications/read-all", { method: "POST" });
+}
+
+/** Manda un aviso del dojo. Requiere el permiso notifications:send. */
+export async function sendAnnouncement(params: {
+  title: string;
+  body: string;
+  audience: Audience;
+}): Promise<{ enviadas: number }> {
+  return request("/notifications/announcements", {
+    method: "POST",
+    body: params,
+  });
 }

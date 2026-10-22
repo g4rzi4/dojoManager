@@ -13,6 +13,11 @@ import { Role } from "./generated/prisma/enums";
  *
  * Si agregas un permiso, agrégalo al tipo Permission del frontend
  * (frontend/src/types/user.ts) para mantener el autocompletado.
+ *
+ * OJO: hay accesos que NO se resuelven con permisos, porque dependen de a
+ * quién pertenece el dato. El alumno viendo su expediente y el tutor viendo
+ * el de sus hijos se verifican comparando contra el token, en
+ * routes/students.routes.ts. Un permiso no puede expresar "solo los míos".
  */
 export type Permission =
   | "students:read"
@@ -25,7 +30,9 @@ export type Permission =
   | "teachers:read"
   | "teachers:write"
   | "settings:write"
-  /// El alumno consultando su propia tarjeta, y nada más.
+  /// Redactar avisos y mandarlos a otros usuarios.
+  | "notifications:send"
+  /// Consultar lo propio: su expediente, sus pagos, sus notificaciones.
   | "self:read";
 
 const ADMIN_PERMISSIONS: Permission[] = [
@@ -39,6 +46,7 @@ const ADMIN_PERMISSIONS: Permission[] = [
   "teachers:read",
   "teachers:write",
   "settings:write",
+  "notifications:send",
   "self:read",
 ];
 
@@ -54,14 +62,26 @@ const PROFESOR_PERMISSIONS: Permission[] = [
   "payments:read",
   "payments:write",
   "reports:read",
+  "notifications:send",
   "self:read",
 ];
 
-const ALUMNO_PERMISSIONS: Permission[] = ["self:read"];
+/**
+ * El tutor no administra nada del dojo. Ve el calendario y, por la relación
+ * StudentGuardian, los expedientes y pagos de los alumnos a su cargo.
+ *
+ * Nota que NO tiene students:read ni payments:read: esos permisos dan acceso
+ * a TODOS los alumnos. El acceso a sus hijos se resuelve por relación.
+ */
+const TUTOR_PERMISSIONS: Permission[] = ["events:read", "self:read"];
+
+/** El alumno ve el calendario del dojo y sus propios datos. */
+const ALUMNO_PERMISSIONS: Permission[] = ["events:read", "self:read"];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   [Role.ADMIN]: ADMIN_PERMISSIONS,
   [Role.PROFESOR]: PROFESOR_PERMISSIONS,
+  [Role.TUTOR]: TUTOR_PERMISSIONS,
   [Role.ALUMNO]: ALUMNO_PERMISSIONS,
 };
 

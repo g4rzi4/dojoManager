@@ -287,6 +287,58 @@ if (!can(req.user!.role, "students:read") && !esSuPropioExpediente) {
 > para no ofrecer algo que va a fallar. Cualquiera puede llamar a tu endpoint con
 > `curl` y un token de alumno. Si no pusiste `requirePermission`, entra.
 
+### Accesos "solo los míos"
+
+Hay dos accesos que **un permiso no puede expresar**, porque dependen de a quién
+pertenece el dato: el alumno viendo lo suyo, y el tutor viendo lo de sus hijos.
+
+Para esos casos usa los helpers de
+[`backend/src/lib/access.ts`](backend/src/lib/access.ts) en lugar de inventar la
+comprobación:
+
+```ts
+import { canViewStudent, ownStudentIds } from "../lib/access";
+
+// ¿Puede ver el expediente de este alumno?
+// Verdadero si tiene students:read, o si el alumno es suyo / es su hijo.
+if (!(await canViewStudent(req.user!, studentId))) {
+  return res.status(403).json({ success: false, message: "..." });
+}
+
+// Para filtrar una lista al alcance del usuario:
+const mios = await ownStudentIds(req.user!);
+```
+
+Nota que el **tutor no tiene `students:read`** a propósito: ese permiso significa
+*todos* los alumnos del dojo. Si se lo das, verá a todas las familias.
+
+> ⚠️ Nunca aceptes un id de alumno del cliente para decidir el alcance. Mira cómo lo
+> hace `GET /payments`: no recibe ningún parámetro y calcula el alcance desde el
+> token. Si recibiera `?studentId=`, cualquiera podría pedir los pagos de otra
+> familia.
+
+### Mandar notificaciones desde tu módulo
+
+Cuando tu módulo guarde algo que al alumno o a su familia le interese, créale la
+notificación. Las funciones están en
+[`backend/src/lib/notifications.ts`](backend/src/lib/notifications.ts):
+
+```ts
+import { notifyBeltPromotion, notifyAbsence } from "../lib/notifications";
+
+// feature/students, al registrar una graduación:
+await notifyBeltPromotion(promocion.id, alumno.id, promocion.belt);
+
+// feature/students, al registrar una falta:
+await notifyAbsence(asistencia.id, alumno.id, "2026-10-22");
+```
+
+No tienes que averiguar a quién avisarle: `audienceForStudent` ya resuelve que vaya
+**al alumno y a todos sus tutores**.
+
+Todas llevan `dedupeKey`, así que llamarlas dos veces por el mismo hecho no genera
+notificaciones duplicadas.
+
 ### Contraseñas
 
 Nunca guardes una contraseña en texto plano ni la devuelvas en una respuesta. Usa

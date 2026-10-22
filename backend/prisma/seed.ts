@@ -12,7 +12,16 @@
 
 import { prisma } from "../src/lib/prisma";
 import { hashPassword } from "../src/lib/password";
-import { Belt, PaymentStatus, Role } from "../src/generated/prisma/enums";
+import {
+  Belt,
+  EventCategory,
+  GuardianRelationship,
+  NotificationKind,
+  NotificationTopic,
+  PaymentMethod,
+  PaymentStatus,
+  Role,
+} from "../src/generated/prisma/enums";
 
 const PASSWORD_DEV = "123456";
 
@@ -112,6 +121,87 @@ async function main() {
         enrolledAt: fecha(2025, 6, 1),
       },
     }));
+
+  // -------------------------------------------------------------------------
+  // Tutora con DOS hijos en el dojo
+  // -------------------------------------------------------------------------
+  const tutora = await prisma.user.upsert({
+    where: { email: "tutor@dojo.com" },
+    update: { role: Role.TUTOR },
+    create: {
+      name: "Marta López",
+      email: "tutor@dojo.com",
+      password: hash,
+      role: Role.TUTOR,
+    },
+  });
+
+  // Segundo hijo: hermano menor de Ana, sin cuenta propia.
+  const existeDiego = await prisma.student.findFirst({
+    where: { firstName: "Diego", lastName: "López" },
+  });
+
+  const diego =
+    existeDiego ??
+    (await prisma.student.create({
+      data: {
+        firstName: "Diego",
+        lastName: "López",
+        birthDate: fecha(2016, 11, 2),
+        guardianName: "Marta López",
+        guardianPhone: "555 987 6543",
+        currentBelt: Belt.BLANCO,
+        enrolledAt: fecha(2026, 2, 10),
+      },
+    }));
+
+  // Vincula a la tutora con sus dos hijos.
+  for (const hijo of [ana, diego]) {
+    await prisma.studentGuardian.upsert({
+      where: {
+        studentId_guardianId: { studentId: hijo.id, guardianId: tutora.id },
+      },
+      update: {},
+      create: {
+        studentId: hijo.id,
+        guardianId: tutora.id,
+        relationship: GuardianRelationship.MADRE,
+        isPrimary: true,
+      },
+    });
+  }
+
+  // Algo de historial para Diego, para que el panel de la tutora no se vea
+  // vacío en uno de los dos hijos.
+  await prisma.beltPromotion.deleteMany({ where: { studentId: diego.id } });
+  await prisma.beltPromotion.create({
+    data: {
+      studentId: diego.id,
+      belt: Belt.BLANCO,
+      promotedAt: fecha(2026, 2, 10),
+      notes: "Inscripción inicial.",
+      evaluatedById: profesor.id,
+    },
+  });
+
+  await prisma.payment.upsert({
+    where: {
+      studentId_periodYear_periodMonth: {
+        studentId: diego.id,
+        periodYear: new Date().getFullYear(),
+        periodMonth: new Date().getMonth() + 1,
+      },
+    },
+    update: {},
+    create: {
+      studentId: diego.id,
+      amountCents: 70000, // $700.00, tarifa infantil
+      periodYear: new Date().getFullYear(),
+      periodMonth: new Date().getMonth() + 1,
+      status: PaymentStatus.PENDIENTE,
+      registeredById: profesor.id,
+    },
+  });
 
   // -------------------------------------------------------------------------
   // Historial de Ana
@@ -222,11 +312,93 @@ async function main() {
     ],
   });
 
+  // Marca como pagada en efectivo la mensualidad más antigua de Ana, para
+  // que se vea el método de pago en la tarjeta.
+  await prisma.payment.updateMany({
+    where: { studentId: ana.id, status: PaymentStatus.PAGADO, method: null },
+    data: { method: PaymentMethod.EFECTIVO },
+  });
+
+  // -------------------------------------------------------------------------
+  // Eventos del calendario (mes actual)
+  // -------------------------------------------------------------------------
+  const hoyEv = new Date();
+  const y = hoyEv.getFullYear();
+  const m = hoyEv.getMonth() + 1;
+
+  const eventos = [
+    { title: "Clase de karate infantil", day: 3, time: "17:00", category: EventCategory.CLASE },
+    { title: "Clase de adultos", day: 3, time: "19:00", category: EventCategory.CLASE },
+    { title: "Cobro de mensualidades", day: 5, time: null, category: EventCategory.PAGO },
+    { title: "Examen de cinturón amarillo", day: 12, time: "10:00", category: EventCategory.EXAMEN },
+    { title: "Clase de adultos", day: 12, time: "19:00", category: EventCategory.CLASE },
+    { title: "Torneo regional", day: 18, time: "09:00", category: EventCategory.TORNEO },
+    { title: "Clase de karate infantil", day: 21, time: "17:00", category: EventCategory.CLASE },
+    { title: "Examen de cinturón verde", day: 26, time: "11:00", category: EventCategory.EXAMEN },
+    { title: "Junta de profesores", day: 28, time: "18:00", category: EventCategory.CLASE },
+  ];
+
+  // Borra solo los eventos del mes en curso antes de recrearlos, para no
+  // tocar los que el equipo haya creado en otros meses.
+  await prisma.event.deleteMany({
+    where: {
+      date: { gte: fecha(y, m, 1), lt: fecha(m === 12 ? y + 1 : y, m === 12 ? 1 : m + 1, 1) },
+    },
+  });
+
+  for (const ev of eventos) {
+    await prisma.event.create({
+      data: {
+        title: ev.title,
+        date: fecha(y, m, ev.day),
+        time: ev.time,
+        category: ev.category,
+        createdById: profesor.id,
+      },
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Un aviso del dojo, para que la bandeja no se vea vacía
+  // -------------------------------------------------------------------------
+  const destinatarios = await prisma.user.findMany({
+    where: { role: { in: [Role.ALUMNO, Role.TUTOR] }, active: true },
+    select: { id: true },
+  });
+
+  for (const d of destinatarios) {
+    const yaExiste = await prisma.notification.findFirst({
+      where: {
+        userId: d.id,
+        kind: NotificationKind.AVISO,
+        title: "Suspensión de clases por mantenimiento",
+      },
+    });
+
+    if (!yaExiste) {
+      await prisma.notification.create({
+        data: {
+          userId: d.id,
+          kind: NotificationKind.AVISO,
+          topic: NotificationTopic.GENERAL,
+          title: "Suspensión de clases por mantenimiento",
+          body: "El próximo sábado no habrá clases porque vamos a cambiar el tatami. Las clases se reponen el domingo en el mismo horario.",
+          createdById: admin.id,
+        },
+      });
+    }
+  }
+
   console.log("Seed completado:");
   console.log(`  ADMIN     admin@dojo.com    / ${PASSWORD_DEV}`);
   console.log(`  PROFESOR  profesor@dojo.com / ${PASSWORD_DEV}`);
+  console.log(`  TUTOR     tutor@dojo.com    / ${PASSWORD_DEV}  (2 hijos)`);
   console.log(`  ALUMNO    alumno@dojo.com   / ${PASSWORD_DEV}`);
-  console.log(`  Alumnos: ${ana.firstName} ${ana.lastName} (con historial), ${luis.firstName} ${luis.lastName}`);
+  console.log("");
+  console.log(`  Alumnos: ${ana.firstName} ${ana.lastName} (historial completo, con cuenta),`);
+  console.log(`           ${diego.firstName} ${diego.lastName} (hijo de la tutora, sin cuenta),`);
+  console.log(`           ${luis.firstName} ${luis.lastName} (sin tutor ni cuenta)`);
+  console.log(`  Eventos del mes: ${eventos.length}`);
 }
 
 main()

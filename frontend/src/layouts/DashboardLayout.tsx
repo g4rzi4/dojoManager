@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Menu } from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
+import NotificationBell from "../components/NotificationBell";
 
 type Props = {
   children: ReactNode;
@@ -28,12 +29,12 @@ function DashboardLayout({ children }: Props) {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Barra superior: solo en móvil, para abrir el menú */}
-        <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+        {/* Barra superior: el botón del menú solo en móvil, la campana siempre */}
+        <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            aria-label="Abrir menú de administración"
+            aria-label="Abrir menú"
             aria-expanded={sidebarOpen}
             className="
               flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg
@@ -41,11 +42,19 @@ function DashboardLayout({ children }: Props) {
               motion-reduce:transition-none
               hover:bg-slate-100
               focus:ring-2 focus:ring-blue-600 focus:outline-none
+              lg:hidden
             "
           >
             <Menu size={22} aria-hidden="true" />
           </button>
-          <span className="font-bold text-slate-900">DojoManager</span>
+
+          <span className="font-bold text-slate-900 lg:hidden">
+            DojoManager
+          </span>
+
+          <div className="ml-auto">
+            <NotificationBell />
+          </div>
         </div>
 
         <main

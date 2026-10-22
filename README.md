@@ -189,18 +189,28 @@ Con el backend y el frontend corriendo, abre `http://localhost:5173` y entra con
 cualquiera de las tres cuentas que crea el seed. Cada una lleva a una pantalla
 distinta, según su rol:
 
-| Rol          | Correo              | Contraseña | Qué ve al entrar                              |
-| ------------ | ------------------- | ---------- | --------------------------------------------- |
-| Administrador | `admin@dojo.com`    | `123456`   | Panel completo, incluyendo Profesores         |
-| Profesor     | `profesor@dojo.com` | `123456`   | Igual, **sin** la sección de Profesores       |
-| Alumno       | `alumno@dojo.com`   | `123456`   | Solo su propia tarjeta de información         |
+| Rol          | Correo              | Contraseña | Qué ve al entrar                                    |
+| ------------ | ------------------- | ---------- | --------------------------------------------------- |
+| Administrador | `admin@dojo.com`    | `123456`   | Panel completo, incluyendo Profesores               |
+| Profesor     | `profesor@dojo.com` | `123456`   | Igual, **sin** la sección de Profesores             |
+| Tutor        | `tutor@dojo.com`    | `123456`   | Panel familiar con **sus dos hijos**                |
+| Alumno       | `alumno@dojo.com`   | `123456`   | Panel familiar con su propio expediente             |
 
 Las contraseñas se guardan con hash de **bcrypt** y la sesión viaja en un **JWT**
 firmado con tu `JWT_SECRET`. Son cuentas de **desarrollo local**: no las subas a un
 servidor público.
 
-El alumno de prueba (Ana López) viene con historial completo: 4 graduaciones de
-cinturón, 13 registros de asistencia, 4 mensualidades y 3 observaciones del profesor.
+Datos que crea el seed:
+
+- **Ana López** — alumna con cuenta propia e historial completo: 4 graduaciones de
+  cinturón, 13 registros de asistencia, 4 mensualidades y 3 observaciones.
+- **Diego López** — hermano menor de Ana, sin cuenta propia. Sirve para ver cómo un
+  alumno existe en el sistema sin poder iniciar sesión.
+- **Marta López** (`tutor@dojo.com`) — madre de los dos. Al entrar ve ambos
+  expedientes, el calendario, los pagos de los dos y sus notificaciones.
+- **Luis Hernández** — alumno adulto, sin tutor ni cuenta. Comprueba que el tutor
+  **no** puede abrir su expediente.
+- 9 eventos del mes en curso y un aviso del dojo en la bandeja.
 
 Para comprobar solo el backend:
 
@@ -213,24 +223,44 @@ curl http://localhost:3000
 
 # Roles y permisos
 
-Hay tres roles. El profesor es **subadministrador**: puede todo menos administrar
+Hay cuatro roles. El profesor es **subadministrador**: puede todo menos administrar
 profesores y la configuración del dojo.
 
-| Permiso           | Administrador | Profesor | Alumno |
-| ----------------- | :-----------: | :------: | :----: |
-| Ver alumnos       |       ✅       |    ✅     |   —    |
-| Editar alumnos    |       ✅       |    ✅     |   —    |
-| Ver/editar eventos |      ✅       |    ✅     |   —    |
-| Ver/editar pagos  |       ✅       |    ✅     |   —    |
-| Ver reportes      |       ✅       |    ✅     |   —    |
-| Administrar profesores |   ✅      |    ❌     |   —    |
-| Configuración del dojo |   ✅      |    ❌     |   —    |
-| Ver su propia tarjeta  |   ✅      |    ✅     |   ✅    |
+| Permiso                 | Administrador | Profesor | Tutor | Alumno |
+| ----------------------- | :-----------: | :------: | :---: | :----: |
+| Ver **todos** los alumnos |      ✅       |    ✅     |   ❌   |   ❌    |
+| Editar alumnos          |       ✅       |    ✅     |   ❌   |   ❌    |
+| Ver/editar eventos      |       ✅       |    ✅     |   ❌   |   ❌    |
+| Ver/editar pagos de todos |     ✅       |    ✅     |   ❌   |   ❌    |
+| Ver reportes            |       ✅       |    ✅     |   ❌   |   ❌    |
+| Administrar profesores  |       ✅       |    ❌     |   ❌   |   ❌    |
+| Configuración del dojo  |       ✅       |    ❌     |   ❌   |   ❌    |
+| Mandar avisos           |       ✅       |    ✅     |   ❌   |   ❌    |
+| Ver el calendario       |       ✅       |    ✅     |   ✅   |   ✅    |
+| Ver sus notificaciones  |       ✅       |    ✅     |   ✅   |   ✅    |
 
-La matriz vive en un solo lugar:
+## Lo que un permiso no puede expresar
+
+Un permiso como `students:read` significa **todos** los alumnos. Dos accesos no
+caben en esa idea y se resuelven comparando contra el token:
+
+- **El alumno** ve su propio expediente y sus propios pagos.
+- **El tutor** ve los expedientes y pagos de los alumnos a su cargo, y de nadie más.
+
+Por eso el tutor **no** tiene `students:read`: si lo tuviera, vería a todo el dojo.
+La relación real vive en la tabla `StudentGuardian`, que es muchos-a-muchos: un tutor
+puede tener varios hijos inscritos, y un alumno puede tener dos tutores con acceso
+(por ejemplo, padres separados).
+
+La lógica está en [backend/src/lib/access.ts](backend/src/lib/access.ts), y el
+alcance de los pagos lo decide el servidor en
+[payments.routes.ts](backend/src/routes/payments.routes.ts) — el frontend nunca
+manda un id de alumno, porque podría cambiarlo por el de otra familia.
+
+La matriz de permisos vive en un solo lugar:
 [backend/src/permissions.ts](backend/src/permissions.ts). El frontend **no la
-duplica**: el backend le envía al iniciar sesión la lista de permisos ya resuelta, y
-el menú se arma con eso.
+duplica**: el backend le envía al iniciar sesión la lista ya resuelta, y el menú se
+arma con eso.
 
 > ⚠️ Ocultar un menú **no es seguridad**. Quien sabe la URL puede entrar, y quien
 > sabe usar la consola del navegador puede editar su `localStorage`. Lo que de verdad
@@ -238,8 +268,51 @@ el menú se arma con eso.
 > agregas un endpoint, protégelo con `requireAuth` y `requirePermission` — ver
 > [CONTRIBUTING.md](CONTRIBUTING.md).
 
-El alumno solo puede ver **su propio** expediente: `GET /students/:id` compara el id
-del expediente contra el del token y responde `403` si no coincide.
+---
+
+# Notificaciones
+
+Las hay de dos clases, y la bandeja las distingue:
+
+| Clase | Quién la crea | Ejemplo |
+| --- | --- | --- |
+| **Automática** | El sistema | "Mensualidad pendiente: Diego López, $700.00" |
+| **Aviso** | El admin o un profesor | "Suspensión de clases por mantenimiento" |
+
+Las automáticas de **pagos** se generan al consultar la bandeja, no con una tarea
+programada: el proyecto no tiene un cron corriendo, y así funcionan sin
+infraestructura extra. Son idempotentes por la columna `dedupeKey`, así que recargar
+la página no las duplica.
+
+Las de **graduaciones**, **faltas** y **eventos nuevos** tienen su función lista en
+[backend/src/lib/notifications.ts](backend/src/lib/notifications.ts), pero solo se
+disparan cuando el módulo correspondiente las llame al guardar. Si estás
+implementando `feature/students` o `feature/events`, llámalas — ver
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+Cuando algo pasa con un alumno, la notificación llega **al alumno y a todos sus
+tutores**, resuelto por `audienceForStudent`.
+
+---
+
+# Pagos
+
+Es solo consulta. El alcance lo decide el backend según el rol:
+
+- **Admin y profesor** — todas las mensualidades del dojo.
+- **Tutor** — las de sus hijos, sumadas.
+- **Alumno** — las suyas.
+
+Los montos se guardan en **centavos como entero** (`amountCents`). Guardar dinero en
+`float` produce errores de redondeo.
+
+**El pago en línea con PayPal no está implementado.** La pantalla lo dice en lugar de
+mostrar un botón que no hace nada. El schema ya tiene las columnas `method` y
+`externalReference` preparadas, así que integrarlo no requerirá otra migración —
+cuando se haga, `externalReference` guarda el id de la orden para conciliar y evitar
+cobros dobles.
+
+Registrar y editar cobros corresponde al módulo `feature/payments`.
 
 ---
 

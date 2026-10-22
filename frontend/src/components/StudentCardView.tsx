@@ -17,6 +17,7 @@ import {
   BELT_STYLES,
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_STYLES,
+  RELATIONSHIP_LABELS,
 } from "../types/student";
 import { formatLongDate, fromDateKey } from "../utils/date";
 import {
@@ -144,6 +145,42 @@ function StudentCardView({ student }: Props) {
             value={student.guardianPhone ?? "No registrado"}
           />
         </dl>
+
+        {/* Tutores con cuenta. Separado de guardianName, que es texto suelto
+            para alumnos cuyo tutor no está registrado en el sistema. */}
+        {student.tutores.length > 0 && (
+          <div className="mt-5 border-t border-slate-200 pt-5">
+            <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              Tutores con acceso
+            </p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {student.tutores.map((t) => (
+                <li
+                  key={t.id}
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                >
+                  <ShieldUser
+                    size={16}
+                    aria-hidden="true"
+                    className="shrink-0 text-slate-500"
+                  />
+                  <span className="text-sm text-slate-900">
+                    {t.name}
+                    <span className="text-slate-600">
+                      {" "}
+                      · {RELATIONSHIP_LABELS[t.relationship]}
+                    </span>
+                  </span>
+                  {t.isPrimary && (
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-800">
+                      Contacto principal
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Notas médicas: resaltadas porque el profesor las necesita a la vista */}
         {student.medicalNotes && (

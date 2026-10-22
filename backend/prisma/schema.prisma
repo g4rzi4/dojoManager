@@ -20,6 +20,8 @@ enum Role {
   ADMIN
   /// Subadministrador: alumnos, eventos, pagos y reportes.
   PROFESOR
+  /// Madre, padre o tutor. Consulta los expedientes de los alumnos a su cargo.
+  TUTOR
   /// Solo consulta su propia tarjeta. No edita nada.
   ALUMNO
 }
@@ -37,6 +39,14 @@ model User {
 
   /// Expediente, solo si este usuario es un alumno.
   student Student?
+
+  /// Alumnos a cargo de este usuario, si es TUTOR.
+  guardianOf StudentGuardian[]
+
+  /// Notificaciones que recibe.
+  notifications     Notification[] @relation("NotificacionDestinatario")
+  /// Avisos que redactó, si es ADMIN o PROFESOR.
+  notificationsSent Notification[] @relation("NotificacionAutor")
 
   // Rastro de quién hizo cada cosa. Son opcionales y con onDelete: SetNull
   // para que dar de baja a un profesor no borre el historial del alumno.
@@ -71,8 +81,8 @@ model Student {
   birthDate DateTime? @db.Date
   phone     String?
 
-  /// Tutor responsable. Obligatorio en la práctica para alumnos menores de
-  /// edad, pero el schema no lo exige porque también hay alumnos adultos.
+  /// Contacto del tutor como texto suelto, para alumnos cuyo tutor no tiene
+  /// cuenta en el sistema. Si la tiene, la relación real es `guardians`.
   guardianName  String?
   guardianPhone String?
 
@@ -92,6 +102,9 @@ model Student {
   userId Int?  @unique
   user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  /// Tutores con cuenta que pueden consultar este expediente.
+  guardians StudentGuardian[]
+
   promotions BeltPromotion[]
   attendance Attendance[]
   payments   Payment[]
@@ -99,6 +112,40 @@ model Student {
 
   @@index([lastName, firstName])
   @@index([active])
+}
+
+enum GuardianRelationship {
+  MADRE
+  PADRE
+  TUTOR
+}
+
+/// Relación tutor ↔ alumno.
+///
+/// Es muchos-a-muchos a propósito: un tutor puede tener varios hijos en el
+/// dojo, y un alumno puede tener dos tutores con acceso (por ejemplo, padres
+/// separados que ambos quieren consultar el expediente).
+///
+/// Tabla explícita en lugar de relación implícita, para poder guardar el
+/// parentesco y quién es el contacto principal.
+model StudentGuardian {
+  id Int @id @default(autoincrement())
+
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  guardianId Int
+  guardian   User @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  relationship GuardianRelationship @default(TUTOR)
+  /// A quién llamar primero en una emergencia.
+  isPrimary    Boolean              @default(false)
+
+  createdAt DateTime @default(now())
+
+  /// Un tutor no puede estar ligado dos veces al mismo alumno.
+  @@unique([studentId, guardianId])
+  @@index([guardianId])
 }
 
 // ---------------------------------------------------------------------------
@@ -147,6 +194,13 @@ enum PaymentStatus {
   VENCIDO
 }
 
+enum PaymentMethod {
+  EFECTIVO
+  TRANSFERENCIA
+  /// Pendiente de integrar. Ver Payment.externalReference.
+  PAYPAL
+}
+
 model Payment {
   id        Int     @id @default(autoincrement())
   studentId Int
@@ -165,6 +219,17 @@ model Payment {
   status PaymentStatus @default(PENDIENTE)
   paidAt DateTime?
   note   String?
+
+  /// Cómo se pagó. Nulo mientras está pendiente.
+  method PaymentMethod?
+
+  /// Id de la transacción en la pasarela externa.
+  ///
+  /// Hoy nadie lo escribe: la columna existe desde ahora para que integrar
+  /// PayPal más adelante no requiera otra migración, que obligaría a los 6 a
+  /// correr `prisma migrate dev` de nuevo. Al integrarlo, aquí va el
+  /// identificador de la orden para poder conciliar y evitar cobros dobles.
+  externalReference String?
 
   registeredById Int?
   registeredBy   User? @relation("PagoRegistradoPor", fields: [registeredById], references: [id], onDelete: SetNull)
@@ -190,6 +255,62 @@ model StudentNote {
   createdAt DateTime @default(now())
 
   @@index([studentId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Notificaciones
+// ---------------------------------------------------------------------------
+
+enum NotificationKind {
+  /// La generó el sistema cuando pasó algo (mensualidad vencida, graduación).
+  AUTOMATICA
+  /// La redactó un humano del dojo y la mandó a uno o varios usuarios.
+  AVISO
+}
+
+enum NotificationTopic {
+  PAGO
+  GRADUACION
+  ASISTENCIA
+  EVENTO
+  GENERAL
+}
+
+model Notification {
+  id Int @id @default(autoincrement())
+
+  /// A quién le llega.
+  userId Int
+  user   User @relation("NotificacionDestinatario", fields: [userId], references: [id], onDelete: Cascade)
+
+  kind  NotificationKind
+  topic NotificationTopic @default(GENERAL)
+  title String
+  body  String
+
+  /// Ruta del frontend a la que lleva al tocarla, p. ej. "/pagos".
+  link String?
+
+  /// Nulo mientras no se ha leído. Guardamos la fecha y no un booleano
+  /// porque sirve para saber cuánto tardó el usuario en verla.
+  readAt DateTime?
+
+  /// Identificador del hecho que la originó, p. ej. "pago-vencido-42".
+  ///
+  /// Evita que el sistema cree la misma notificación automática una y otra
+  /// vez. En Postgres los NULL no colisionan entre sí, así que los avisos
+  /// manuales (que van sin clave) no se estorban.
+  dedupeKey String?
+
+  /// Quién la redactó, si es un AVISO.
+  createdById Int?
+  createdBy   User? @relation("NotificacionAutor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
 }
 
 // ---------------------------------------------------------------------------

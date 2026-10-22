@@ -3,16 +3,23 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import FamilyHome from "./pages/FamilyHome";
 import Teachers from "./pages/Teachers";
 import Students from "./pages/Students";
 import StudentDetail from "./pages/StudentDetail";
 import MyCard from "./pages/MyCard";
 import Events from "./pages/Events";
+import Payments from "./pages/Payments";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 /**
  * Cada ruta declara el permiso que exige. Es navegación, no seguridad: el
  * backend vuelve a validar token y permiso en cada petición.
+ *
+ * Varias rutas solo piden sesión porque el ALCANCE lo decide el servidor:
+ * en /pagos un alumno ve los suyos y un admin todos; en /alumnos/:id el
+ * tutor entra por la relación con su hijo, no por un permiso.
  */
 function App() {
   return (
@@ -20,6 +27,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
 
+        {/* Administración */}
         <Route
           path="/dashboard"
           element={
@@ -47,15 +55,38 @@ function App() {
           }
         />
 
+        {/* Panel de alumno y tutor */}
+        <Route
+          path="/inicio"
+          element={
+            <ProtectedRoute>
+              <FamilyHome />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Expediente concreto: admin y profesor por permiso, alumno y tutor
+            por relación. Quien no tenga ninguna de las dos recibe 403 del
+            backend y la pantalla lo explica. */}
         <Route
           path="/alumnos/:id"
           element={
-            <ProtectedRoute permission="students:read">
+            <ProtectedRoute>
               <StudentDetail />
             </ProtectedRoute>
           }
         />
 
+        <Route
+          path="/mi-tarjeta"
+          element={
+            <ProtectedRoute>
+              <MyCard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Para todos los roles */}
         <Route
           path="/eventos"
           element={
@@ -65,12 +96,20 @@ function App() {
           }
         />
 
-        {/* El alumno solo necesita sesión: su expediente lo resuelve el token */}
         <Route
-          path="/mi-tarjeta"
+          path="/pagos"
           element={
             <ProtectedRoute>
-              <MyCard />
+              <Payments />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/notificaciones"
+          element={
+            <ProtectedRoute>
+              <Notifications />
             </ProtectedRoute>
           }
         />

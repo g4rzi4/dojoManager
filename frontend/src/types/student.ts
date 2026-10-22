@@ -76,6 +76,22 @@ export type PaymentEntry = {
   note: string | null;
 };
 
+export type GuardianRelationship = "MADRE" | "PADRE" | "TUTOR";
+
+export const RELATIONSHIP_LABELS: Record<GuardianRelationship, string> = {
+  MADRE: "Madre",
+  PADRE: "Padre",
+  TUTOR: "Tutor",
+};
+
+export type StudentGuardianEntry = {
+  id: number;
+  name: string;
+  email: string;
+  relationship: GuardianRelationship;
+  isPrimary: boolean;
+};
+
 export type StudentNoteEntry = {
   id: number;
   body: string;
@@ -97,6 +113,8 @@ export type StudentCard = {
   enrolledAt: string;
   active: boolean;
   hasLogin: boolean;
+  /** Tutores con cuenta que pueden consultar este expediente. */
+  tutores: StudentGuardianEntry[];
 
   resumen: {
     graduaciones: number;

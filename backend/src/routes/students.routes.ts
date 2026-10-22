@@ -5,8 +5,8 @@ import type {
   StudentGetPayload,
   StudentInclude,
 } from "../generated/prisma/models/Student";
+import { canViewStudent, ownStudentIds } from "../lib/access";
 import { requireAuth, requirePermission } from "../middleware/auth";
-import { can } from "../permissions";
 
 const router = Router();
 
@@ -46,6 +46,9 @@ const CARD_INCLUDE = {
     take: LIMITE_HISTORIAL,
     include: { author: { select: { id: true, name: true } } },
   },
+  guardians: {
+    include: { guardian: { select: { id: true, name: true, email: true } } },
+  },
 } satisfies StudentInclude;
 
 type StudentWithHistory = StudentGetPayload<{
@@ -69,6 +72,15 @@ function buildCard(student: StudentWithHistory) {
     enrolledAt: dateOnly(student.enrolledAt),
     active: student.active,
     hasLogin: student.userId !== null,
+
+    /// Tutores con cuenta que pueden consultar este expediente.
+    tutores: student.guardians.map((g) => ({
+      id: g.guardian.id,
+      name: g.guardian.name,
+      email: g.guardian.email,
+      relationship: g.relationship,
+      isPrimary: g.isPrimary,
+    })),
 
     resumen: {
       graduaciones: student.promotions.length,
@@ -147,6 +159,61 @@ router.get(
 );
 
 /**
+ * GET /students/mine
+ *
+ * Los alumnos que este usuario puede consultar por relación propia: su
+ * propio expediente si es ALUMNO, sus hijos si es TUTOR.
+ *
+ * Es lo que alimenta el panel del tutor con dos o más hijos.
+ *
+ * Va antes de /:id, igual que /me, para que Express no tome "mine" por un id.
+ */
+router.get("/mine", requireAuth, async (req, res) => {
+  const ids = await ownStudentIds(req.user!);
+
+  if (ids.length === 0) {
+    return res.json({ success: true, students: [] });
+  }
+
+  const students = await prisma.student.findMany({
+    where: { id: { in: ids } },
+    orderBy: [{ firstName: "asc" }],
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      currentBelt: true,
+      active: true,
+      enrolledAt: true,
+      payments: {
+        where: { status: { in: ["PENDIENTE", "VENCIDO"] } },
+        select: { amountCents: true },
+      },
+      _count: { select: { promotions: true, attendance: true } },
+    },
+  });
+
+  return res.json({
+    success: true,
+    students: students.map((s) => ({
+      id: s.id,
+      firstName: s.firstName,
+      lastName: s.lastName,
+      currentBelt: s.currentBelt,
+      active: s.active,
+      enrolledAt: dateOnly(s.enrolledAt),
+      graduaciones: s._count.promotions,
+      asistencias: s._count.attendance,
+      pagosPendientes: s.payments.length,
+      totalPendienteCents: s.payments.reduce(
+        (suma, p) => suma + p.amountCents,
+        0
+      ),
+    })),
+  });
+});
+
+/**
  * GET /students/me
  *
  * La tarjeta del alumno que tiene la sesión abierta.
@@ -200,9 +267,11 @@ router.get("/:id", requireAuth, async (req, res) => {
     });
   }
 
-  const esSuPropioExpediente = student.userId === req.user!.id;
+  // Admin y profesor pasan por el permiso; el alumno y el tutor, por la
+  // relación: su propio expediente o el de los alumnos a su cargo.
+  const permitido = await canViewStudent(req.user!, student.id);
 
-  if (!can(req.user!.role, "students:read") && !esSuPropioExpediente) {
+  if (!permitido) {
     return res.status(403).json({
       success: false,
       message: "No tienes permiso para ver este expediente.",

@@ -1,4 +1,4 @@
-export type Role = "ADMIN" | "PROFESOR" | "ALUMNO";
+export type Role = "ADMIN" | "PROFESOR" | "TUTOR" | "ALUMNO";
 
 export type Permission =
   | "students:read"
@@ -11,6 +11,7 @@ export type Permission =
   | "teachers:read"
   | "teachers:write"
   | "settings:write"
+  | "notifications:send"
   | "self:read";
 
 export type SessionUser = {
@@ -34,5 +35,6 @@ export type SessionUser = {
 export const ROLE_LABELS: Record<Role, string> = {
   ADMIN: "Administrador",
   PROFESOR: "Profesor",
+  TUTOR: "Tutor",
   ALUMNO: "Alumno",
 };
