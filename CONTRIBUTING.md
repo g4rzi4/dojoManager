@@ -56,7 +56,7 @@ npm install
 cp .env.example .env     # con Docker funciona sin editar nada
 npx prisma generate      # genera el cliente en src/generated/ (no se sube a git)
 npx prisma migrate dev
-npx prisma db seed       # crea las cuentas de prueba de los 3 roles
+npx prisma db seed       # crea las cuentas de prueba de los 4 roles
 cd ..
 
 # 3. Frontend
@@ -311,6 +311,27 @@ const mios = await ownStudentIds(req.user!);
 
 Nota que el **tutor no tiene `students:read`** a propósito: ese permiso significa
 *todos* los alumnos del dojo. Si se lo das, verá a todas las familias.
+
+Y aunque el **profesor sí lo tiene**, su alcance está limitado a los alumnos que
+tiene asignados (`Student.teacherId`). Para listar, filtra siempre:
+
+```ts
+import { scopeToStudentFilter, visibleStudentIds } from "../lib/access";
+
+const scope = await visibleStudentIds(req.user!);
+
+const alumnos = await prisma.student.findMany({
+  where: scopeToStudentFilter(scope),   // undefined solo si es "todos"
+});
+```
+
+> ⚠️ **Un filtro con lista vacía no es lo mismo que no filtrar.** Si un profesor no
+> tiene alumnos y pasas `{ id: { in: [] } }` está bien (devuelve nada), pero si por
+> error pasas `undefined`, verá a TODO el dojo. Mira cómo `GET /payments` corta
+> explícitamente cuando el alcance viene vacío.
+
+Para escribir, usa `canManageStudent`: comprueba el alcance **y** que el rol pueda
+editar, así un tutor no modifica el expediente de su hijo.
 
 > ⚠️ Nunca aceptes un id de alumno del cliente para decidir el alcance. Mira cómo lo
 > hace `GET /payments`: no recibe ningún parámetro y calcula el alcance desde el

@@ -5,7 +5,15 @@ import type {
   StudentGetPayload,
   StudentInclude,
 } from "../generated/prisma/models/Student";
-import { canViewStudent, ownStudentIds } from "../lib/access";
+import {
+  canManageStudent,
+  canViewStudent,
+  familyStudentIds,
+  scopeToStudentFilter,
+  visibleStudentIds,
+} from "../lib/access";
+import { normalizeTeacherCode } from "../lib/teacherCode";
+import { Role } from "../generated/prisma/enums";
 import { requireAuth, requirePermission } from "../middleware/auth";
 
 const router = Router();
@@ -135,8 +143,13 @@ router.get(
   "/",
   requireAuth,
   requirePermission("students:read"),
-  async (_req, res) => {
+  async (req, res) => {
+    // El permiso deja leer alumnos; el alcance decide CUÁLES. Un profesor
+    // solo ve los que tiene asignados.
+    const scope = await visibleStudentIds(req.user!);
+
     const students = await prisma.student.findMany({
+      where: scopeToStudentFilter(scope),
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
       select: {
         id: true,
@@ -145,16 +158,183 @@ router.get(
         currentBelt: true,
         active: true,
         enrolledAt: true,
+        teacher: { select: { id: true, name: true, teacherCode: true } },
       },
     });
 
     return res.json({
       success: true,
+      alcance: scope === "todos" ? "todos" : "asignados",
       students: students.map((s) => ({
-        ...s,
+        id: s.id,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        currentBelt: s.currentBelt,
+        active: s.active,
         enrolledAt: dateOnly(s.enrolledAt),
+        teacherName: s.teacher?.name ?? null,
+        teacherCode: s.teacher?.teacherCode ?? null,
       })),
     });
+  }
+);
+
+/**
+ * POST /students
+ *
+ * Registra un alumno. Lo pueden hacer el ADMIN y los PROFESOR.
+ *
+ * La clave del profesor (`teacherCode`) decide a quién queda asignado:
+ *
+ *   - Si la manda un PROFESOR y la omite, se asigna a sí mismo.
+ *   - Un PROFESOR solo puede usar SU propia clave: si manda la de otro,
+ *     estaría dando de alta alumnos en el grupo ajeno.
+ *   - El ADMIN puede usar la clave de cualquier profesor, o ninguna.
+ */
+router.post(
+  "/",
+  requireAuth,
+  requirePermission("students:write"),
+  async (req, res) => {
+    const {
+      firstName,
+      lastName,
+      birthDate,
+      phone,
+      guardianName,
+      guardianPhone,
+      medicalNotes,
+      teacherCode,
+    } = req.body ?? {};
+
+    if (
+      typeof firstName !== "string" ||
+      firstName.trim().length === 0 ||
+      typeof lastName !== "string" ||
+      lastName.trim().length === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "El alumno necesita nombre y apellido.",
+      });
+    }
+
+    const autor = req.user!;
+    let teacherId: number | null = null;
+
+    if (typeof teacherCode === "string" && teacherCode.trim().length > 0) {
+      const code = normalizeTeacherCode(teacherCode);
+
+      const teacher = await prisma.user.findUnique({
+        where: { teacherCode: code },
+        select: { id: true, active: true },
+      });
+
+      if (!teacher) {
+        return res.status(400).json({
+          success: false,
+          message: `No existe un profesor con la clave ${code}.`,
+        });
+      }
+
+      if (!teacher.active) {
+        return res.status(400).json({
+          success: false,
+          message: "Ese profesor está dado de baja.",
+        });
+      }
+
+      if (autor.role === Role.PROFESOR && teacher.id !== autor.id) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Solo puedes registrar alumnos con tu propia clave de profesor.",
+        });
+      }
+
+      teacherId = teacher.id;
+    } else if (autor.role === Role.PROFESOR) {
+      // Un profesor que no indica clave se asigna el alumno a sí mismo.
+      teacherId = autor.id;
+    }
+
+    // Fecha de nacimiento: aceptamos YYYY-MM-DD y la guardamos como fecha
+    // UTC sin hora, igual que las demás columnas @db.Date.
+    let fechaNacimiento: Date | null = null;
+
+    if (typeof birthDate === "string" && birthDate.trim().length > 0) {
+      const partes = birthDate.trim().split("-").map(Number);
+
+      if (partes.length !== 3 || partes.some((n) => Number.isNaN(n))) {
+        return res.status(400).json({
+          success: false,
+          message: "La fecha de nacimiento debe venir como AAAA-MM-DD.",
+        });
+      }
+
+      fechaNacimiento = new Date(
+        Date.UTC(partes[0], partes[1] - 1, partes[2])
+      );
+    }
+
+    const student = await prisma.student.create({
+      data: {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        birthDate: fechaNacimiento,
+        phone: typeof phone === "string" ? phone.trim() || null : null,
+        guardianName:
+          typeof guardianName === "string" ? guardianName.trim() || null : null,
+        guardianPhone:
+          typeof guardianPhone === "string"
+            ? guardianPhone.trim() || null
+            : null,
+        medicalNotes:
+          typeof medicalNotes === "string" ? medicalNotes.trim() || null : null,
+        teacherId,
+      },
+      select: { id: true, firstName: true, lastName: true, teacherId: true },
+    });
+
+    return res.status(201).json({ success: true, student });
+  }
+);
+
+/**
+ * DELETE /students/:id
+ *
+ * Da de baja a un alumno. Es baja LÓGICA: lo marca inactivo en lugar de
+ * borrarlo, para no perder su historial de pagos y graduaciones.
+ *
+ * Un profesor solo puede dar de baja a los alumnos que tiene asignados.
+ */
+router.delete(
+  "/:id",
+  requireAuth,
+  requirePermission("students:write"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "El id del alumno no es válido.",
+      });
+    }
+
+    if (!(await canManageStudent(req.user!, id))) {
+      return res.status(403).json({
+        success: false,
+        message: "Este alumno no está en tu grupo.",
+      });
+    }
+
+    await prisma.student.update({
+      where: { id },
+      data: { active: false },
+    });
+
+    return res.json({ success: true, message: "Alumno dado de baja." });
   }
 );
 
@@ -169,7 +349,7 @@ router.get(
  * Va antes de /:id, igual que /me, para que Express no tome "mine" por un id.
  */
 router.get("/mine", requireAuth, async (req, res) => {
-  const ids = await ownStudentIds(req.user!);
+  const ids = await familyStudentIds(req.user!);
 
   if (ids.length === 0) {
     return res.json({ success: true, students: [] });

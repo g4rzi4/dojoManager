@@ -1,18 +1,31 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, Users } from "lucide-react";
+import { ChevronRight, UserPlus, Users } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import StudentForm from "../components/StudentForm";
 import { ApiError, getStudents } from "../services/api";
 import type { StudentListItem } from "../types/student";
 import { BELT_LABELS, BELT_STYLES } from "../types/student";
-import { formatLongDate, fromDateKey } from "../utils/date";
 
 function Students() {
   const [students, setStudents] = useState<StudentListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [registrando, setRegistrando] = useState(false);
+
+  function cargar() {
+    return getStudents()
+      .then(setStudents)
+      .catch((e: unknown) => {
+        setError(
+          e instanceof ApiError
+            ? e.message
+            : "No fue posible cargar los alumnos."
+        );
+      });
+  }
 
   useEffect(() => {
     let activo = true;
@@ -41,14 +54,45 @@ function Students() {
 
   return (
     <DashboardLayout>
-      <header>
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-          Alumnos
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Consulta la tarjeta de información y el historial de cada alumno.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+            Alumnos
+          </h1>
+          <p className="mt-2 text-slate-600">
+            Consulta la tarjeta de información y el historial de cada alumno.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setRegistrando((v) => !v)}
+          aria-expanded={registrando}
+          className="
+            flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600
+            px-4 py-2.5 text-sm font-semibold text-white
+            transition-colors duration-200
+            motion-reduce:transition-none
+            hover:bg-blue-700
+            focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+          "
+        >
+          <UserPlus size={17} aria-hidden="true" />
+          Registrar alumno
+        </button>
       </header>
+
+      {registrando && (
+        <div className="mt-6">
+          <StudentForm
+            onCreado={async () => {
+              setRegistrando(false);
+              await cargar();
+            }}
+            onCancelar={() => setRegistrando(false)}
+          />
+        </div>
+      )}
 
       <section className="mt-8">
         {loading ? (
@@ -73,11 +117,7 @@ function Students() {
               Todavía no hay alumnos
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              El alta de alumnos se desarrolla en la rama{" "}
-              <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">
-                feature/students
-              </code>
-              .
+              Registra el primero con el botón de arriba.
             </p>
           </Card>
         ) : (
@@ -103,8 +143,8 @@ function Students() {
                       <p className="font-semibold text-slate-900">
                         {s.firstName} {s.lastName}
                       </p>
-                      <p className="mt-0.5 text-sm text-slate-600 first-letter:uppercase">
-                        Inscrito el {formatLongDate(fromDateKey(s.enrolledAt))}
+                      <p className="mt-0.5 text-sm text-slate-600">
+                        {s.teacherName ?? "Sin profesor asignado"}
                       </p>
                     </div>
 

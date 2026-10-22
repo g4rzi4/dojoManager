@@ -186,15 +186,18 @@ http://localhost:5173
 # Probar que todo funciona
 
 Con el backend y el frontend corriendo, abre `http://localhost:5173` y entra con
-cualquiera de las tres cuentas que crea el seed. Cada una lleva a una pantalla
+cualquiera de las cinco cuentas que crea el seed. Cada una lleva a una pantalla
 distinta, según su rol:
 
-| Rol          | Correo              | Contraseña | Qué ve al entrar                                    |
-| ------------ | ------------------- | ---------- | --------------------------------------------------- |
-| Administrador | `admin@dojo.com`    | `123456`   | Panel completo, incluyendo Profesores               |
-| Profesor     | `profesor@dojo.com` | `123456`   | Igual, **sin** la sección de Profesores             |
-| Tutor        | `tutor@dojo.com`    | `123456`   | Panel familiar con **sus dos hijos**                |
-| Alumno       | `alumno@dojo.com`   | `123456`   | Panel familiar con su propio expediente             |
+| Rol | Correo | Contraseña | Clave | Qué ve al entrar |
+| --- | --- | --- | --- | --- |
+| Administrador | `admin@dojo.com` | `123456` | — | Todo el dojo, incluyendo Profesores |
+| Profesor | `profesor@dojo.com` | `123456` | `PROF-7K2M` | **Solo** Ana y Diego |
+| Profesor | `profesora@dojo.com` | `123456` | `PROF-3XQ8` | **Solo** Luis |
+| Tutor | `tutor@dojo.com` | `123456` | — | Panel familiar con **sus dos hijos** |
+| Alumno | `alumno@dojo.com` | `123456` | — | Panel familiar con su propio expediente |
+
+Entra con los dos profesores para comprobar que **cada uno ve solo a su grupo**.
 
 Las contraseñas se guardan con hash de **bcrypt** y la sesión viaja en un **JWT**
 firmado con tu `JWT_SECRET`. Son cuentas de **desarrollo local**: no las subas a un
@@ -226,28 +229,55 @@ curl http://localhost:3000
 Hay cuatro roles. El profesor es **subadministrador**: puede todo menos administrar
 profesores y la configuración del dojo.
 
-| Permiso                 | Administrador | Profesor | Tutor | Alumno |
-| ----------------------- | :-----------: | :------: | :---: | :----: |
-| Ver **todos** los alumnos |      ✅       |    ✅     |   ❌   |   ❌    |
-| Editar alumnos          |       ✅       |    ✅     |   ❌   |   ❌    |
-| Ver/editar eventos      |       ✅       |    ✅     |   ❌   |   ❌    |
-| Ver/editar pagos de todos |     ✅       |    ✅     |   ❌   |   ❌    |
-| Ver reportes            |       ✅       |    ✅     |   ❌   |   ❌    |
-| Administrar profesores  |       ✅       |    ❌     |   ❌   |   ❌    |
-| Configuración del dojo  |       ✅       |    ❌     |   ❌   |   ❌    |
-| Mandar avisos           |       ✅       |    ✅     |   ❌   |   ❌    |
-| Ver el calendario       |       ✅       |    ✅     |   ✅   |   ✅    |
-| Ver sus notificaciones  |       ✅       |    ✅     |   ✅   |   ✅    |
+| Acción | Administrador | Profesor | Tutor | Alumno |
+| --- | :-: | :-: | :-: | :-: |
+| Registrar un **profesor** | ✅ | ❌ | ❌ | ❌ |
+| Registrar un **alumno** | ✅ | ✅ | ❌ | ❌ |
+| Registrar un **tutor** | ✅ | ✅ | ❌ | ❌ |
+| Agregar y quitar **eventos** | ✅ | ✅ | ❌ | ❌ |
+| Ver alumnos | **todos** | **solo los suyos** | sus hijos | él mismo |
+| Ver pagos | **todos** | **solo los suyos** | sus hijos | los suyos |
+| Mandar avisos | ✅ | ✅ | ❌ | ❌ |
+| Configuración del dojo | ✅ | ❌ | ❌ | ❌ |
+| Ver el calendario | ✅ | ✅ | ✅ | ✅ |
+| Ver sus notificaciones | ✅ | ✅ | ✅ | ✅ |
+
+## La clave del profesor
+
+Cada profesor tiene una clave única, p. ej. `PROF-7K2M`. El administrador la ve en la
+sección de Profesores y se la pasa. **Se escribe al registrar un alumno** para
+decidir a qué grupo entra.
+
+El alfabeto de la clave excluye `O`, `0`, `I`, `1` y `L`: se dicta en voz alta y se
+escribe a mano, y esos caracteres se confunden.
+
+Dos reglas que aplica el backend:
+
+- Un **profesor** no puede usar la clave de otro. Si lo intenta recibe `403`: estaría
+  dando de alta alumnos en un grupo ajeno. Si no manda clave, el alumno se le asigna
+  a él.
+- El **administrador** puede usar la clave de cualquier profesor, o ninguna (el alumno
+  queda sin asignar).
 
 ## Lo que un permiso no puede expresar
 
-Un permiso como `students:read` significa **todos** los alumnos. Dos accesos no
-caben en esa idea y se resuelven comparando contra el token:
+Un permiso dice **si** puedes leer alumnos, no **cuáles**. El alcance lo resuelve
+[backend/src/lib/access.ts](backend/src/lib/access.ts) comparando contra el token:
 
-- **El alumno** ve su propio expediente y sus propios pagos.
-- **El tutor** ve los expedientes y pagos de los alumnos a su cargo, y de nadie más.
+| Rol | Alcance |
+| --- | --- |
+| `ADMIN` | todos los alumnos del dojo |
+| `PROFESOR` | solo los que tiene asignados (`Student.teacherId`) |
+| `TUTOR` | solo los alumnos a su cargo (`StudentGuardian`) |
+| `ALUMNO` | solo su propio expediente |
 
 Por eso el tutor **no** tiene `students:read`: si lo tuviera, vería a todo el dojo.
+Y por eso el profesor, aunque sí lo tenga, solo recibe su grupo.
+
+> ⚠️ Un detalle que parece menor y no lo es: un filtro con **lista vacía** no es lo
+> mismo que **no filtrar**. Confundirlos haría que un profesor sin alumnos viera a
+> todos. Por eso `scopeToStudentFilter` devuelve `undefined` solo para `"todos"`, y
+> las rutas cortan explícitamente cuando el alcance está vacío.
 La relación real vive en la tabla `StudentGuardian`, que es muchos-a-muchos: un tutor
 puede tener varios hijos inscritos, y un alumno puede tener dos tutores con acceso
 (por ejemplo, padres separados).

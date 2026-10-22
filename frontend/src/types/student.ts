@@ -49,6 +49,9 @@ export type StudentListItem = {
   currentBelt: Belt;
   active: boolean;
   enrolledAt: string;
+  /** Profesor responsable. Null si todavía no tiene uno asignado. */
+  teacherName: string | null;
+  teacherCode: string | null;
 };
 
 export type BeltPromotionEntry = {

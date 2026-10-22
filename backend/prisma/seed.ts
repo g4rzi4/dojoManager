@@ -64,12 +64,28 @@ async function main() {
   // -------------------------------------------------------------------------
   const profesor = await prisma.user.upsert({
     where: { email: "profesor@dojo.com" },
-    update: { role: Role.PROFESOR },
+    update: { role: Role.PROFESOR, teacherCode: "PROF-7K2M" },
     create: {
       name: "Sensei Ramírez",
       email: "profesor@dojo.com",
       password: hash,
       role: Role.PROFESOR,
+      // Clave fija en el seed para poder documentarla en el README. Las que
+      // genera el sistema al registrar un profesor son aleatorias.
+      teacherCode: "PROF-7K2M",
+    },
+  });
+
+  // Segundo profesor, para comprobar que cada uno ve SOLO a sus alumnos.
+  const profesora = await prisma.user.upsert({
+    where: { email: "profesora@dojo.com" },
+    update: { role: Role.PROFESOR, teacherCode: "PROF-3XQ8" },
+    create: {
+      name: "Sensei Delgado",
+      email: "profesora@dojo.com",
+      password: hash,
+      role: Role.PROFESOR,
+      teacherCode: "PROF-3XQ8",
     },
   });
 
@@ -201,6 +217,25 @@ async function main() {
       status: PaymentStatus.PENDIENTE,
       registeredById: profesor.id,
     },
+  });
+
+  // -------------------------------------------------------------------------
+  // Asignación de alumnos a profesores
+  //
+  // Ana y Diego son del Sensei Ramírez; Luis es de la Sensei Delgado. Así se
+  // puede comprobar que cada profesor ve solo a su grupo.
+  // -------------------------------------------------------------------------
+  await prisma.student.update({
+    where: { id: ana.id },
+    data: { teacherId: profesor.id },
+  });
+  await prisma.student.update({
+    where: { id: diego.id },
+    data: { teacherId: profesor.id },
+  });
+  await prisma.student.update({
+    where: { id: luis.id },
+    data: { teacherId: profesora.id },
   });
 
   // -------------------------------------------------------------------------
@@ -391,7 +426,8 @@ async function main() {
 
   console.log("Seed completado:");
   console.log(`  ADMIN     admin@dojo.com    / ${PASSWORD_DEV}`);
-  console.log(`  PROFESOR  profesor@dojo.com / ${PASSWORD_DEV}`);
+  console.log(`  PROFESOR  profesor@dojo.com  / ${PASSWORD_DEV}  clave PROF-7K2M (Ana, Diego)`);
+  console.log(`  PROFESOR  profesora@dojo.com / ${PASSWORD_DEV}  clave PROF-3XQ8 (Luis)`);
   console.log(`  TUTOR     tutor@dojo.com    / ${PASSWORD_DEV}  (2 hijos)`);
   console.log(`  ALUMNO    alumno@dojo.com   / ${PASSWORD_DEV}`);
   console.log("");

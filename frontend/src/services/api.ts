@@ -2,7 +2,8 @@ import type { SessionUser } from "../types/user";
 import type { StudentCard, StudentListItem } from "../types/student";
 import type { MyStudent, PaymentsResponse } from "../types/payment";
 import type { AppNotification, Audience } from "../types/notification";
-import type { DojoEvent } from "../types/event";
+import type { DojoEvent, EventCategory } from "../types/event";
+import type { Teacher } from "../types/teacher";
 import { clearSession, getToken } from "./session";
 
 const API_URL = "http://localhost:3000";
@@ -131,6 +132,98 @@ export async function markNotificationRead(id: number): Promise<void> {
 
 export async function markAllNotificationsRead(): Promise<void> {
   await request("/notifications/read-all", { method: "POST" });
+}
+
+// ---------------------------------------------------------------------------
+// Profesores (solo administrador)
+// ---------------------------------------------------------------------------
+
+export async function getTeachers(): Promise<Teacher[]> {
+  const data = await request<{ teachers: Teacher[] }>("/teachers");
+  return data.teachers;
+}
+
+/** Registra un profesor. El backend le genera su clave única. */
+export async function createTeacher(params: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<{ teacher: Teacher }> {
+  return request("/teachers", { method: "POST", body: params });
+}
+
+export async function setTeacherActive(
+  id: number,
+  active: boolean
+): Promise<void> {
+  await request(`/teachers/${id}/active`, {
+    method: "PATCH",
+    body: { active },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Alumnos y tutores
+// ---------------------------------------------------------------------------
+
+export async function createStudent(params: {
+  firstName: string;
+  lastName: string;
+  birthDate?: string;
+  phone?: string;
+  guardianName?: string;
+  guardianPhone?: string;
+  medicalNotes?: string;
+  /** Clave del profesor al que queda asignado. */
+  teacherCode?: string;
+}): Promise<{ student: { id: number } }> {
+  return request("/students", { method: "POST", body: params });
+}
+
+/** Da de baja a un alumno. Es baja lógica: conserva su historial. */
+export async function deactivateStudent(id: number): Promise<void> {
+  await request(`/students/${id}`, { method: "DELETE" });
+}
+
+/**
+ * Registra un tutor y lo liga a un alumno. Si el correo ya pertenece a un
+ * tutor existente, solo lo liga (caso de la madre con un segundo hijo).
+ */
+export async function createGuardian(params: {
+  studentId: number;
+  email: string;
+  name?: string;
+  password?: string;
+  relationship?: "MADRE" | "PADRE" | "TUTOR";
+  isPrimary?: boolean;
+}): Promise<{ cuentaCreada: boolean; message: string }> {
+  return request("/guardians", { method: "POST", body: params });
+}
+
+export async function unlinkGuardian(
+  studentId: number,
+  guardianId: number
+): Promise<void> {
+  await request(`/guardians/${studentId}/${guardianId}`, {
+    method: "DELETE",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Eventos
+// ---------------------------------------------------------------------------
+
+export async function createEvent(params: {
+  title: string;
+  date: string;
+  time?: string;
+  category: EventCategory;
+}): Promise<{ event: DojoEvent }> {
+  return request("/events", { method: "POST", body: params });
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  await request(`/events/${id}`, { method: "DELETE" });
 }
 
 /** Manda un aviso del dojo. Requiere el permiso notifications:send. */

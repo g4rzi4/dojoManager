@@ -37,11 +37,24 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// Clave única del profesor, p. ej. "PROF-7K2M".
+  ///
+  /// Solo la tienen los PROFESOR. Se escribe al registrar a un alumno para
+  /// ligarlo a ese profesor, así que funciona como identificador y como
+  /// código de registro a la vez.
+  ///
+  /// Es nullable porque admin, tutores y alumnos no tienen clave; el índice
+  /// único no estorba porque en Postgres los NULL no colisionan.
+  teacherCode String? @unique
+
   /// Expediente, solo si este usuario es un alumno.
   student Student?
 
   /// Alumnos a cargo de este usuario, si es TUTOR.
   guardianOf StudentGuardian[]
+
+  /// Alumnos de los que es profesor responsable, si es PROFESOR.
+  studentsTaught Student[] @relation("AlumnoDeProfesor")
 
   /// Notificaciones que recibe.
   notifications     Notification[] @relation("NotificacionDestinatario")
@@ -102,6 +115,14 @@ model Student {
   userId Int?  @unique
   user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  /// Profesor responsable de este alumno.
+  ///
+  /// Un alumno pertenece a UN solo profesor: es lo que hace que un profesor
+  /// vea nada más a sus alumnos. SetNull para que dar de baja a un profesor
+  /// deje a sus alumnos sin asignar, en lugar de borrarlos.
+  teacherId Int?
+  teacher   User? @relation("AlumnoDeProfesor", fields: [teacherId], references: [id], onDelete: SetNull)
+
   /// Tutores con cuenta que pueden consultar este expediente.
   guardians StudentGuardian[]
 
@@ -112,6 +133,7 @@ model Student {
 
   @@index([lastName, firstName])
   @@index([active])
+  @@index([teacherId])
 }
 
 enum GuardianRelationship {

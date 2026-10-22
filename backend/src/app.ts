@@ -7,6 +7,8 @@ import studentRoutes from "./routes/students.routes";
 import notificationRoutes from "./routes/notifications.routes";
 import paymentRoutes from "./routes/payments.routes";
 import eventRoutes from "./routes/events.routes";
+import teacherRoutes from "./routes/teachers.routes";
+import guardianRoutes from "./routes/guardians.routes";
 
 const app = express();
 
@@ -27,6 +29,8 @@ app.use("/students", studentRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/events", eventRoutes);
+app.use("/teachers", teacherRoutes);
+app.use("/guardians", guardianRoutes);
 
 // Ruta no encontrada
 app.use((_req, res) => {

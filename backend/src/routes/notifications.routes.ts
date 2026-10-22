@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import { prisma } from "../lib/prisma";
-import { ownStudentIds } from "../lib/access";
+import { familyStudentIds } from "../lib/access";
 import { sendAnnouncement, syncPaymentNotifications } from "../lib/notifications";
 import { requireAuth, requirePermission } from "../middleware/auth";
 import { Role } from "../generated/prisma/enums";
@@ -23,7 +23,7 @@ router.get("/", requireAuth, async (req, res) => {
   // Antes de listar, genera las notificaciones automáticas de pagos que
   // falten. Es idempotente, así que recargar no duplica nada.
   if (user.role === Role.ALUMNO || user.role === Role.TUTOR) {
-    const propios = await ownStudentIds(user);
+    const propios = await familyStudentIds(user);
     await syncPaymentNotifications(propios);
   }
 
