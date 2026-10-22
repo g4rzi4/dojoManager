@@ -1,6 +1,10 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
+  // El backend es CommonJS ("type": "commonjs" en package.json), así que el
+  // cliente debe generarse en CJS. Sin esto, Prisma 7 lo genera en ESM y los
+  // imports fallan en tiempo de ejecución.
+  moduleFormat = "cjs"
 }
 
 datasource db {

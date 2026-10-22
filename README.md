@@ -265,7 +265,7 @@ gh pr create --base develop --fill
 
 **Acuerdo del equipo:** nadie commitea directo en `main` ni en `develop`. Los cambios
 entran por Pull Request con al menos una revisión. Hoy esto es una regla de equipo, no
-un bloqueo técnico (ver [CONTRIBUTING.md](CONTRIBUTING.md#8-protección-de-main-y-develop)).
+un bloqueo técnico (ver [CONTRIBUTING.md](CONTRIBUTING.md#9-protección-de-main-y-develop)).
 
 **El detalle completo —reparto de módulos, convención de commits, cómo resolver
 conflictos y comandos de rescate— está en [CONTRIBUTING.md](CONTRIBUTING.md).**

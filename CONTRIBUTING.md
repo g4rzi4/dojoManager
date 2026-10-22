@@ -78,7 +78,8 @@ Para levantarlo necesitas **dos terminales**: `npm run dev` dentro de `backend/`
 | `Bind for 0.0.0.0:5432 failed: port is already allocated`            | Ya tienes PostgreSQL instalado y corriendo en tu máquina, ocupando el puerto. **O** detienes el tuyo (`brew services stop postgresql@17`), **o** no uses Docker y sigue la Opción B.      |
 | `Cannot find package 'dotenv'`                                       | Te falta correr `npm install` dentro de `backend/`. Prisma lee `prisma.config.ts`, que importa `dotenv`.                                                                                  |
 | `Can't reach database server at localhost:5432`                      | La base de datos no está arriba. Con Docker: `docker compose ps` y `docker compose up -d --wait`.                                                                                        |
-| `ts-node-dev: command not found`                                     | Mismo caso: `npm install` en `backend/`.                                                                                                                                                 |
+| `tsx: command not found`                                             | Mismo caso: `npm install` en `backend/`.                                                                                                                                                 |
+| `Cannot find module './internal/class.js'`                           | Estás corriendo el backend con `ts-node` o `ts-node-dev`. Usa `npm run dev`, que usa `tsx` (ver §9).                                                                                     |
 | `Environment variable not found: DATABASE_URL`                       | No creaste tu `.env`: `cp .env.example .env` dentro de `backend/`.                                                                                                                       |
 
 > **Nota:** el `node_modules` del backend que estaba subido a git venía **incompleto**
@@ -218,7 +219,65 @@ Si algo se ve muy roto: **no hagas `git push --force`**. Avisa en el grupo prime
 
 ---
 
-## 8. Protección de `main` y `develop`
+## 8. Usar la base de datos en tu módulo
+
+Ya está listo el cliente de Prisma conectado a PostgreSQL. **No crees tu propio
+`new PrismaClient()`**: importa el que ya existe.
+
+```ts
+import { prisma } from "../lib/prisma";
+
+// Ejemplos
+const alumnos = await prisma.user.findMany();
+const uno = await prisma.user.findUnique({ where: { id: 1 } });
+const nuevo = await prisma.user.create({
+  data: { name: "Ana", email: "ana@dojo.com", password: "hash" },
+});
+```
+
+Si todos importamos el mismo [`src/lib/prisma.ts`](backend/src/lib/prisma.ts),
+compartimos un solo pool de conexiones. Si cada módulo instancia el suyo, entre 6
+personas agotamos las conexiones de PostgreSQL y empieza a fallar sin razón aparente.
+
+### Si cambias el modelo de datos
+
+El esquema vive en [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma). Hoy
+solo tiene `User`; cada módulo tendrá que agregar sus tablas.
+
+```bash
+# 1. Edita schema.prisma y agrega tu modelo
+# 2. Crea la migración (nombre descriptivo, en snake_case)
+npx prisma migrate dev --name agrega_tabla_alumnos
+# 3. Regenera el cliente TypeScript
+npx prisma generate
+```
+
+**La migración se commitea** (va en `prisma/migrations/`). El cliente generado en
+`src/generated/` **no**: está en el `.gitignore` y cada quien lo regenera con
+`npx prisma generate`.
+
+> ⚠️ Avisa al equipo cuando subas una migración. Los demás tienen que correr
+> `npx prisma migrate dev` y `npx prisma generate` al hacer pull, o su código no
+> compilará contra el esquema nuevo.
+
+### Dos detalles técnicos, por si te topas con ellos
+
+- **Prisma 7 exige un driver adapter.** Ya está configurado (`@prisma/adapter-pg` + `pg`)
+  en `src/lib/prisma.ts`. Sin él, `new PrismaClient()` ni arranca.
+- **El backend corre con `tsx`, no con `ts-node`.** El cliente que genera Prisma 7
+  importa con extensiones `.js` sobre archivos `.ts`; `tsc` lo resuelve, pero `ts-node`
+  no, y revienta con `Cannot find module './internal/class.js'`. Usa siempre
+  `npm run dev`.
+
+Para revisar que tu código compila, sin arrancar el servidor:
+
+```bash
+npm run typecheck
+```
+
+---
+
+## 9. Protección de `main` y `develop`
 
 Intentamos activar la protección de ramas en GitHub, pero **no está disponible**: el
 repositorio es privado y la cuenta está en el plan gratuito, que no incluye reglas de
