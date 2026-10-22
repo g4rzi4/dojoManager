@@ -192,6 +192,52 @@ export async function notifyNewEvent(
   );
 }
 
+/** Llamar cuando un alumno reporta el pago de un evento. Avisa al profesor. */
+export async function notifyEventPaymentReported(
+  enrollmentId: number,
+  teacherUserId: number,
+  eventTitle: string,
+  amountCents: number
+) {
+  const monto = (amountCents / 100).toLocaleString("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  });
+
+  return createAutomatic([
+    {
+      userId: teacherUserId,
+      topic: NotificationTopic.PAGO,
+      title: "Pago de evento por confirmar",
+      body: `Un alumno reportó un pago de ${monto} para "${eventTitle}". Confírmalo para inscribirlo.`,
+      link: "/eventos",
+      dedupeKey: `cobro-evento-reportado-${enrollmentId}`,
+    },
+  ]);
+}
+
+/** Llamar al confirmar o rechazar el pago. Avisa al alumno y a sus tutores. */
+export async function notifyEventPaymentResolved(
+  enrollmentId: number,
+  studentId: number,
+  confirmado: boolean
+) {
+  const destinatarios = await audienceForStudent(studentId);
+
+  return createAutomatic(
+    destinatarios.map((userId) => ({
+      userId,
+      topic: NotificationTopic.PAGO,
+      title: confirmado ? "Inscripción confirmada" : "Pago rechazado",
+      body: confirmado
+        ? "Tu profesor confirmó el pago y ya quedaste inscrito en el evento."
+        : "Tu profesor no pudo confirmar el pago del evento. Acércate con él.",
+      link: "/eventos",
+      dedupeKey: `cobro-evento-${confirmado ? "ok" : "no"}-${enrollmentId}-${userId}`,
+    }))
+  );
+}
+
 /**
  * Manda un aviso redactado por el dojo.
  *

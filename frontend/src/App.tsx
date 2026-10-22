@@ -6,6 +6,7 @@ import Enroll from "./pages/Enroll";
 import Dashboard from "./pages/Dashboard";
 import FamilyHome from "./pages/FamilyHome";
 import Teachers from "./pages/Teachers";
+import TeacherCard from "./pages/TeacherCard";
 import Students from "./pages/Students";
 import StudentDetail from "./pages/StudentDetail";
 import MyCard from "./pages/MyCard";
@@ -47,6 +48,17 @@ function App() {
           element={
             <ProtectedRoute permission="teachers:read">
               <Teachers />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* La ficha: el admin ve cualquiera, el profesor solo la suya. Lo
+            decide el backend, así que la ruta solo pide sesión. */}
+        <Route
+          path="/profesores/:id"
+          element={
+            <ProtectedRoute>
+              <TeacherCard />
             </ProtectedRoute>
           }
         />

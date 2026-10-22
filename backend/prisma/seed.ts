@@ -73,6 +73,23 @@ async function main() {
       // Clave fija en el seed para poder documentarla en el README. Las que
       // genera el sistema al registrar un profesor son aleatorias.
       teacherCode: "PROF-7K2M",
+      phone: "555 444 1122",
+      belt: Belt.NEGRO,
+      specialty: "Karate Shotokan y kata",
+      hiredAt: fecha(2019, 3, 1),
+      adminNotes: "Encargado del grupo infantil. Disponible martes y jueves.",
+    },
+  });
+
+  // La ficha se actualiza aunque el profesor ya existiera.
+  await prisma.user.update({
+    where: { id: profesor.id },
+    data: {
+      phone: "555 444 1122",
+      belt: Belt.NEGRO,
+      specialty: "Karate Shotokan y kata",
+      hiredAt: fecha(2019, 3, 1),
+      adminNotes: "Encargado del grupo infantil. Disponible martes y jueves.",
     },
   });
 
@@ -86,6 +103,20 @@ async function main() {
       password: hash,
       role: Role.PROFESOR,
       teacherCode: "PROF-3XQ8",
+      phone: "555 777 3344",
+      belt: Belt.MARRON,
+      specialty: "Defensa personal y acondicionamiento",
+      hiredAt: fecha(2023, 8, 15),
+    },
+  });
+
+  await prisma.user.update({
+    where: { id: profesora.id },
+    data: {
+      phone: "555 777 3344",
+      belt: Belt.MARRON,
+      specialty: "Defensa personal y acondicionamiento",
+      hiredAt: fecha(2023, 8, 15),
     },
   });
 
@@ -361,15 +392,22 @@ async function main() {
   const y = hoyEv.getFullYear();
   const m = hoyEv.getMonth() + 1;
 
-  const eventos = [
+  const eventos: {
+    title: string;
+    day: number;
+    time: string | null;
+    category: EventCategory;
+    /** Costo en centavos si el evento requiere pago. */
+    precio?: number;
+  }[] = [
     { title: "Clase de karate infantil", day: 3, time: "17:00", category: EventCategory.CLASE },
     { title: "Clase de adultos", day: 3, time: "19:00", category: EventCategory.CLASE },
     { title: "Cobro de mensualidades", day: 5, time: null, category: EventCategory.PAGO },
     { title: "Examen de cinta amarilla", day: 12, time: "10:00", category: EventCategory.EXAMEN },
     { title: "Clase de adultos", day: 12, time: "19:00", category: EventCategory.CLASE },
-    { title: "Torneo regional", day: 18, time: "09:00", category: EventCategory.TORNEO },
+    { title: "Torneo regional", day: 18, time: "09:00", category: EventCategory.TORNEO, precio: 45000 },
     { title: "Clase de karate infantil", day: 21, time: "17:00", category: EventCategory.CLASE },
-    { title: "Examen de cinta verde", day: 26, time: "11:00", category: EventCategory.EXAMEN },
+    { title: "Examen de cinta verde", day: 26, time: "11:00", category: EventCategory.EXAMEN, precio: 30000 },
     { title: "Junta de profesores", day: 28, time: "18:00", category: EventCategory.CLASE },
   ];
 
@@ -388,6 +426,8 @@ async function main() {
         date: fecha(y, m, ev.day),
         time: ev.time,
         category: ev.category,
+        requiresPayment: ev.precio !== undefined,
+        priceCents: ev.precio ?? null,
         createdById: profesor.id,
       },
     });
@@ -434,7 +474,7 @@ async function main() {
   console.log(`  Alumnos: ${ana.firstName} ${ana.lastName} (historial completo, con cuenta),`);
   console.log(`           ${diego.firstName} ${diego.lastName} (hijo de la tutora, sin cuenta),`);
   console.log(`           ${luis.firstName} ${luis.lastName} (sin tutor ni cuenta)`);
-  console.log(`  Eventos del mes: ${eventos.length}`);
+  console.log(`  Eventos del mes: ${eventos.length} (2 con costo: torneo $450, examen $300)`);
 }
 
 main()

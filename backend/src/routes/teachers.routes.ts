@@ -4,12 +4,23 @@ import { prisma } from "../lib/prisma";
 import { hashPassword } from "../lib/password";
 import { generateTeacherCode } from "../lib/teacherCode";
 import { requireAuth, requirePermission } from "../middleware/auth";
-import { Role } from "../generated/prisma/enums";
+import { can } from "../permissions";
+import {
+  Belt,
+  EventPaymentStatus,
+  PaymentStatus,
+  Role,
+} from "../generated/prisma/enums";
 
 const router = Router();
 
 /** Mínimo de la contraseña. Corta y obligatoria es peor que ninguna regla. */
 const MIN_PASSWORD = 8;
+
+/** Las columnas @db.Date vienen como medianoche UTC: se leen en UTC. */
+function dateOnly(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
 
 /**
  * GET /teachers
@@ -50,6 +61,278 @@ router.get(
     });
   }
 );
+
+/**
+ * GET /teachers/:id
+ *
+ * La ficha del profesor: sus datos, sus alumnos y lo que ha recaudado.
+ *
+ * La ve el ADMIN de cualquier profesor, y cada PROFESOR la suya. Un profesor
+ * NO puede ver la ficha de otro: ahí van las notas del administrador y el
+ * dinero que maneja.
+ */
+router.get("/:id", requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({
+      success: false,
+      message: "El id del profesor no es válido.",
+    });
+  }
+
+  const esAdmin = can(req.user!.role, "teachers:read");
+  const esSuPropiaFicha = req.user!.id === id;
+
+  if (!esAdmin && !esSuPropiaFicha) {
+    return res.status(403).json({
+      success: false,
+      message: "No tienes permiso para ver esta ficha.",
+    });
+  }
+
+  const teacher = await prisma.user.findFirst({
+    where: { id, role: Role.PROFESOR },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      teacherCode: true,
+      belt: true,
+      specialty: true,
+      hiredAt: true,
+      adminNotes: true,
+      active: true,
+      createdAt: true,
+      studentsTaught: {
+        orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          currentBelt: true,
+          active: true,
+        },
+      },
+      _count: { select: { eventsCreated: true } },
+    },
+  });
+
+  if (!teacher) {
+    return res.status(404).json({
+      success: false,
+      message: "No existe ese profesor.",
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Historial de cobros: mensualidades de sus alumnos + cobros de eventos
+  // acreditados a su clave.
+  // -------------------------------------------------------------------------
+  const alumnoIds = teacher.studentsTaught.map((s) => s.id);
+
+  const [mensualidades, cobrosEvento] = await Promise.all([
+    alumnoIds.length === 0
+      ? []
+      : prisma.payment.findMany({
+          where: { studentId: { in: alumnoIds }, status: PaymentStatus.PAGADO },
+          orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+          take: 100,
+          include: {
+            student: { select: { firstName: true, lastName: true } },
+          },
+        }),
+    prisma.eventEnrollment.findMany({
+      where: {
+        creditedToId: teacher.id,
+        status: EventPaymentStatus.CONFIRMADO,
+      },
+      orderBy: { confirmedAt: "desc" },
+      take: 100,
+      include: {
+        student: { select: { firstName: true, lastName: true } },
+        event: { select: { title: true, date: true, category: true } },
+      },
+    }),
+  ]);
+
+  const totalMensualidades = mensualidades.reduce(
+    (suma, p) => suma + p.amountCents,
+    0
+  );
+  const totalEventos = cobrosEvento.reduce(
+    (suma, e) => suma + e.amountCents,
+    0
+  );
+
+  return res.json({
+    success: true,
+    /** El admin ve las notas internas; el profesor, no. */
+    puedeVerNotasAdmin: esAdmin,
+    teacher: {
+      id: teacher.id,
+      name: teacher.name,
+      email: teacher.email,
+      phone: teacher.phone,
+      teacherCode: teacher.teacherCode,
+      belt: teacher.belt,
+      specialty: teacher.specialty,
+      hiredAt: teacher.hiredAt ? dateOnly(teacher.hiredAt) : null,
+      adminNotes: esAdmin ? teacher.adminNotes : null,
+      active: teacher.active,
+      createdAt: teacher.createdAt.toISOString(),
+
+      resumen: {
+        alumnos: teacher.studentsTaught.length,
+        alumnosActivos: teacher.studentsTaught.filter((s) => s.active).length,
+        eventosCreados: teacher._count.eventsCreated,
+        cobrosEvento: cobrosEvento.length,
+        mensualidadesCobradas: mensualidades.length,
+        totalEventosCents: totalEventos,
+        totalMensualidadesCents: totalMensualidades,
+        totalRecaudadoCents: totalEventos + totalMensualidades,
+      },
+
+      alumnos: teacher.studentsTaught,
+
+      historialCobros: {
+        eventos: cobrosEvento.map((e) => ({
+          id: e.id,
+          alumno: `${e.student.firstName} ${e.student.lastName}`,
+          evento: e.event.title,
+          categoria: e.event.category,
+          fechaEvento: dateOnly(e.event.date),
+          amountCents: e.amountCents,
+          method: e.method,
+          confirmadoEn: e.confirmedAt?.toISOString() ?? null,
+        })),
+        mensualidades: mensualidades.map((p) => ({
+          id: p.id,
+          alumno: `${p.student.firstName} ${p.student.lastName}`,
+          periodYear: p.periodYear,
+          periodMonth: p.periodMonth,
+          amountCents: p.amountCents,
+          method: p.method,
+          paidAt: p.paidAt ? dateOnly(p.paidAt) : null,
+        })),
+      },
+    },
+  });
+});
+
+/**
+ * PATCH /teachers/:id
+ *
+ * Actualiza la ficha. El ADMIN puede todo; el PROFESOR solo sus propios
+ * datos de contacto, y nunca las notas del administrador.
+ */
+router.patch("/:id", requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({
+      success: false,
+      message: "El id del profesor no es válido.",
+    });
+  }
+
+  const esAdmin = can(req.user!.role, "teachers:write");
+  const esSuPropiaFicha =
+    req.user!.id === id && req.user!.role === Role.PROFESOR;
+
+  if (!esAdmin && !esSuPropiaFicha) {
+    return res.status(403).json({
+      success: false,
+      message: "No tienes permiso para editar esta ficha.",
+    });
+  }
+
+  const teacher = await prisma.user.findFirst({
+    where: { id, role: Role.PROFESOR },
+    select: { id: true },
+  });
+
+  if (!teacher) {
+    return res.status(404).json({
+      success: false,
+      message: "No existe ese profesor.",
+    });
+  }
+
+  const { phone, belt, specialty, hiredAt, adminNotes } = req.body ?? {};
+
+  const datos: {
+    phone?: string | null;
+    belt?: Belt | null;
+    specialty?: string | null;
+    hiredAt?: Date | null;
+    adminNotes?: string | null;
+  } = {};
+
+  if (phone !== undefined) {
+    datos.phone = typeof phone === "string" ? phone.trim() || null : null;
+  }
+
+  if (specialty !== undefined) {
+    datos.specialty =
+      typeof specialty === "string" ? specialty.trim() || null : null;
+  }
+
+  if (belt !== undefined) {
+    if (belt === null || belt === "") {
+      datos.belt = null;
+    } else if (Object.values(Belt).includes(belt as Belt)) {
+      datos.belt = belt as Belt;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: `Grado no válido. Opciones: ${Object.values(Belt).join(", ")}.`,
+      });
+    }
+  }
+
+  if (hiredAt !== undefined) {
+    if (hiredAt === null || hiredAt === "") {
+      datos.hiredAt = null;
+    } else if (
+      typeof hiredAt === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(hiredAt)
+    ) {
+      const [y, m, d] = hiredAt.split("-").map(Number);
+      datos.hiredAt = new Date(Date.UTC(y, m - 1, d));
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "La fecha de ingreso debe venir como AAAA-MM-DD.",
+      });
+    }
+  }
+
+  // Las notas del administrador solo las toca el administrador.
+  if (adminNotes !== undefined) {
+    if (!esAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Solo el administrador puede editar las notas internas.",
+      });
+    }
+
+    datos.adminNotes =
+      typeof adminNotes === "string" ? adminNotes.trim() || null : null;
+  }
+
+  if (Object.keys(datos).length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "No mandaste ningún cambio.",
+    });
+  }
+
+  await prisma.user.update({ where: { id }, data: datos });
+
+  return res.json({ success: true });
+});
 
 /**
  * POST /teachers

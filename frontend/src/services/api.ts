@@ -3,7 +3,8 @@ import type { StudentCard, StudentListItem } from "../types/student";
 import type { MyStudent, PaymentsResponse } from "../types/payment";
 import type { AppNotification, Audience } from "../types/notification";
 import type { DojoEvent, EventCategory } from "../types/event";
-import type { Teacher } from "../types/teacher";
+import type { Teacher, TeacherCard, TeacherUpdate } from "../types/teacher";
+import type { EventEnrollment } from "../types/eventPayment";
 import type {
   EnrollGuardianPayload,
   EnrollStudentPayload,
@@ -85,13 +86,22 @@ async function request<T>(
   return data as T;
 }
 
+/**
+ * Inicia sesión.
+ *
+ * `teacherCode` es el tercer factor de los profesores. Si la cuenta es de
+ * profesor y no coincide, el backend responde con el MISMO mensaje que una
+ * contraseña incorrecta, a propósito: decir "falta la clave" le confirmaría
+ * a quien ya robó una contraseña que solo le falta ese dato.
+ */
 export async function login(
   email: string,
-  password: string
+  password: string,
+  teacherCode?: string
 ): Promise<{ success: boolean; token: string; user: SessionUser }> {
   return request("/auth/login", {
     method: "POST",
-    body: { email, password },
+    body: { email, password, teacherCode },
     auth: false,
   });
 }
@@ -165,6 +175,21 @@ export async function createTeacher(params: {
   password: string;
 }): Promise<{ teacher: Teacher }> {
   return request("/teachers", { method: "POST", body: params });
+}
+
+/** La ficha del profesor. La ve el admin, y cada profesor la suya. */
+export async function getTeacherCard(id: number): Promise<{
+  teacher: TeacherCard;
+  puedeVerNotasAdmin: boolean;
+}> {
+  return request(`/teachers/${id}`);
+}
+
+export async function updateTeacher(
+  id: number,
+  cambios: TeacherUpdate
+): Promise<void> {
+  await request(`/teachers/${id}`, { method: "PATCH", body: cambios });
 }
 
 export async function setTeacherActive(
@@ -285,12 +310,53 @@ export async function createEvent(params: {
   date: string;
   time?: string;
   category: EventCategory;
+  /** Si hay que pagar para participar. */
+  requiresPayment?: boolean;
+  /** Costo en CENTAVOS como entero. Obligatorio si requiresPayment. */
+  priceCents?: number;
 }): Promise<{ event: DojoEvent }> {
   return request("/events", { method: "POST", body: params });
 }
 
 export async function deleteEvent(id: string): Promise<void> {
   await request(`/events/${id}`, { method: "DELETE" });
+}
+
+/**
+ * El alumno o tutor reporta que ya pagó un evento, con la clave del profesor.
+ *
+ * No manda el id del profesor: escribe la clave y el servidor la resuelve.
+ * Si mandara un id, cualquiera podría acreditar cobros a un profesor que
+ * nunca vio el dinero.
+ */
+export async function reportEventPayment(
+  eventId: string,
+  params: { teacherCode: string; studentId?: number; method?: string; note?: string }
+): Promise<{ message: string }> {
+  return request(`/events/${eventId}/report-payment`, {
+    method: "POST",
+    body: params,
+  });
+}
+
+/** Los reportes de pago de un evento. El profesor ve los de su clave. */
+export async function getEventEnrollments(eventId: string): Promise<{
+  alcance: "todos" | "mi-clave";
+  enrollments: EventEnrollment[];
+}> {
+  return request(`/events/${eventId}/enrollments`);
+}
+
+/** Confirma o rechaza un pago. Confirmar inscribe al alumno. */
+export async function resolveEventPayment(
+  eventId: string,
+  enrollmentId: number,
+  confirmar: boolean
+): Promise<{ message: string }> {
+  return request(`/events/${eventId}/enrollments/${enrollmentId}`, {
+    method: "PATCH",
+    body: { confirmar },
+  });
 }
 
 /** Manda un aviso del dojo. Requiere el permiso notifications:send. */

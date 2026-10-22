@@ -194,6 +194,9 @@ distinta, según su rol:
 | Administrador | `admin@dojo.com` | `123456` | — | Todo el dojo, incluyendo Profesores |
 | Profesor | `profesor@dojo.com` | `123456` | `PROF-7K2M` | **Solo** Ana y Diego |
 | Profesor | `profesora@dojo.com` | `123456` | `PROF-3XQ8` | **Solo** Luis |
+
+> Los profesores necesitan **los tres datos**: correo, contraseña y clave. En el login
+> hay que elegir "Profesor" para que aparezca el campo de la clave.
 | Tutor | `tutor@dojo.com` | `123456` | — | Panel familiar con **sus dos hijos** |
 | Alumno | `alumno@dojo.com` | `123456` | — | Panel familiar con su propio expediente |
 
@@ -241,6 +244,75 @@ profesores y la configuración del dojo.
 | Configuración del dojo | ✅ | ❌ | ❌ | ❌ |
 | Ver el calendario | ✅ | ✅ | ✅ | ✅ |
 | Ver sus notificaciones | ✅ | ✅ | ✅ | ✅ |
+
+## Inicio de sesión de los profesores
+
+Un profesor necesita **tres datos**, no dos: correo, contraseña **y su clave**. Alumnos,
+tutores y el administrador entran con correo y contraseña nada más.
+
+En la pantalla de login hay un selector "Alumno o tutor / Profesor". Existe por una
+razón concreta: si a un profesor le falta la clave, el backend responde el **mismo**
+mensaje que ante una contraseña incorrecta, a propósito. Decir "falta la clave" le
+confirmaría a quien ya robó una contraseña que ese correo es de un profesor y que solo
+le falta ese dato. El selector evita que un profesor se quede sin entender por qué no
+entra.
+
+La comparación ignora mayúsculas y espacios, porque la clave se dicta en voz alta.
+
+---
+
+# Ficha del profesor
+
+Cada profesor tiene su ficha, en **Profesores → Ver ficha**:
+
+- Datos de contacto, grado (un sensei también tiene su cinta), especialidad y fecha de
+  ingreso
+- Su clave, para dictarla o copiarla
+- Sus alumnos asignados
+- **Lo que ha recaudado**: las mensualidades de sus alumnos y los cobros de eventos
+  acreditados a su clave, con el detalle de cada uno
+
+Quién la ve:
+
+| | Admin | El propio profesor | Otro profesor |
+| --- | :-: | :-: | :-: |
+| Ver la ficha | ✅ | ✅ | ❌ |
+| Ver las notas internas del admin | ✅ | ❌ | ❌ |
+| Editar contacto, grado, especialidad | ✅ | ✅ | ❌ |
+| Editar las notas internas | ✅ | ❌ | ❌ |
+
+Un profesor **no** puede abrir la ficha de otro: ahí están las notas del administrador
+y el dinero que maneja.
+
+---
+
+# Eventos con costo
+
+Un torneo o un examen pueden requerir pago. Al crear el evento se marca **Requiere
+pago** y se pone el costo.
+
+El flujo, de principio a fin:
+
+1. El **profesor comparte su clave** con sus alumnos (la misma `PROF-7K2M`).
+2. El alumno paga en el dojo y entra a **Eventos → Pagar**, donde escribe la clave y
+   reporta el pago. Un tutor con varios hijos elige de quién es.
+3. Al profesor le llega una **notificación** de pago por confirmar.
+4. El profesor entra a **Eventos → Pagos**, y confirma o rechaza.
+5. **Al confirmar, el alumno queda inscrito** en el mismo movimiento, y el cobro
+   aparece en el historial de ese profesor. A la familia le llega la notificación.
+
+Detalles que importan:
+
+- **El alumno nunca manda el id del profesor**, solo la clave. Si pudiera mandar un
+  id, cualquiera podría acreditar cobros a un profesor que nunca vio el dinero.
+- **Un profesor solo ve y resuelve los cobros de su clave.** El admin ve todos. Si un
+  alumno escribe por error la clave de otro profesor, ese profesor verá el reporte y
+  podrá rechazarlo.
+- **El monto se congela al reportar.** Si el dojo cambia el precio del evento después,
+  los cobros ya hechos no se alteran.
+- Un alumno no puede reportar dos veces el mismo evento.
+
+---
 
 ## La clave del profesor
 

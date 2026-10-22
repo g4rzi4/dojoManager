@@ -47,6 +47,29 @@ model User {
   /// único no estorba porque en Postgres los NULL no colisionan.
   teacherCode String? @unique
 
+  // --- Ficha del profesor ---
+  //
+  // Van en User y no en una tabla aparte, igual que teacherCode: son pocos
+  // campos y siempre se consultan junto con la cuenta. Si la ficha crece
+  // mucho, convendría moverlos a un TeacherProfile como se hizo con Student.
+  //
+  // Todos son nullable porque admin, tutores y alumnos no los usan.
+
+  /// Teléfono de contacto del profesor.
+  phone String?
+
+  /// Fecha en que entró a trabajar al dojo.
+  hiredAt DateTime? @db.Date
+
+  /// Grado del profesor. Un sensei también tiene su cinta.
+  belt Belt?
+
+  /// Especialidad o disciplinas que imparte, en texto libre.
+  specialty String?
+
+  /// Notas del administrador sobre el profesor. Solo las ve el admin.
+  adminNotes String?
+
   /// Expediente, solo si este usuario es un alumno.
   student Student?
 
@@ -58,6 +81,11 @@ model User {
 
   /// Invitaciones de inscripción que ha generado.
   invitationsCreated Invitation[] @relation("InvitacionCreadaPor")
+
+  /// Cobros de eventos acreditados a su clave.
+  eventPaymentsCredited  EventEnrollment[] @relation("CobroAcreditadoA")
+  /// Cobros de eventos que confirmó.
+  eventPaymentsConfirmed EventEnrollment[] @relation("CobroConfirmadoPor")
 
   /// Notificaciones que recibe.
   notifications     Notification[] @relation("NotificacionDestinatario")
@@ -136,6 +164,9 @@ model Student {
 
   /// Invitaciones generadas para sumar tutores a este expediente.
   invitations Invitation[]
+
+  /// Eventos a los que reportó pago o quedó inscrito.
+  eventEnrollments EventEnrollment[]
 
   @@index([lastName, firstName])
   @@index([active])
@@ -416,11 +447,73 @@ model Event {
   time     String?
   category EventCategory
 
+  /// Si hay que pagar para participar. Un torneo o un examen suelen costar.
+  requiresPayment Boolean @default(false)
+
+  /// Costo en CENTAVOS. Nulo si el evento es gratuito.
+  priceCents Int?
+
   createdById Int?
   createdBy   User? @relation("EventoCreadoPor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  enrollments EventEnrollment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([date])
+}
+
+enum EventPaymentStatus {
+  /// El alumno dijo que ya pagó. Falta que el profesor lo confirme.
+  REPORTADO
+  /// El profesor confirmó el pago. Con esto queda inscrito.
+  CONFIRMADO
+  /// El profesor dijo que no le pagaron.
+  RECHAZADO
+}
+
+/// Pago e inscripción de un alumno a un evento.
+///
+/// El flujo es: el profesor comparte su clave, el alumno reporta el pago
+/// escribiéndola, y el profesor confirma. Al confirmar, el alumno queda
+/// inscrito automáticamente.
+model EventEnrollment {
+  id Int @id @default(autoincrement())
+
+  eventId Int
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  /// Profesor al que se acredita el cobro, resuelto a partir de la clave que
+  /// escribió el alumno. Es lo que hace que el pago aparezca en SU historial.
+  ///
+  /// SetNull para no perder el registro del pago si el profesor se da de baja.
+  creditedToId Int?
+  creditedTo   User? @relation("CobroAcreditadoA", fields: [creditedToId], references: [id], onDelete: SetNull)
+
+  /// Monto en centavos. Se copia del precio del evento al reportar, para que
+  /// cambiar el precio después no altere los cobros ya hechos.
+  amountCents Int
+
+  status EventPaymentStatus @default(REPORTADO)
+
+  /// Inscrito en el evento. Se pone en true al confirmar el pago.
+  enrolled Boolean @default(false)
+
+  method PaymentMethod?
+  note   String?
+
+  reportedAt  DateTime  @default(now())
+  confirmedAt DateTime?
+
+  confirmedById Int?
+  confirmedBy   User? @relation("CobroConfirmadoPor", fields: [confirmedById], references: [id], onDelete: SetNull)
+
+  /// Un alumno no puede reportar dos veces el mismo evento.
+  @@unique([eventId, studentId])
+  @@index([creditedToId])
+  @@index([status])
 }
