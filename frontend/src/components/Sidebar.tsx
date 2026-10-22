@@ -4,6 +4,7 @@ import {
   Users,
   GraduationCap,
   CalendarDays,
+  CalendarRange,
   IdCard,
   Bell,
   Receipt,
@@ -58,6 +59,13 @@ const NAV_ITEMS: NavItem[] = [
     to: "/eventos",
     label: "Eventos",
     icon: CalendarDays,
+    permission: "events:read",
+  },
+  {
+    to: "/clases",
+    label: "Horario",
+    icon: CalendarRange,
+    // Lo ven los cuatro roles: el horario de clases le importa a la familia.
     permission: "events:read",
   },
   {
