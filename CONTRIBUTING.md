@@ -10,9 +10,11 @@ el trabajo. **Léela completa antes de tu primer commit.**
 ```
 main                 producción. Nadie commitea aquí directo.
  └── develop         integración. Aquí se juntan todos los módulos.
+      ├── feature/dashboard  panel, roles y expediente  (en revisión: PR #1)
       ├── feature/auth       login, registro, JWT
       ├── feature/students   alumnos: alta, baja, cinturones
       ├── feature/teachers   profesores y horarios
+      ├── feature/events     calendario: crear y editar eventos
       ├── feature/payments   mensualidades y cobros
       ├── feature/reports    reportes y estadísticas
       └── feature/settings   configuración del dojo
@@ -26,14 +28,28 @@ su rama.
 
 Llena esta tabla en la primera reunión para que quede claro quién toca qué:
 
-| Rama               | Responsable | Estado      |
-| ------------------ | ----------- | ----------- |
-| `feature/auth`     | Zoé García  | En progreso |
-| `feature/students` | _por asignar_ | Sin empezar |
-| `feature/teachers` | _por asignar_ | Sin empezar |
-| `feature/payments` | _por asignar_ | Sin empezar |
-| `feature/reports`  | _por asignar_ | Sin empezar |
-| `feature/settings` | _por asignar_ | Sin empezar |
+| Rama | Responsable | Estado | Qué falta |
+| --- | --- | --- | --- |
+| `feature/dashboard` | Zoé García | **En revisión (PR #1)** | Mergear antes de repartir lo demás |
+| `feature/auth` | Zoé García | Hecho en el PR #1 | Recuperación de contraseña |
+| `feature/students` | _por asignar_ | Base lista | Editar expediente, registrar graduaciones y asistencia |
+| `feature/teachers` | _por asignar_ | Base lista | Horarios y reasignar alumnos entre profesores |
+| `feature/events` | _por asignar_ | Base lista | Editar eventos y eventos recurrentes |
+| `feature/payments` | _por asignar_ | Solo consulta | Registrar cobros, y más adelante PayPal |
+| `feature/reports` | _por asignar_ | Sin empezar | Todo |
+| `feature/settings` | _por asignar_ | Sin empezar | Todo |
+
+> ⚠️ **`feature/students`, `teachers`, `events` y `payments` salieron de `develop`
+> antes del PR #1**, así que todavía no tienen el schema ni los endpoints. En cuanto
+> ese PR se mergee, lo primero que debe hacer cada responsable es:
+>
+> ```bash
+> git switch feature/TU_MODULO
+> git merge develop
+> cd backend && npx prisma migrate deploy && npx prisma generate
+> ```
+>
+> Si empiezas a programar antes de eso, vas a reescribir cosas que ya existen.
 
 ---
 
@@ -56,6 +72,7 @@ npm install
 cp .env.example .env     # con Docker funciona sin editar nada
 npx prisma generate      # genera el cliente en src/generated/ (no se sube a git)
 npx prisma migrate dev
+npx prisma db seed       # crea las cuentas de prueba de los 4 roles
 cd ..
 
 # 3. Frontend
@@ -81,6 +98,8 @@ Para levantarlo necesitas **dos terminales**: `npm run dev` dentro de `backend/`
 | `tsx: command not found`                                             | Mismo caso: `npm install` en `backend/`.                                                                                                                                                 |
 | `Cannot find module './internal/class.js'`                           | Estás corriendo el backend con `ts-node` o `ts-node-dev`. Usa `npm run dev`, que usa `tsx` (ver §9).                                                                                     |
 | `Environment variable not found: DATABASE_URL`                       | No creaste tu `.env`: `cp .env.example .env` dentro de `backend/`.                                                                                                                       |
+| `Falta la variable de entorno JWT_SECRET`                            | Tu `.env` es de una versión anterior. Compáralo con `.env.example` y agrega lo que falte: el backend no arranca sin esa llave.                                                            |
+| `401` en todo después de actualizar                                  | Cambió el `JWT_SECRET` o se recreó la base: los tokens viejos ya no valen. Cierra sesión en el navegador y vuelve a entrar.                                                              |
 
 > **Nota:** el `node_modules` del backend que estaba subido a git venía **incompleto**
 > (le faltaban `express`, `cors`, `dotenv`, `ts-node-dev` y `typescript`). Ya lo
@@ -238,6 +257,136 @@ const nuevo = await prisma.user.create({
 Si todos importamos el mismo [`src/lib/prisma.ts`](backend/src/lib/prisma.ts),
 compartimos un solo pool de conexiones. Si cada módulo instancia el suyo, entre 6
 personas agotamos las conexiones de PostgreSQL y empieza a fallar sin razón aparente.
+
+### Proteger tus endpoints (obligatorio)
+
+Hay tres roles: `ADMIN`, `PROFESOR` (subadministrador) y `ALUMNO`. La matriz de
+permisos está en [`backend/src/permissions.ts`](backend/src/permissions.ts) y es la
+**única** fuente de verdad.
+
+Todo endpoint nuevo se protege con dos middlewares:
+
+```ts
+import { requireAuth, requirePermission } from "../middleware/auth";
+
+// Leer: cualquiera que pueda ver alumnos
+router.get("/", requireAuth, requirePermission("students:read"), handler);
+
+// Escribir: exige el permiso de escritura
+router.post("/", requireAuth, requirePermission("students:write"), handler);
+```
+
+Dentro del handler, `req.user` trae `{ id, role }` — **sacado del token**, no del
+body. Nunca leas el rol de lo que manda el cliente: cualquiera puede escribir
+`{"role":"ADMIN"}` en una petición.
+
+```ts
+router.post("/", requireAuth, requirePermission("students:write"), async (req, res) => {
+  const autorId = req.user!.id;  // ✅ viene del token firmado
+  // const autorId = req.body.userId;  ❌ el cliente podría poner cualquiera
+});
+```
+
+**Si el recurso es "propio" del usuario**, el permiso no alcanza: hay que comparar
+contra el token. Así lo hace la tarjeta del alumno en
+[`students.routes.ts`](backend/src/routes/students.routes.ts):
+
+```ts
+const esSuPropioExpediente = student.userId === req.user!.id;
+
+if (!can(req.user!.role, "students:read") && !esSuPropioExpediente) {
+  return res.status(403).json({ success: false, message: "..." });
+}
+```
+
+> ⚠️ **Ocultar un botón en el frontend no protege nada.** El menú se esconde solo
+> para no ofrecer algo que va a fallar. Cualquiera puede llamar a tu endpoint con
+> `curl` y un token de alumno. Si no pusiste `requirePermission`, entra.
+
+### Accesos "solo los míos"
+
+Hay dos accesos que **un permiso no puede expresar**, porque dependen de a quién
+pertenece el dato: el alumno viendo lo suyo, y el tutor viendo lo de sus hijos.
+
+Para esos casos usa los helpers de
+[`backend/src/lib/access.ts`](backend/src/lib/access.ts) en lugar de inventar la
+comprobación:
+
+```ts
+import { canViewStudent, ownStudentIds } from "../lib/access";
+
+// ¿Puede ver el expediente de este alumno?
+// Verdadero si tiene students:read, o si el alumno es suyo / es su hijo.
+if (!(await canViewStudent(req.user!, studentId))) {
+  return res.status(403).json({ success: false, message: "..." });
+}
+
+// Para filtrar una lista al alcance del usuario:
+const mios = await ownStudentIds(req.user!);
+```
+
+Nota que el **tutor no tiene `students:read`** a propósito: ese permiso significa
+*todos* los alumnos del dojo. Si se lo das, verá a todas las familias.
+
+Y aunque el **profesor sí lo tiene**, su alcance está limitado a los alumnos que
+tiene asignados (`Student.teacherId`). Para listar, filtra siempre:
+
+```ts
+import { scopeToStudentFilter, visibleStudentIds } from "../lib/access";
+
+const scope = await visibleStudentIds(req.user!);
+
+const alumnos = await prisma.student.findMany({
+  where: scopeToStudentFilter(scope),   // undefined solo si es "todos"
+});
+```
+
+> ⚠️ **Un filtro con lista vacía no es lo mismo que no filtrar.** Si un profesor no
+> tiene alumnos y pasas `{ id: { in: [] } }` está bien (devuelve nada), pero si por
+> error pasas `undefined`, verá a TODO el dojo. Mira cómo `GET /payments` corta
+> explícitamente cuando el alcance viene vacío.
+
+Para escribir, usa `canManageStudent`: comprueba el alcance **y** que el rol pueda
+editar, así un tutor no modifica el expediente de su hijo.
+
+> ⚠️ Nunca aceptes un id de alumno del cliente para decidir el alcance. Mira cómo lo
+> hace `GET /payments`: no recibe ningún parámetro y calcula el alcance desde el
+> token. Si recibiera `?studentId=`, cualquiera podría pedir los pagos de otra
+> familia.
+
+### Mandar notificaciones desde tu módulo
+
+Cuando tu módulo guarde algo que al alumno o a su familia le interese, créale la
+notificación. Las funciones están en
+[`backend/src/lib/notifications.ts`](backend/src/lib/notifications.ts):
+
+```ts
+import { notifyBeltPromotion, notifyAbsence } from "../lib/notifications";
+
+// feature/students, al registrar una graduación:
+await notifyBeltPromotion(promocion.id, alumno.id, promocion.belt);
+
+// feature/students, al registrar una falta:
+await notifyAbsence(asistencia.id, alumno.id, "2026-10-22");
+```
+
+No tienes que averiguar a quién avisarle: `audienceForStudent` ya resuelve que vaya
+**al alumno y a todos sus tutores**.
+
+Todas llevan `dedupeKey`, así que llamarlas dos veces por el mismo hecho no genera
+notificaciones duplicadas.
+
+### Contraseñas
+
+Nunca guardes una contraseña en texto plano ni la devuelvas en una respuesta. Usa
+los helpers que ya existen:
+
+```ts
+import { hashPassword, verifyPassword } from "../lib/password";
+
+const hash = await hashPassword("la-que-escribio-el-usuario");
+const correcta = await verifyPassword("intento", usuario.password);
+```
 
 ### Si cambias el modelo de datos
 

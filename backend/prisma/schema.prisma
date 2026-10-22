@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
   // El backend es CommonJS ("type": "commonjs" en package.json), así que el
   // cliente debe generarse en CJS. Sin esto, Prisma 7 lo genera en ESM y los
   // imports fallan en tiempo de ejecución.
@@ -11,10 +11,354 @@ datasource db {
   provider = "postgresql"
 }
 
+// ---------------------------------------------------------------------------
+// Usuarios y roles
+// ---------------------------------------------------------------------------
+
+enum Role {
+  /// Dueño del dojo. Único que puede administrar profesores y configuración.
+  ADMIN
+  /// Subadministrador: alumnos, eventos, pagos y reportes.
+  PROFESOR
+  /// Madre, padre o tutor. Consulta los expedientes de los alumnos a su cargo.
+  TUTOR
+  /// Solo consulta su propia tarjeta. No edita nada.
+  ALUMNO
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
+  /// Hash de bcrypt, nunca la contraseña en texto plano.
   password  String
+  role      Role     @default(ALUMNO)
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Clave única del profesor, p. ej. "PROF-7K2M".
+  ///
+  /// Solo la tienen los PROFESOR. Se escribe al registrar a un alumno para
+  /// ligarlo a ese profesor, así que funciona como identificador y como
+  /// código de registro a la vez.
+  ///
+  /// Es nullable porque admin, tutores y alumnos no tienen clave; el índice
+  /// único no estorba porque en Postgres los NULL no colisionan.
+  teacherCode String? @unique
+
+  /// Expediente, solo si este usuario es un alumno.
+  student Student?
+
+  /// Alumnos a cargo de este usuario, si es TUTOR.
+  guardianOf StudentGuardian[]
+
+  /// Alumnos de los que es profesor responsable, si es PROFESOR.
+  studentsTaught Student[] @relation("AlumnoDeProfesor")
+
+  /// Notificaciones que recibe.
+  notifications     Notification[] @relation("NotificacionDestinatario")
+  /// Avisos que redactó, si es ADMIN o PROFESOR.
+  notificationsSent Notification[] @relation("NotificacionAutor")
+
+  // Rastro de quién hizo cada cosa. Son opcionales y con onDelete: SetNull
+  // para que dar de baja a un profesor no borre el historial del alumno.
+  promotionsEvaluated BeltPromotion[] @relation("PromocionEvaluadaPor")
+  notesWritten        StudentNote[]   @relation("NotaEscritaPor")
+  attendanceRecorded  Attendance[]    @relation("AsistenciaRegistradaPor")
+  paymentsRegistered  Payment[]       @relation("PagoRegistradoPor")
+  eventsCreated       Event[]         @relation("EventoCreadoPor")
+
+  @@index([role])
+}
+
+// ---------------------------------------------------------------------------
+// Alumnos
+// ---------------------------------------------------------------------------
+
+enum Belt {
+  BLANCO
+  AMARILLO
+  NARANJA
+  VERDE
+  AZUL
+  MARRON
+  NEGRO
+}
+
+/// Expediente del alumno: los datos de su tarjeta de información.
+model Student {
+  id        Int       @id @default(autoincrement())
+  firstName String
+  lastName  String
+  birthDate DateTime? @db.Date
+  phone     String?
+
+  /// Contacto del tutor como texto suelto, para alumnos cuyo tutor no tiene
+  /// cuenta en el sistema. Si la tiene, la relación real es `guardians`.
+  guardianName  String?
+  guardianPhone String?
+
+  /// Padecimientos, alergias o lesiones que el profesor debe conocer.
+  medicalNotes String?
+
+  currentBelt Belt     @default(BLANCO)
+  enrolledAt  DateTime @default(now())
+  /// Baja lógica: preferimos desactivar antes que borrar, para no perder
+  /// el historial de pagos y graduaciones.
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// Cuenta para que el alumno entre a ver su propia tarjeta. Opcional:
+  /// un alumno puede existir en el sistema sin poder iniciar sesión.
+  userId Int?  @unique
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  /// Profesor responsable de este alumno.
+  ///
+  /// Un alumno pertenece a UN solo profesor: es lo que hace que un profesor
+  /// vea nada más a sus alumnos. SetNull para que dar de baja a un profesor
+  /// deje a sus alumnos sin asignar, en lugar de borrarlos.
+  teacherId Int?
+  teacher   User? @relation("AlumnoDeProfesor", fields: [teacherId], references: [id], onDelete: SetNull)
+
+  /// Tutores con cuenta que pueden consultar este expediente.
+  guardians StudentGuardian[]
+
+  promotions BeltPromotion[]
+  attendance Attendance[]
+  payments   Payment[]
+  notes      StudentNote[]
+
+  @@index([lastName, firstName])
+  @@index([active])
+  @@index([teacherId])
+}
+
+enum GuardianRelationship {
+  MADRE
+  PADRE
+  TUTOR
+}
+
+/// Relación tutor ↔ alumno.
+///
+/// Es muchos-a-muchos a propósito: un tutor puede tener varios hijos en el
+/// dojo, y un alumno puede tener dos tutores con acceso (por ejemplo, padres
+/// separados que ambos quieren consultar el expediente).
+///
+/// Tabla explícita en lugar de relación implícita, para poder guardar el
+/// parentesco y quién es el contacto principal.
+model StudentGuardian {
+  id Int @id @default(autoincrement())
+
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  guardianId Int
+  guardian   User @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  relationship GuardianRelationship @default(TUTOR)
+  /// A quién llamar primero en una emergencia.
+  isPrimary    Boolean              @default(false)
+
+  createdAt DateTime @default(now())
+
+  /// Un tutor no puede estar ligado dos veces al mismo alumno.
+  @@unique([studentId, guardianId])
+  @@index([guardianId])
+}
+
+// ---------------------------------------------------------------------------
+// Historial del alumno
+// ---------------------------------------------------------------------------
+
+/// Cada cambio de cinturón. `Student.currentBelt` es el cinturón vigente;
+/// esta tabla guarda cómo llegó hasta ahí.
+model BeltPromotion {
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  belt       Belt
+  promotedAt DateTime @db.Date
+  notes      String?
+
+  evaluatedById Int?
+  evaluatedBy   User? @relation("PromocionEvaluadaPor", fields: [evaluatedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([studentId, promotedAt])
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  present   Boolean  @default(true)
+
+  recordedById Int?
+  recordedBy   User? @relation("AsistenciaRegistradaPor", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  /// Una sola marca de asistencia por alumno por día: evita duplicados si
+  /// alguien registra la misma clase dos veces.
+  @@unique([studentId, date])
+  @@index([date])
+}
+
+enum PaymentStatus {
+  PAGADO
+  PENDIENTE
+  VENCIDO
+}
+
+enum PaymentMethod {
+  EFECTIVO
+  TRANSFERENCIA
+  /// Pendiente de integrar. Ver Payment.externalReference.
+  PAYPAL
+}
+
+model Payment {
+  id        Int     @id @default(autoincrement())
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  /// Monto en CENTAVOS, como entero. Guardar dinero en float produce errores
+  /// de redondeo; usar Decimal complica la serialización a JSON. Para mostrar:
+  /// (amountCents / 100).
+  amountCents Int
+
+  /// Mes que cubre el pago. Separado de paidAt porque se puede pagar marzo
+  /// en abril, y el reporte necesita saber a qué mes corresponde.
+  periodYear  Int
+  periodMonth Int
+
+  status PaymentStatus @default(PENDIENTE)
+  paidAt DateTime?
+  note   String?
+
+  /// Cómo se pagó. Nulo mientras está pendiente.
+  method PaymentMethod?
+
+  /// Id de la transacción en la pasarela externa.
+  ///
+  /// Hoy nadie lo escribe: la columna existe desde ahora para que integrar
+  /// PayPal más adelante no requiera otra migración, que obligaría a los 6 a
+  /// correr `prisma migrate dev` de nuevo. Al integrarlo, aquí va el
+  /// identificador de la orden para poder conciliar y evitar cobros dobles.
+  externalReference String?
+
+  registeredById Int?
+  registeredBy   User? @relation("PagoRegistradoPor", fields: [registeredById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Un cobro por alumno por mes.
+  @@unique([studentId, periodYear, periodMonth])
+  @@index([status])
+}
+
+/// Observaciones del profesor: desempeño, conducta, incidentes.
+model StudentNote {
+  id        Int     @id @default(autoincrement())
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  body      String
+
+  authorId Int?
+  author   User? @relation("NotaEscritaPor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([studentId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Notificaciones
+// ---------------------------------------------------------------------------
+
+enum NotificationKind {
+  /// La generó el sistema cuando pasó algo (mensualidad vencida, graduación).
+  AUTOMATICA
+  /// La redactó un humano del dojo y la mandó a uno o varios usuarios.
+  AVISO
+}
+
+enum NotificationTopic {
+  PAGO
+  GRADUACION
+  ASISTENCIA
+  EVENTO
+  GENERAL
+}
+
+model Notification {
+  id Int @id @default(autoincrement())
+
+  /// A quién le llega.
+  userId Int
+  user   User @relation("NotificacionDestinatario", fields: [userId], references: [id], onDelete: Cascade)
+
+  kind  NotificationKind
+  topic NotificationTopic @default(GENERAL)
+  title String
+  body  String
+
+  /// Ruta del frontend a la que lleva al tocarla, p. ej. "/pagos".
+  link String?
+
+  /// Nulo mientras no se ha leído. Guardamos la fecha y no un booleano
+  /// porque sirve para saber cuánto tardó el usuario en verla.
+  readAt DateTime?
+
+  /// Identificador del hecho que la originó, p. ej. "pago-vencido-42".
+  ///
+  /// Evita que el sistema cree la misma notificación automática una y otra
+  /// vez. En Postgres los NULL no colisionan entre sí, así que los avisos
+  /// manuales (que van sin clave) no se estorban.
+  dedupeKey String?
+
+  /// Quién la redactó, si es un AVISO.
+  createdById Int?
+  createdBy   User? @relation("NotificacionAutor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Eventos
+// ---------------------------------------------------------------------------
+
+enum EventCategory {
+  CLASE
+  EXAMEN
+  TORNEO
+  PAGO
+}
+
+model Event {
+  id       Int           @id @default(autoincrement())
+  title    String
+  date     DateTime      @db.Date
+  /// Hora en formato HH:MM. Nulo significa "todo el día".
+  time     String?
+  category EventCategory
+
+  createdById Int?
+  createdBy   User? @relation("EventoCreadoPor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
 }

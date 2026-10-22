@@ -110,6 +110,10 @@ DATABASE_URL="postgresql://juan@localhost:5432/dojomanager"
 > El `.env` **no se sube a git** (contiene tus credenciales). El `.env.example` sí, y
 > es donde se documenta cada variable nueva que agregue el equipo.
 
+El `.env.example` también trae `JWT_SECRET` con un valor de desarrollo.
+**El backend no arranca sin esa variable**: es la llave con la que se firman las
+sesiones, y falla de inmediato con un mensaje claro si falta.
+
 Generar el cliente de Prisma:
 
 ```bash
@@ -120,6 +124,13 @@ Ejecutar las migraciones:
 
 ```bash
 npx prisma migrate dev
+```
+
+Cargar los datos iniciales (crea las cuentas de prueba y un alumno con
+historial completo):
+
+```bash
+npx prisma db seed
 ```
 
 Iniciar el backend:
@@ -174,20 +185,35 @@ http://localhost:5173
 
 # Probar que todo funciona
 
-Con el backend y el frontend corriendo:
+Con el backend y el frontend corriendo, abre `http://localhost:5173` y entra con
+cualquiera de las cinco cuentas que crea el seed. Cada una lleva a una pantalla
+distinta, según su rol:
 
-1. Abre `http://localhost:5173`
-2. Entra con el usuario de prueba:
+| Rol | Correo | Contraseña | Clave | Qué ve al entrar |
+| --- | --- | --- | --- | --- |
+| Administrador | `admin@dojo.com` | `123456` | — | Todo el dojo, incluyendo Profesores |
+| Profesor | `profesor@dojo.com` | `123456` | `PROF-7K2M` | **Solo** Ana y Diego |
+| Profesor | `profesora@dojo.com` | `123456` | `PROF-3XQ8` | **Solo** Luis |
+| Tutor | `tutor@dojo.com` | `123456` | — | Panel familiar con **sus dos hijos** |
+| Alumno | `alumno@dojo.com` | `123456` | — | Panel familiar con su propio expediente |
 
-   ```
-   Correo:      admin@dojo.com
-   Contraseña:  123456
-   ```
+Entra con los dos profesores para comprobar que **cada uno ve solo a su grupo**.
 
-Ese usuario está **escrito a mano** en
-[backend/src/routes/auth.routes.ts](backend/src/routes/auth.routes.ts) y no toca la
-base de datos. Es un placeholder para que el equipo pueda trabajar mientras
-`feature/auth` implementa la autenticación real contra la tabla `User`.
+Las contraseñas se guardan con hash de **bcrypt** y la sesión viaja en un **JWT**
+firmado con tu `JWT_SECRET`. Son cuentas de **desarrollo local**: no las subas a un
+servidor público.
+
+Datos que crea el seed:
+
+- **Ana López** — alumna con cuenta propia e historial completo: 4 graduaciones de
+  cinturón, 13 registros de asistencia, 4 mensualidades y 3 observaciones.
+- **Diego López** — hermano menor de Ana, sin cuenta propia. Sirve para ver cómo un
+  alumno existe en el sistema sin poder iniciar sesión.
+- **Marta López** (`tutor@dojo.com`) — madre de los dos. Al entrar ve ambos
+  expedientes, el calendario, los pagos de los dos y sus notificaciones.
+- **Luis Hernández** — alumno adulto, sin tutor ni cuenta. Comprueba que el tutor
+  **no** puede abrir su expediente.
+- 9 eventos del mes en curso y un aviso del dojo en la bandeja.
 
 Para comprobar solo el backend:
 
@@ -195,6 +221,128 @@ Para comprobar solo el backend:
 curl http://localhost:3000
 # {"message":"Backend funcionando 🚀"}
 ```
+
+---
+
+# Roles y permisos
+
+Hay cuatro roles. El profesor es **subadministrador**: puede todo menos administrar
+profesores y la configuración del dojo.
+
+| Acción | Administrador | Profesor | Tutor | Alumno |
+| --- | :-: | :-: | :-: | :-: |
+| Registrar un **profesor** | ✅ | ❌ | ❌ | ❌ |
+| Registrar un **alumno** | ✅ | ✅ | ❌ | ❌ |
+| Registrar un **tutor** | ✅ | ✅ | ❌ | ❌ |
+| Agregar y quitar **eventos** | ✅ | ✅ | ❌ | ❌ |
+| Ver alumnos | **todos** | **solo los suyos** | sus hijos | él mismo |
+| Ver pagos | **todos** | **solo los suyos** | sus hijos | los suyos |
+| Mandar avisos | ✅ | ✅ | ❌ | ❌ |
+| Configuración del dojo | ✅ | ❌ | ❌ | ❌ |
+| Ver el calendario | ✅ | ✅ | ✅ | ✅ |
+| Ver sus notificaciones | ✅ | ✅ | ✅ | ✅ |
+
+## La clave del profesor
+
+Cada profesor tiene una clave única, p. ej. `PROF-7K2M`. El administrador la ve en la
+sección de Profesores y se la pasa. **Se escribe al registrar un alumno** para
+decidir a qué grupo entra.
+
+El alfabeto de la clave excluye `O`, `0`, `I`, `1` y `L`: se dicta en voz alta y se
+escribe a mano, y esos caracteres se confunden.
+
+Dos reglas que aplica el backend:
+
+- Un **profesor** no puede usar la clave de otro. Si lo intenta recibe `403`: estaría
+  dando de alta alumnos en un grupo ajeno. Si no manda clave, el alumno se le asigna
+  a él.
+- El **administrador** puede usar la clave de cualquier profesor, o ninguna (el alumno
+  queda sin asignar).
+
+## Lo que un permiso no puede expresar
+
+Un permiso dice **si** puedes leer alumnos, no **cuáles**. El alcance lo resuelve
+[backend/src/lib/access.ts](backend/src/lib/access.ts) comparando contra el token:
+
+| Rol | Alcance |
+| --- | --- |
+| `ADMIN` | todos los alumnos del dojo |
+| `PROFESOR` | solo los que tiene asignados (`Student.teacherId`) |
+| `TUTOR` | solo los alumnos a su cargo (`StudentGuardian`) |
+| `ALUMNO` | solo su propio expediente |
+
+Por eso el tutor **no** tiene `students:read`: si lo tuviera, vería a todo el dojo.
+Y por eso el profesor, aunque sí lo tenga, solo recibe su grupo.
+
+> ⚠️ Un detalle que parece menor y no lo es: un filtro con **lista vacía** no es lo
+> mismo que **no filtrar**. Confundirlos haría que un profesor sin alumnos viera a
+> todos. Por eso `scopeToStudentFilter` devuelve `undefined` solo para `"todos"`, y
+> las rutas cortan explícitamente cuando el alcance está vacío.
+La relación real vive en la tabla `StudentGuardian`, que es muchos-a-muchos: un tutor
+puede tener varios hijos inscritos, y un alumno puede tener dos tutores con acceso
+(por ejemplo, padres separados).
+
+La lógica está en [backend/src/lib/access.ts](backend/src/lib/access.ts), y el
+alcance de los pagos lo decide el servidor en
+[payments.routes.ts](backend/src/routes/payments.routes.ts) — el frontend nunca
+manda un id de alumno, porque podría cambiarlo por el de otra familia.
+
+La matriz de permisos vive en un solo lugar:
+[backend/src/permissions.ts](backend/src/permissions.ts). El frontend **no la
+duplica**: el backend le envía al iniciar sesión la lista ya resuelta, y el menú se
+arma con eso.
+
+> ⚠️ Ocultar un menú **no es seguridad**. Quien sabe la URL puede entrar, y quien
+> sabe usar la consola del navegador puede editar su `localStorage`. Lo que de verdad
+> protege los datos es que cada ruta del backend valida el token y el permiso. Si
+> agregas un endpoint, protégelo con `requireAuth` y `requirePermission` — ver
+> [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+# Notificaciones
+
+Las hay de dos clases, y la bandeja las distingue:
+
+| Clase | Quién la crea | Ejemplo |
+| --- | --- | --- |
+| **Automática** | El sistema | "Mensualidad pendiente: Diego López, $700.00" |
+| **Aviso** | El admin o un profesor | "Suspensión de clases por mantenimiento" |
+
+Las automáticas de **pagos** se generan al consultar la bandeja, no con una tarea
+programada: el proyecto no tiene un cron corriendo, y así funcionan sin
+infraestructura extra. Son idempotentes por la columna `dedupeKey`, así que recargar
+la página no las duplica.
+
+Las de **graduaciones**, **faltas** y **eventos nuevos** tienen su función lista en
+[backend/src/lib/notifications.ts](backend/src/lib/notifications.ts), pero solo se
+disparan cuando el módulo correspondiente las llame al guardar. Si estás
+implementando `feature/students` o `feature/events`, llámalas — ver
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+Cuando algo pasa con un alumno, la notificación llega **al alumno y a todos sus
+tutores**, resuelto por `audienceForStudent`.
+
+---
+
+# Pagos
+
+Es solo consulta. El alcance lo decide el backend según el rol:
+
+- **Admin y profesor** — todas las mensualidades del dojo.
+- **Tutor** — las de sus hijos, sumadas.
+- **Alumno** — las suyas.
+
+Los montos se guardan en **centavos como entero** (`amountCents`). Guardar dinero en
+`float` produce errores de redondeo.
+
+**El pago en línea con PayPal no está implementado.** La pantalla lo dice en lugar de
+mostrar un botón que no hace nada. El schema ya tiene las columnas `method` y
+`externalReference` preparadas, así que integrarlo no requerirá otra migración —
+cuando se haga, `externalReference` guarda el id de la orden para conciliar y evitar
+cobros dobles.
+
+Registrar y editar cobros corresponde al módulo `feature/payments`.
 
 ---
 
