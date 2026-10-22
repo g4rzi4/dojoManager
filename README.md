@@ -35,9 +35,12 @@ Antes de ejecutar el proyecto instala:
 # Clonar el proyecto
 
 ```bash
-git clone https://github.com/TU_USUARIO/dojoManager.git
+git clone https://github.com/g4rzi4/dojoManager.git
 cd dojoManager
 ```
+
+> **Si vas a colaborar en el proyecto, lee primero [CONTRIBUTING.md](CONTRIBUTING.md).**
+> Ahí está el reparto de módulos, la estructura de ramas y el flujo de Pull Requests.
 
 ---
 
@@ -55,17 +58,20 @@ Instalar dependencias:
 npm install
 ```
 
-Crear un archivo `.env` con el siguiente contenido:
+Crear tu archivo `.env` a partir de la plantilla:
 
-```env
-DATABASE_URL="postgresql://USUARIO@localhost:5432/dojomanager"
+```bash
+cp .env.example .env
 ```
 
-Ejemplo:
+Luego edita `.env` y reemplaza `TU_USUARIO` por tu usuario de PostgreSQL:
 
 ```env
 DATABASE_URL="postgresql://juan@localhost:5432/dojomanager"
 ```
+
+> El `.env` **no se sube a git** (contiene tus credenciales). El `.env.example` sí, y
+> es donde se documenta cada variable nueva que agregue el equipo.
 
 Generar el cliente de Prisma:
 
@@ -147,14 +153,28 @@ createdb dojomanager
 dojoManager
 │
 ├── backend
-│   ├── prisma
+│   ├── prisma            esquema y migraciones de la base de datos
 │   ├── src
+│   │   ├── routes        endpoints de la API
+│   │   ├── app.ts        configuración de Express
+│   │   └── server.ts     punto de entrada
+│   ├── .env.example      plantilla de variables de entorno
 │   └── package.json
 │
 ├── frontend
 │   ├── src
+│   │   ├── components    botones, inputs, navbar, sidebar
+│   │   ├── layouts       AuthLayout, DashboardLayout
+│   │   ├── pages         Login, Dashboard, Students, Teachers, Payments...
+│   │   ├── services      cliente HTTP hacia el backend
+│   │   └── styles        estilos globales
 │   └── package.json
 │
+├── .github
+│   └── pull_request_template.md
+├── .gitignore
+├── CONTRIBUTING.md       guía de trabajo en equipo (ramas, PRs, conflictos)
+├── docker-compose.yml
 └── README.md
 ```
 
@@ -162,23 +182,44 @@ dojoManager
 
 # Flujo de trabajo con Git
 
-Actualizar cambios:
+El proyecto usa **Git Flow**: `main` (producción) ← `develop` (integración) ←
+`feature/*` (un módulo por persona).
 
-```bash
-git pull
+```
+main
+ └── develop
+      ├── feature/auth        login, registro, JWT
+      ├── feature/students    alumnos y cinturones
+      ├── feature/teachers    profesores y horarios
+      ├── feature/payments    mensualidades
+      ├── feature/reports     reportes
+      └── feature/settings    configuración del dojo
 ```
 
-Guardar cambios:
+Ciclo diario, trabajando sobre tu rama:
 
 ```bash
+# 1. Traer lo que el equipo ya integró
+git switch develop && git pull
+git switch feature/TU_MODULO && git merge develop
+
+# 2. Trabajar y guardar
 git add .
-git commit -m "Descripción del cambio"
+git commit -m "feat(students): formulario de alta de alumno"
 git push
+
+# 3. Al terminar: abrir Pull Request hacia develop (no merge directo)
+gh pr create --base develop --fill
 ```
+
+`main` y `develop` están protegidas: los cambios entran por Pull Request revisado.
+
+**El detalle completo —reparto de módulos, convención de commits, cómo resolver
+conflictos y comandos de rescate— está en [CONTRIBUTING.md](CONTRIBUTING.md).**
 
 ---
 
 # Autores
 
 - Zoé García
-- Nombre del colaborador
+- _(5 colaboradores — completar nombres en [CONTRIBUTING.md](CONTRIBUTING.md))_
