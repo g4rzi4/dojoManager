@@ -9,6 +9,7 @@ import Students from "./pages/Students";
 import StudentDetail from "./pages/StudentDetail";
 import MyCard from "./pages/MyCard";
 import Events from "./pages/Events";
+import Classes from "./pages/Classes";
 import Payments from "./pages/Payments";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
@@ -92,6 +93,15 @@ function App() {
           element={
             <ProtectedRoute permission="events:read">
               <Events />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/clases"
+          element={
+            <ProtectedRoute permission="events:read">
+              <Classes />
             </ProtectedRoute>
           }
         />
