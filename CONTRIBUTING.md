@@ -10,9 +10,11 @@ el trabajo. **Léela completa antes de tu primer commit.**
 ```
 main                 producción. Nadie commitea aquí directo.
  └── develop         integración. Aquí se juntan todos los módulos.
+      ├── feature/dashboard  panel, roles y expediente  (en revisión: PR #1)
       ├── feature/auth       login, registro, JWT
       ├── feature/students   alumnos: alta, baja, cinturones
       ├── feature/teachers   profesores y horarios
+      ├── feature/events     calendario: crear y editar eventos
       ├── feature/payments   mensualidades y cobros
       ├── feature/reports    reportes y estadísticas
       └── feature/settings   configuración del dojo
@@ -26,14 +28,28 @@ su rama.
 
 Llena esta tabla en la primera reunión para que quede claro quién toca qué:
 
-| Rama               | Responsable | Estado      |
-| ------------------ | ----------- | ----------- |
-| `feature/auth`     | Zoé García  | En progreso |
-| `feature/students` | _por asignar_ | Sin empezar |
-| `feature/teachers` | _por asignar_ | Sin empezar |
-| `feature/payments` | _por asignar_ | Sin empezar |
-| `feature/reports`  | _por asignar_ | Sin empezar |
-| `feature/settings` | _por asignar_ | Sin empezar |
+| Rama | Responsable | Estado | Qué falta |
+| --- | --- | --- | --- |
+| `feature/dashboard` | Zoé García | **En revisión (PR #1)** | Mergear antes de repartir lo demás |
+| `feature/auth` | Zoé García | Hecho en el PR #1 | Recuperación de contraseña |
+| `feature/students` | _por asignar_ | Base lista | Editar expediente, registrar graduaciones y asistencia |
+| `feature/teachers` | _por asignar_ | Base lista | Horarios y reasignar alumnos entre profesores |
+| `feature/events` | _por asignar_ | Base lista | Editar eventos y eventos recurrentes |
+| `feature/payments` | _por asignar_ | Solo consulta | Registrar cobros, y más adelante PayPal |
+| `feature/reports` | _por asignar_ | Sin empezar | Todo |
+| `feature/settings` | _por asignar_ | Sin empezar | Todo |
+
+> ⚠️ **`feature/students`, `teachers`, `events` y `payments` salieron de `develop`
+> antes del PR #1**, así que todavía no tienen el schema ni los endpoints. En cuanto
+> ese PR se mergee, lo primero que debe hacer cada responsable es:
+>
+> ```bash
+> git switch feature/TU_MODULO
+> git merge develop
+> cd backend && npx prisma migrate deploy && npx prisma generate
+> ```
+>
+> Si empiezas a programar antes de eso, vas a reescribir cosas que ya existen.
 
 ---
 
