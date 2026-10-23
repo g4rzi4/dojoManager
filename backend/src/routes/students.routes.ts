@@ -13,7 +13,7 @@ import {
   visibleStudentIds,
 } from "../lib/access";
 import { normalizeTeacherCode } from "../lib/teacherCode";
-import { Role } from "../generated/prisma/enums";
+import { Belt, Role } from "../generated/prisma/enums";
 import { requireAuth, requirePermission } from "../middleware/auth";
 
 const router = Router();
@@ -297,6 +297,173 @@ router.post(
     });
 
     return res.status(201).json({ success: true, student });
+  }
+);
+
+
+/**
+ * PATCH /students/:id
+ *
+ * Edita la ficha de un alumno. Lo hacen el ADMIN y los PROFESOR, pero un
+ * profesor solo sobre los alumnos de SU grupo.
+ *
+ * Solo se tocan los campos que llegan: mandar `{ phone: "..." }` cambia el
+ * teléfono y deja todo lo demás como estaba.
+ */
+router.patch(
+  "/:id",
+  requireAuth,
+  requirePermission("students:write"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "El id del alumno no es válido.",
+      });
+    }
+
+    if (!(await canManageStudent(req.user!, id))) {
+      return res.status(403).json({
+        success: false,
+        message: "Ese alumno no está en tu grupo.",
+      });
+    }
+
+    const {
+      firstName,
+      lastName,
+      birthDate,
+      phone,
+      guardianName,
+      guardianPhone,
+      medicalNotes,
+      currentBelt,
+      active,
+      teacherCode,
+    } = req.body ?? {};
+
+    const datos: Record<string, unknown> = {};
+
+    // Nombre y apellido: si vienen, no pueden quedar vacíos.
+    for (const [campo, valor] of [
+      ["firstName", firstName],
+      ["lastName", lastName],
+    ] as const) {
+      if (valor !== undefined) {
+        if (typeof valor !== "string" || valor.trim().length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: "El nombre y el apellido no pueden quedar vacíos.",
+          });
+        }
+        datos[campo] = valor.trim();
+      }
+    }
+
+    // Campos de texto opcionales: cadena vacía los deja en null.
+    for (const [campo, valor] of [
+      ["phone", phone],
+      ["guardianName", guardianName],
+      ["guardianPhone", guardianPhone],
+      ["medicalNotes", medicalNotes],
+    ] as const) {
+      if (valor !== undefined) {
+        datos[campo] =
+          typeof valor === "string" ? valor.trim() || null : null;
+      }
+    }
+
+    if (birthDate !== undefined) {
+      if (birthDate === null || birthDate === "") {
+        datos.birthDate = null;
+      } else if (
+        typeof birthDate === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(birthDate)
+      ) {
+        const [y, m, d] = birthDate.split("-").map(Number);
+        datos.birthDate = new Date(Date.UTC(y, m - 1, d));
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "La fecha de nacimiento debe venir como AAAA-MM-DD.",
+        });
+      }
+    }
+
+    if (currentBelt !== undefined) {
+      if (!Object.values(Belt).includes(currentBelt as Belt)) {
+        return res.status(400).json({
+          success: false,
+          message: `Cinta no válida. Opciones: ${Object.values(Belt).join(", ")}.`,
+        });
+      }
+
+      // Nota: esto cambia la cinta VIGENTE, no agrega una graduación al
+      // historial. Registrar la graduación con su fecha y quién evaluó le
+      // toca al módulo feature/students.
+      datos.currentBelt = currentBelt as Belt;
+    }
+
+    if (active !== undefined) {
+      if (typeof active !== "boolean") {
+        return res.status(400).json({
+          success: false,
+          message: "Indica si el alumno queda activo o inactivo.",
+        });
+      }
+      datos.active = active;
+    }
+
+    // Reasignar de profesor. Un profesor solo puede usar SU clave: pasarle
+    // un alumno a otro profesor es decisión del administrador.
+    if (teacherCode !== undefined) {
+      if (teacherCode === null || teacherCode === "") {
+        if (req.user!.role !== Role.ADMIN) {
+          return res.status(403).json({
+            success: false,
+            message: "Solo el administrador puede dejar a un alumno sin profesor.",
+          });
+        }
+        datos.teacherId = null;
+      } else {
+        const code = normalizeTeacherCode(String(teacherCode));
+
+        const teacher = await prisma.user.findUnique({
+          where: { teacherCode: code },
+          select: { id: true, active: true },
+        });
+
+        if (!teacher || !teacher.active) {
+          return res.status(400).json({
+            success: false,
+            message: `No existe un profesor activo con la clave ${code}.`,
+          });
+        }
+
+        if (req.user!.role === Role.PROFESOR && teacher.id !== req.user!.id) {
+          return res.status(403).json({
+            success: false,
+            message:
+              "Solo el administrador puede pasar un alumno a otro profesor.",
+          });
+        }
+
+        datos.teacherId = teacher.id;
+      }
+    }
+
+    if (Object.keys(datos).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No mandaste ningún cambio.",
+      });
+    }
+
+    await prisma.student.update({ where: { id }, data: datos });
+
+    return res.json({ success: true, message: "Ficha actualizada." });
   }
 );
 

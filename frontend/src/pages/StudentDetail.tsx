@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, QrCode } from "lucide-react";
+import { ArrowLeft, Pencil, QrCode } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import StudentCardView from "../components/StudentCardView";
 import InvitationDialog from "../components/InvitationDialog";
+import StudentEditForm from "../components/StudentEditForm";
 import { ApiError, getStudentCard } from "../services/api";
 import { can, getUser } from "../services/session";
 import type { StudentCard } from "../types/student";
@@ -43,6 +44,14 @@ function StudentDetail() {
 
   const [estado, setEstado] = useState<Estado>({ status: "cargando" });
   const [invitandoTutor, setInvitandoTutor] = useState(false);
+  const [editando, setEditando] = useState(false);
+
+  /** Vuelve a pedir la ficha tras guardarla. */
+  function recargar() {
+    return getStudentCard(studentId)
+      .then((student) => setEstado({ status: "ok", student }))
+      .catch(() => {});
+  }
 
   // Solo quien puede editar alumnos puede generar invitaciones.
   const puedeInvitar = can(user, "students:write");
@@ -99,6 +108,24 @@ function StudentDetail() {
         </h1>
 
         {puedeInvitar && estadoFinal.status === "ok" && (
+          <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setEditando((v) => !v)}
+            aria-expanded={editando}
+            className="
+              flex cursor-pointer items-center gap-2 rounded-xl border
+              border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold
+              text-slate-700 transition-colors duration-200
+              motion-reduce:transition-none
+              hover:bg-slate-50
+              focus:ring-2 focus:ring-blue-600 focus:outline-none
+            "
+          >
+            <Pencil size={17} aria-hidden="true" />
+            Editar ficha
+          </button>
+
           <button
             type="button"
             onClick={() => setInvitandoTutor((v) => !v)}
@@ -115,8 +142,22 @@ function StudentDetail() {
             <QrCode size={17} aria-hidden="true" />
             Invitar a un tutor
           </button>
+          </div>
         )}
       </div>
+
+      {editando && puedeInvitar && estadoFinal.status === "ok" && (
+        <div className="mt-6">
+          <StudentEditForm
+            student={estadoFinal.student}
+            onGuardado={async () => {
+              setEditando(false);
+              await recargar();
+            }}
+            onCancelar={() => setEditando(false)}
+          />
+        </div>
+      )}
 
       {invitandoTutor && puedeInvitar && estadoFinal.status === "ok" && (
         <div className="mt-6">

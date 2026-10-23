@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
-import { Check, KeyRound, Receipt, X } from "lucide-react";
+import { Check, KeyRound, Receipt, UserPlus, X } from "lucide-react";
 
 import Card from "./Card";
 import {
   ApiError,
+  enrollStudentInEvent,
   getCategoryCatalog,
   getEventEnrollments,
+  getStudents,
   reportEventPayment,
   resolveEventPayment,
 } from "../services/api";
+import type { StudentListItem } from "../types/student";
 import { can, getUser } from "../services/session";
 import type { DojoEvent } from "../types/event";
 import type { EventEnrollment } from "../types/eventPayment";
@@ -579,6 +582,7 @@ function GestionCobros({
   }
 
   const inscritos = enrollments.filter((e) => e.enrolled).length;
+  const yaEnLista = new Set(enrollments.map((e) => e.studentId));
   const porConfirmar = enrollments.filter(
     (e) => e.status === "REPORTADO"
   ).length;
@@ -604,6 +608,16 @@ function GestionCobros({
           {error}
         </p>
       )}
+
+      {/* El profesor inscribe a sus alumnos sin esperar a que reporten */}
+      <InscribirAlumnos
+        event={event}
+        yaEnLista={yaEnLista}
+        onInscrito={async () => {
+          await cargar();
+          await onCambio();
+        }}
+      />
 
       {!cargado ? (
         <div className="mt-4 h-20 animate-pulse rounded-xl bg-slate-100 motion-reduce:animate-none" />
@@ -716,6 +730,273 @@ function GestionCobros({
         </ul>
       )}
     </Card>
+  );
+}
+
+/**
+ * El profesor elige a uno de sus alumnos y lo inscribe con sus modalidades.
+ *
+ * La lista sale de GET /students, que para un profesor ya viene filtrada a
+ * su grupo: aquí no hay que volver a filtrar nada.
+ */
+function InscribirAlumnos({
+  event,
+  yaEnLista,
+  onInscrito,
+}: {
+  event: DojoEvent;
+  yaEnLista: Set<number>;
+  onInscrito: () => void | Promise<void>;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [alumnos, setAlumnos] = useState<StudentListItem[]>([]);
+  const [studentId, setStudentId] = useState<number | "">("");
+  const [elegidas, setElegidas] = useState<number[]>([]);
+  const [nota, setNota] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!abierto || alumnos.length > 0) return;
+
+    let activo = true;
+
+    getStudents()
+      .then((data) => {
+        if (activo) setAlumnos(data.filter((a) => a.active));
+      })
+      .catch(() => {});
+
+    return () => {
+      activo = false;
+    };
+  }, [abierto, alumnos.length]);
+
+  const modalidades = event.modalities ?? [];
+  const tieneModalidades = modalidades.length > 0;
+
+  const total = tieneModalidades
+    ? modalidades
+        .filter((m) => elegidas.includes(m.id))
+        .reduce((suma, m) => suma + m.priceCents, 0)
+    : (event.priceCents ?? 0);
+
+  const disponibles = alumnos.filter((a) => !yaEnLista.has(a.id));
+
+  const valido =
+    studentId !== "" && (!tieneModalidades || elegidas.length > 0);
+
+  async function inscribir() {
+    if (!valido || guardando) return;
+
+    setGuardando(true);
+    setError("");
+
+    try {
+      await enrollStudentInEvent(event.id, {
+        studentId: Number(studentId),
+        modalityIds: tieneModalidades ? elegidas : undefined,
+        note: nota.trim() || undefined,
+      });
+
+      setStudentId("");
+      setElegidas([]);
+      setNota("");
+      await onInscrito();
+    } catch (e: unknown) {
+      setError(
+        e instanceof ApiError ? e.message : "No fue posible inscribirlo."
+      );
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  const inputClase = `
+    w-full rounded-xl border border-slate-300 bg-white px-4 py-3
+    outline-none transition-all
+    focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+  `;
+
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="
+          mt-4 flex cursor-pointer items-center gap-2 rounded-xl border
+          border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold
+          text-slate-700 transition-colors duration-200
+          motion-reduce:transition-none
+          hover:bg-slate-50
+          focus:ring-2 focus:ring-blue-600 focus:outline-none
+        "
+      >
+        <UserPlus size={16} aria-hidden="true" />
+        Inscribir a un alumno
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-900">
+        Inscribir a un alumno
+      </p>
+
+      {disponibles.length === 0 ? (
+        <p className="text-sm text-slate-600">
+          {alumnos.length === 0
+            ? "No tienes alumnos activos."
+            : "Todos tus alumnos ya están en la lista de este evento."}
+        </p>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <label
+              htmlFor={`in-alumno-${event.id}`}
+              className="block text-sm font-medium text-slate-700"
+            >
+              Alumno
+            </label>
+            <select
+              id={`in-alumno-${event.id}`}
+              value={studentId}
+              onChange={(e) =>
+                setStudentId(e.target.value === "" ? "" : Number(e.target.value))
+              }
+              className={`${inputClase} cursor-pointer`}
+            >
+              <option value="">Elige un alumno</option>
+              {disponibles.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.firstName} {a.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {tieneModalidades && (
+            <fieldset>
+              <legend className="text-sm font-medium text-slate-700">
+                ¿En qué modalidades entra?
+              </legend>
+
+              <div className="mt-2 space-y-2">
+                {modalidades.map((m) => (
+                  <label
+                    key={m.id}
+                    className={`
+                      flex cursor-pointer items-center gap-3 rounded-xl border bg-white px-4 py-3
+                      transition-colors duration-200
+                      motion-reduce:transition-none
+                      ${
+                        elegidas.includes(m.id)
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-slate-300 hover:bg-slate-50"
+                      }
+                    `}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={elegidas.includes(m.id)}
+                      onChange={(e) =>
+                        setElegidas((prev) =>
+                          e.target.checked
+                            ? [...prev, m.id]
+                            : prev.filter((x) => x !== m.id)
+                        )
+                      }
+                      className="cursor-pointer"
+                    />
+                    <span className="flex-1 text-sm font-medium text-slate-900">
+                      {m.name}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {formatMoney(m.priceCents)}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <p className="mt-3 flex items-center justify-between rounded-xl bg-white px-4 py-3">
+                <span className="text-sm font-medium text-slate-700">
+                  Tendrá que pagar
+                </span>
+                <span className="text-lg font-bold text-slate-900">
+                  {formatMoney(total)}
+                </span>
+              </p>
+            </fieldset>
+          )}
+
+          <div className="space-y-2">
+            <label
+              htmlFor={`in-nota-${event.id}`}
+              className="block text-sm font-medium text-slate-700"
+            >
+              Nota{" "}
+              <span className="font-normal text-slate-500">(opcional)</span>
+            </label>
+            <input
+              id={`in-nota-${event.id}`}
+              type="text"
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              placeholder="Se foguea con adultos"
+              className={inputClase}
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm font-medium text-red-700" role="alert">
+              {error}
+            </p>
+          )}
+
+          <p className="text-xs text-slate-600">
+            Al alumno y a sus tutores les llegará una notificación con las
+            modalidades y lo que deben pagar. Quedará inscrito cuando
+            confirmes el pago.
+          </p>
+        </>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        {disponibles.length > 0 && (
+          <button
+            type="button"
+            onClick={inscribir}
+            disabled={!valido || guardando}
+            className="
+              cursor-pointer rounded-xl bg-blue-600 px-5 py-2.5 text-sm
+              font-semibold text-white transition-colors duration-200
+              motion-reduce:transition-none
+              hover:bg-blue-700
+              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              disabled:cursor-not-allowed disabled:opacity-50
+            "
+          >
+            {guardando ? "Inscribiendo..." : "Inscribir"}
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setAbierto(false)}
+          className="
+            cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-2.5
+            text-sm font-semibold text-slate-700
+            transition-colors duration-200
+            motion-reduce:transition-none
+            hover:bg-slate-50
+            focus:ring-2 focus:ring-blue-600 focus:outline-none
+          "
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
   );
 }
 

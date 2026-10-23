@@ -545,6 +545,13 @@ enum AgeCategory {
 }
 
 enum EventPaymentStatus {
+  /// El profesor lo inscribió y todavía no paga.
+  ///
+  /// Es el punto de partida cuando la inscripción la arma el profesor: el
+  /// alumno ya sabe en qué modalidades va y cuánto debe, pero no está
+  /// inscrito hasta que el pago se confirme.
+  PENDIENTE_PAGO
+
   /// El alumno dijo que ya pagó. Falta que el profesor lo confirme.
   REPORTADO
   /// El profesor confirmó el pago. Con esto queda inscrito.

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CalendarPlus, Clock, Receipt, Trash2 } from "lucide-react";
+import { CalendarDays, CalendarPlus, Clock, Pencil, Receipt, Trash2 } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import EventForm from "../components/EventForm";
 import EventPaymentPanel from "../components/EventPaymentPanel";
+import EventEditForm from "../components/EventEditForm";
 import { ApiError, deleteEvent, getEvents, getMyStudents } from "../services/api";
 import { can, getUser } from "../services/session";
 import type { DojoEvent } from "../types/event";
@@ -25,6 +26,8 @@ function Events() {
   const [misAlumnos, setMisAlumnos] = useState<MyStudent[]>([]);
   /** Qué evento tiene abierto su panel de pago. */
   const [abierto, setAbierto] = useState<string | null>(null);
+  /** Qué evento se está editando. */
+  const [editando, setEditando] = useState<string | null>(null);
 
   function cargar() {
     return getEvents()
@@ -272,6 +275,27 @@ function Events() {
                         {puedeEditar && (
                           <button
                             type="button"
+                            onClick={() =>
+                              setEditando((x) => (x === event.id ? null : event.id))
+                            }
+                            aria-expanded={editando === event.id}
+                            aria-label={`Editar ${event.title}`}
+                            className="
+                              flex h-11 w-11 shrink-0 cursor-pointer items-center
+                              justify-center rounded-lg text-slate-500
+                              transition-colors duration-200
+                              motion-reduce:transition-none
+                              hover:bg-slate-100 hover:text-slate-900
+                              focus:ring-2 focus:ring-blue-600 focus:outline-none
+                            "
+                          >
+                            <Pencil size={17} aria-hidden="true" />
+                          </button>
+                        )}
+
+                        {puedeEditar && (
+                          <button
+                            type="button"
                             onClick={() => quitar(event)}
                             disabled={borrando === event.id}
                             aria-label={`Quitar ${event.title} del calendario`}
@@ -289,6 +313,19 @@ function Events() {
                           </button>
                         )}
                       </Card>
+
+                      {editando === event.id && puedeEditar && (
+                        <div className="mt-2">
+                          <EventEditForm
+                            event={event}
+                            onGuardado={async () => {
+                              setEditando(null);
+                              await cargar();
+                            }}
+                            onCancelar={() => setEditando(null)}
+                          />
+                        </div>
+                      )}
 
                       {abierto === event.id && event.requiresPayment && (
                         <div className="mt-2">

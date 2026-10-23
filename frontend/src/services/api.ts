@@ -220,6 +220,31 @@ export async function createStudent(params: {
   return request("/students", { method: "POST", body: params });
 }
 
+/**
+ * Edita la ficha de un alumno. Admin y profesores, cada profesor sobre los
+ * alumnos de su grupo.
+ *
+ * Solo se mandan los campos que cambian.
+ */
+export async function updateStudent(
+  id: number,
+  cambios: {
+    firstName?: string;
+    lastName?: string;
+    birthDate?: string | null;
+    phone?: string | null;
+    guardianName?: string | null;
+    guardianPhone?: string | null;
+    medicalNotes?: string | null;
+    currentBelt?: string;
+    active?: boolean;
+    /** Reasignar de profesor. Solo el admin puede pasarlo a otro. */
+    teacherCode?: string | null;
+  }
+): Promise<{ message: string }> {
+  return request(`/students/${id}`, { method: "PATCH", body: cambios });
+}
+
 /** Da de baja a un alumno. Es baja lógica: conserva su historial. */
 export async function deactivateStudent(id: number): Promise<void> {
   await request(`/students/${id}`, { method: "DELETE" });
@@ -318,6 +343,52 @@ export async function createEvent(params: {
   modalities?: { name: string; priceCents: number }[];
 }): Promise<{ event: DojoEvent }> {
   return request("/events", { method: "POST", body: params });
+}
+
+/**
+ * Edita un evento, incluidos los costos por modalidad.
+ *
+ * Las modalidades con `id` se actualizan, las que no lo traen se crean, y
+ * las que faltan en la lista se borran. El backend rechaza borrar una que ya
+ * tenga alumnos inscritos.
+ */
+export async function updateEvent(
+  id: string,
+  cambios: {
+    title?: string;
+    date?: string;
+    time?: string | null;
+    category?: EventCategory;
+    requiresPayment?: boolean;
+    priceCents?: number | null;
+    modalities?: { id?: number; name: string; priceCents: number }[];
+  }
+): Promise<{ message: string }> {
+  return request(`/events/${id}`, { method: "PATCH", body: cambios });
+}
+
+/**
+ * El profesor inscribe a uno de sus alumnos, eligiendo sus modalidades.
+ *
+ * La inscripción nace sin pagar: al alumno y a sus tutores les llega la
+ * notificación con lo que deben, y quedan inscritos cuando el profesor
+ * confirme el pago.
+ */
+export async function enrollStudentInEvent(
+  eventId: string,
+  params: {
+    studentId: number;
+    modalityIds?: number[];
+    gender?: string;
+    beltClass?: string;
+    ageCategory?: string;
+    note?: string;
+  }
+): Promise<{ message: string }> {
+  return request(`/events/${eventId}/enroll`, {
+    method: "POST",
+    body: params,
+  });
 }
 
 export async function deleteEvent(id: string): Promise<void> {
