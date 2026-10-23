@@ -51,6 +51,12 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
       precio: String(m.priceCents / 100),
     }))
   );
+  /**
+   * Editable: un evento pudo crearse sin pago y querer cobrarse después.
+   * Antes esto se leía directo de `event` y la sección de costos quedaba
+   * escondida para siempre, sin forma de activarla.
+   */
+  const [conPago, setConPago] = useState(event.requiresPayment ?? false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
@@ -60,11 +66,15 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
     (m) => m.name.trim().length > 0 && Number(m.precio) > 0
   );
 
-  const valido =
-    title.trim().length > 0 &&
-    date.length > 0 &&
-    (!event.requiresPayment ||
-      (tieneModalidades ? llenas.length > 0 : Number(precio) > 0));
+  /** El profesor solo puede ajustar precios de modalidades que ya existen. */
+  const profesorPuedeEditar =
+    esAdmin || (event.requiresPayment === true && tieneModalidades);
+
+  const valido = esAdmin
+    ? title.trim().length > 0 &&
+      date.length > 0 &&
+      (!conPago || (tieneModalidades ? llenas.length > 0 : Number(precio) > 0))
+    : profesorPuedeEditar && llenas.length > 0;
 
   async function guardar() {
     if (!valido || guardando) return;
@@ -80,11 +90,12 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
               title: title.trim(),
               date,
               time: time || null,
+              requiresPayment: conPago,
               priceCents:
-                event.requiresPayment && !tieneModalidades
+                conPago && !tieneModalidades
                   ? Math.round(Number(precio) * 100)
                   : undefined,
-              modalities: tieneModalidades
+              modalities: conPago && tieneModalidades
                 ? llenas.map((m) => ({
                     id: m.id,
                     name: m.name.trim(),
@@ -190,7 +201,51 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
         </div>
         )}
 
-        {event.requiresPayment && (
+        {/* El admin puede activar el cobro en un evento que se creó gratuito */}
+        {esAdmin && (
+          <label className="flex cursor-pointer items-start gap-3 border-t border-slate-200 pt-5">
+            <input
+              type="checkbox"
+              checked={conPago}
+              onChange={(e) => setConPago(e.target.checked)}
+              className="mt-1 cursor-pointer"
+            />
+            <span>
+              <span className="block text-sm font-medium text-slate-700">
+                Requiere pago para participar
+              </span>
+              <span className="mt-0.5 block text-xs text-slate-600">
+                Actívalo para poder definir el costo o las modalidades.
+              </span>
+            </span>
+          </label>
+        )}
+
+        {/* Al profesor hay que decirle por qué no puede hacer nada, en lugar
+            de dejarle un formulario vacío */}
+        {!esAdmin && !profesorPuedeEditar && (
+          <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <TriangleAlert
+              size={18}
+              aria-hidden="true"
+              className="mt-0.5 shrink-0 text-amber-700"
+            />
+            <div className="text-sm text-amber-900">
+              <p className="font-semibold">
+                Este evento todavía no tiene costos que ajustar
+              </p>
+              <p className="mt-1">
+                {event.requiresPayment
+                  ? "No tiene modalidades definidas."
+                  : "No está marcado como evento con pago."}{" "}
+                Pídele al administrador que lo configure; después podrás poner
+                tus propios precios para tus alumnos.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {((esAdmin && conPago) || (!esAdmin && profesorPuedeEditar)) && (
           <fieldset className="border-t border-slate-200 pt-5">
             <legend className="text-sm font-semibold text-slate-900">
               {tieneModalidades ? "Costos por modalidad" : "Costo"}
@@ -346,6 +401,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
         )}
 
         <div className="flex flex-wrap gap-3">
+          {(esAdmin || profesorPuedeEditar) && (
           <button
             type="button"
             onClick={guardar}
@@ -361,6 +417,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
           >
             {guardando ? "Guardando..." : "Guardar cambios"}
           </button>
+          )}
 
           <button
             type="button"
@@ -373,7 +430,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
               focus:ring-2 focus:ring-blue-600 focus:outline-none
             "
           >
-            Cancelar
+            {esAdmin || profesorPuedeEditar ? "Cancelar" : "Cerrar"}
           </button>
         </div>
       </div>

@@ -1289,6 +1289,28 @@ router.patch(
       };
     }
 
+    /**
+     * Un evento "con pago" pero sin costo ni modalidades es una trampa: el
+     * alumno abre el formulario y no puede pagar nada. Se comprueba el
+     * estado FINAL, no solo lo que llegó en esta petición.
+     */
+    const pagoFinal = datos.requiresPayment ?? event.requiresPayment;
+
+    const modalidadesFinales = plan
+      ? plan.actualizar.length + plan.crear.length
+      : event.modalities.length;
+
+    const precioFinal =
+      datos.priceCents !== undefined ? datos.priceCents : event.priceCents;
+
+    if (pagoFinal && modalidadesFinales === 0 && !precioFinal) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Si el evento requiere pago, define un costo o al menos una modalidad.",
+      });
+    }
+
     // Todo junto: si algo falla, el evento no queda a medias.
     await prisma.$transaction(async (tx) => {
       if (Object.keys(datos).length > 0) {
