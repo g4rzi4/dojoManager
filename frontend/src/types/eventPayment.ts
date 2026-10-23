@@ -51,11 +51,21 @@ export type CategoryCatalog = {
   categorias: AgeCategoryInfo[];
 };
 
-/** Modalidad de un evento con su costo: kata, kumite, equipos... */
+/**
+ * Modalidad de un evento con su costo.
+ *
+ * `priceCents` es el precio EFECTIVO para quien consulta: el administrador
+ * ve el base, y un profesor —o la familia de su alumno— ve el que ese
+ * profesor fijó para su grupo.
+ */
 export type EventModality = {
   id: number;
   name: string;
   priceCents: number;
+  /** El que fijó el administrador. */
+  basePriceCents?: number;
+  /** Verdadero si el profesor tiene su propio precio para esta modalidad. */
+  personalizado?: boolean;
 };
 
 /** Desglose de lo que se le cobró a un alumno. */

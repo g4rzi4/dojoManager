@@ -9,6 +9,7 @@ import {
   notifyNewEvent,
 } from "../lib/notifications";
 import { normalizeTeacherCode } from "../lib/teacherCode";
+import { preciosParaProfesor, profesorDeAlumno } from "../lib/eventPricing";
 import { requireAuth, requirePermission } from "../middleware/auth";
 import { can } from "../permissions";
 import {
@@ -86,6 +87,29 @@ router.get(
           }),
     ]);
 
+    /**
+     * Qué lista de precios ve quien consulta:
+     *   PROFESOR         la suya
+     *   ALUMNO / TUTOR   la del profesor de su alumno, que es a quien pagará
+     *   ADMIN            los precios base
+     */
+    let precioDe: number | null = null;
+
+    if (req.user!.role === Role.PROFESOR) {
+      precioDe = req.user!.id;
+    } else if (propios.length > 0) {
+      precioDe = await profesorDeAlumno(propios[0]);
+    }
+
+    const modalidadesPorEvento = new Map(
+      await Promise.all(
+        events.map(
+          async (e) =>
+            [e.id, await preciosParaProfesor(e.modalities, precioDe)] as const
+        )
+      )
+    );
+
     return res.json({
       success: true,
       events: events.map((e) => {
@@ -102,11 +126,7 @@ router.get(
           createdBy: e.createdBy?.name ?? null,
           requiresPayment: e.requiresPayment,
           priceCents: e.priceCents,
-          modalities: e.modalities.map((m) => ({
-            id: m.id,
-            name: m.name,
-            priceCents: m.priceCents,
-          })),
+          modalities: modalidadesPorEvento.get(e.id) ?? [],
           /** Cuántos reportes de pago lleva, para admin y profesores. */
           reportes: e._count.enrollments,
           /** Estado de los alumnos a cargo de quien consulta. */
@@ -157,6 +177,9 @@ type ModalidadEvento = { id: number; name: string; priceCents: number };
 
 /**
  * Calcula cuánto se cobra y por qué conceptos.
+ *
+ * Recibe las modalidades con el precio YA resuelto para el profesor que
+ * cobra: cada profesor puede tener el suyo para sus alumnos.
  *
  * Con modalidades, el total es la SUMA de las elegidas: hay padres que
  * inscriben a su hijo en kata y kumite y pagan las dos. Sin modalidades, es
@@ -355,15 +378,6 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     });
   }
 
-  const { elegidas, total, error: errorCobro } = resolverCobro(
-    event,
-    modalityIds
-  );
-
-  if (errorCobro) {
-    return res.status(400).json({ success: false, message: errorCobro });
-  }
-
   const categoria = resolverCategoria(gender, beltClass, ageCategory);
 
   if ("error" in categoria) {
@@ -405,7 +419,8 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     alumnoId = pedido;
   }
 
-  // La clave decide a quién se le acredita el cobro.
+  // La clave decide a quién se le acredita el cobro Y qué precios aplican:
+  // cada profesor puede tener los suyos para sus alumnos.
   const code = normalizeTeacherCode(teacherCode);
 
   const teacher = await prisma.user.findUnique({
@@ -418,6 +433,17 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
       success: false,
       message: `No encontramos un profesor activo con la clave ${code}. Revísala con tu profesor.`,
     });
+  }
+
+  const conPrecios = await preciosParaProfesor(event.modalities, teacher.id);
+
+  const { elegidas, total, error: errorCobro } = resolverCobro(
+    { priceCents: event.priceCents, modalities: conPrecios },
+    modalityIds
+  );
+
+  if (errorCobro) {
+    return res.status(400).json({ success: false, message: errorCobro });
   }
 
   const yaReportado = await prisma.eventEnrollment.findUnique({
@@ -555,7 +581,16 @@ router.post(
       });
     }
 
-    const { elegidas, total, error } = resolverCobro(event, modalityIds);
+    // Los precios del profesor que inscribe: son los que cobra a su grupo.
+    const conPrecios = await preciosParaProfesor(
+      event.modalities,
+      req.user!.id
+    );
+
+    const { elegidas, total, error } = resolverCobro(
+      { priceCents: event.priceCents, modalities: conPrecios },
+      modalityIds
+    );
 
     if (error) {
       return res.status(400).json({ success: false, message: error });
@@ -1096,8 +1131,76 @@ router.patch(
       }
     }
 
+    const esAdminEditando = req.user!.role === Role.ADMIN;
+
+    /**
+     * Un PROFESOR no cambia el evento para todos: solo ajusta lo que les
+     * cobra a SUS alumnos. Si manda datos estructurales se le rechaza, para
+     * que no crea que cambió algo global y luego descubra que no.
+     */
+    if (!esAdminEditando) {
+      const estructurales = ["title", "date", "time", "category", "requiresPayment", "priceCents"]
+        .filter((campo) => req.body?.[campo] !== undefined);
+
+      if (estructurales.length > 0) {
+        return res.status(403).json({
+          success: false,
+          message: `Solo el administrador puede cambiar ${estructurales.join(", ")}. Tú puedes ajustar los costos por modalidad para tus alumnos.`,
+        });
+      }
+
+      if (!Array.isArray(modalities) || modalities.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Manda los costos por modalidad que quieres ajustar.",
+        });
+      }
+
+      const ajustes: { modalityId: number; priceCents: number }[] = [];
+
+      for (const m of modalities) {
+        const mid = Number(m?.id);
+        const cents = Number(m?.priceCents);
+
+        if (!event.modalities.some((x) => x.id === mid)) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Solo puedes ajustar el precio de modalidades que ya existen. Pídele al administrador que agregue o quite modalidades.",
+          });
+        }
+
+        if (!Number.isInteger(cents) || cents <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: "El costo debe ser un entero de centavos mayor a cero.",
+          });
+        }
+
+        ajustes.push({ modalityId: mid, priceCents: cents });
+      }
+
+      for (const a of ajustes) {
+        await prisma.teacherModalityPrice.upsert({
+          where: {
+            modalityId_teacherId: {
+              modalityId: a.modalityId,
+              teacherId: req.user!.id,
+            },
+          },
+          update: { priceCents: a.priceCents },
+          create: { ...a, teacherId: req.user!.id },
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Listo. Estos precios aplican solo a tus alumnos.",
+      });
+    }
+
     // -----------------------------------------------------------------------
-    // Modalidades
+    // Modalidades (solo el administrador llega aquí)
     // -----------------------------------------------------------------------
     type CambioModalidad = { id?: number; name: string; priceCents: number };
     let plan: {

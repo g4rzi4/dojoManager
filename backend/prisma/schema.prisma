@@ -83,9 +83,11 @@ model User {
   invitationsCreated Invitation[] @relation("InvitacionCreadaPor")
 
   /// Cobros de eventos acreditados a su clave.
-  eventPaymentsCredited  EventEnrollment[] @relation("CobroAcreditadoA")
+  eventPaymentsCredited  EventEnrollment[]      @relation("CobroAcreditadoA")
+  /// Precios que fijó para sus alumnos en cada modalidad.
+  modalityPrices         TeacherModalityPrice[] @relation("PrecioDeProfesor")
   /// Cobros de eventos que confirmó.
-  eventPaymentsConfirmed EventEnrollment[] @relation("CobroConfirmadoPor")
+  eventPaymentsConfirmed EventEnrollment[]      @relation("CobroConfirmadoPor")
 
   /// Notificaciones que recibe.
   notifications     Notification[] @relation("NotificacionDestinatario")
@@ -485,15 +487,48 @@ model EventModality {
   /// "Kata", "Kumite", "Equipos"...
   name String
 
-  /// Costo en CENTAVOS de esta modalidad.
+  /// Costo BASE en CENTAVOS, el que fija el administrador.
+  ///
+  /// Cada profesor puede tener el suyo para sus propios alumnos: ver
+  /// TeacherModalityPrice. Si no lo tiene, se cobra este.
   priceCents Int
 
   createdAt DateTime @default(now())
 
   enrollments EventEnrollmentModality[]
 
+  /// Precios que fijó cada profesor para sus alumnos.
+  teacherPrices TeacherModalityPrice[]
+
   /// No tiene sentido repetir el nombre dentro del mismo evento.
   @@unique([eventId, name])
+}
+
+/// El precio que un profesor cobra por una modalidad a SUS alumnos.
+///
+/// El administrador fija el precio base del evento; cada profesor puede
+/// ajustarlo para su grupo sin afectar a los demás. Un profesor que no
+/// ajusta nada cobra el base.
+///
+/// Qué precio aplica se resuelve con el profesor al que se acredita el
+/// cobro, que es quien recibe el dinero.
+model TeacherModalityPrice {
+  id Int @id @default(autoincrement())
+
+  modalityId Int
+  modality   EventModality @relation(fields: [modalityId], references: [id], onDelete: Cascade)
+
+  teacherId Int
+  teacher   User @relation("PrecioDeProfesor", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  priceCents Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Un profesor tiene un solo precio por modalidad.
+  @@unique([modalityId, teacherId])
+  @@index([teacherId])
 }
 
 /// Rama de la categoría: femenil o varonil.

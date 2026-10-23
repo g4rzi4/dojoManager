@@ -341,7 +341,33 @@ ramas de cinta.
 | Senior | 21-35 años |
 | Masters | 36 años en adelante |
 
-El catálogo vive en
+## Precios por profesor
+
+El **administrador** fija el costo base de cada modalidad. Cada **profesor** puede
+ajustarlo para **sus** alumnos, sin afectar a los demás grupos. Un profesor que no
+ajusta nada cobra el base.
+
+| Quién | Qué puede cambiar |
+| --- | --- |
+| Administrador | Título, fecha, modalidades y **precios base** (afecta a todos) |
+| Profesor | **Solo los precios, y solo para sus alumnos** |
+
+Qué precio aplica lo decide **el profesor al que se acredita el cobro**, que es quien
+recibe el dinero:
+
+- El alumno escribe una clave al reportar → aplican los precios de ese profesor.
+- El profesor inscribe a su alumno → aplican los suyos.
+
+Esto significa que la misma modalidad puede costar distinto según con quién entrenes,
+y cada quien ve en pantalla lo que de verdad va a pagar.
+
+Un profesor **no** puede agregar ni quitar modalidades, ni cambiar el título o la
+fecha: eso es global y lo maneja el administrador. Si lo intenta, el sistema se lo
+explica en lugar de dejarlo creer que cambió algo.
+
+---
+
+El catálogo de categorías vive en
 [backend/src/lib/competitionCategories.ts](backend/src/lib/competitionCategories.ts) y
 el frontend lo **pide** a `GET /events/categories` en lugar de duplicarlo: si cambian
 los rangos, se cambian en un solo lugar.

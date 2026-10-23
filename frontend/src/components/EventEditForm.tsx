@@ -3,7 +3,9 @@ import { Plus, Trash2, TriangleAlert } from "lucide-react";
 
 import Card from "./Card";
 import { ApiError, updateEvent } from "../services/api";
+import { getUser } from "../services/session";
 import type { DojoEvent } from "../types/event";
+import { formatMoney } from "../utils/format";
 
 type Props = {
   event: DojoEvent;
@@ -30,6 +32,12 @@ type FilaModalidad = {
  * antes de intentarlo.
  */
 function EventEditForm({ event, onGuardado, onCancelar }: Props) {
+  const user = getUser();
+  /**
+   * El profesor NO edita el evento para todos: solo ajusta lo que les cobra
+   * a sus alumnos. Por eso ve nada más los precios.
+   */
+  const esAdmin = user?.role === "ADMIN";
   const [title, setTitle] = useState(event.title);
   const [date, setDate] = useState(event.date);
   const [time, setTime] = useState(event.time ?? "");
@@ -65,22 +73,37 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
     setError("");
 
     try {
-      await updateEvent(event.id, {
-        title: title.trim(),
-        date,
-        time: time || null,
-        priceCents:
-          event.requiresPayment && !tieneModalidades
-            ? Math.round(Number(precio) * 100)
-            : undefined,
-        modalities: tieneModalidades
-          ? llenas.map((m) => ({
-              id: m.id,
-              name: m.name.trim(),
-              priceCents: Math.round(Number(m.precio) * 100),
-            }))
-          : undefined,
-      });
+      await updateEvent(
+        event.id,
+        esAdmin
+          ? {
+              title: title.trim(),
+              date,
+              time: time || null,
+              priceCents:
+                event.requiresPayment && !tieneModalidades
+                  ? Math.round(Number(precio) * 100)
+                  : undefined,
+              modalities: tieneModalidades
+                ? llenas.map((m) => ({
+                    id: m.id,
+                    name: m.name.trim(),
+                    priceCents: Math.round(Number(m.precio) * 100),
+                  }))
+                : undefined,
+            }
+          : {
+              // Un profesor manda solo ajustes de precio sobre modalidades
+              // que ya existen. El backend los guarda como SUYOS.
+              modalities: llenas
+                .filter((m) => m.id !== undefined)
+                .map((m) => ({
+                  id: m.id,
+                  name: m.name.trim(),
+                  priceCents: Math.round(Number(m.precio) * 100),
+                })),
+            }
+      );
 
       await onGuardado();
     } catch (e: unknown) {
@@ -102,12 +125,17 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
 
   return (
     <Card className="p-5">
-      <h3 className="font-bold text-slate-900">Editar evento</h3>
+      <h3 className="font-bold text-slate-900">
+        {esAdmin ? "Editar evento" : "Mis costos para este evento"}
+      </h3>
       <p className="mt-1 text-sm text-slate-600">
-        Cambiar un precio no altera los cobros ya hechos.
+        {esAdmin
+          ? "Cambiar un precio no altera los cobros ya hechos."
+          : "Estos precios aplican solo a TUS alumnos. Los demás grupos siguen con el costo base."}
       </p>
 
       <div className="mt-5 space-y-5">
+        {esAdmin && (
         <div className="space-y-2">
           <label
             htmlFor={`ed-titulo-${event.id}`}
@@ -123,7 +151,9 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
             className={inputClase}
           />
         </div>
+        )}
 
+        {esAdmin && (
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
             <label
@@ -158,6 +188,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
             />
           </div>
         </div>
+        )}
 
         {event.requiresPayment && (
           <fieldset className="border-t border-slate-200 pt-5">
@@ -216,6 +247,17 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                         />
                       </div>
 
+                      {!esAdmin && m.id !== undefined && (
+                        <p className="w-full text-xs text-slate-500 sm:w-auto sm:pb-3">
+                          base{" "}
+                          {formatMoney(
+                            event.modalities?.find((x) => x.id === m.id)
+                              ?.basePriceCents ?? 0
+                          )}
+                        </p>
+                      )}
+
+                      {esAdmin && (
                       <button
                         type="button"
                         onClick={() =>
@@ -235,10 +277,12 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                       >
                         <Trash2 size={17} aria-hidden="true" />
                       </button>
+                      )}
                     </div>
                   ))}
                 </div>
 
+                {esAdmin && (
                 <button
                   type="button"
                   onClick={() =>
@@ -256,7 +300,9 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                   <Plus size={16} aria-hidden="true" />
                   Agregar modalidad
                 </button>
+                )}
 
+                {esAdmin && (
                 <div className="mt-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
                   <TriangleAlert
                     size={16}
@@ -269,6 +315,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                     Puedes cambiarle el precio sin problema.
                   </p>
                 </div>
+                )}
               </>
             ) : (
               <div className="mt-3 max-w-xs space-y-2">
