@@ -144,6 +144,26 @@ export async function getPayments(): Promise<PaymentsResponse> {
   return request<PaymentsResponse>("/payments");
 }
 
+/** Pide al backend que cree la orden de PayPal; el monto lo pone él. */
+export async function createPayPalOrder(paymentId: number): Promise<string> {
+  const res = await request<{ orderId: string }>(
+    `/payments/${paymentId}/paypal/order`,
+    { method: "POST" }
+  );
+  return res.orderId;
+}
+
+/** Tras aprobar en PayPal: el backend captura, verifica y marca PAGADO. */
+export async function capturePayPalOrder(
+  paymentId: number,
+  orderId: string
+): Promise<void> {
+  await request(`/payments/${paymentId}/paypal/capture`, {
+    method: "POST",
+    body: { orderId },
+  });
+}
+
 export async function getNotifications(): Promise<{
   unread: number;
   notifications: AppNotification[];

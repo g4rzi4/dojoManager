@@ -408,11 +408,33 @@ Es solo consulta. El alcance lo decide el backend según el rol:
 Los montos se guardan en **centavos como entero** (`amountCents`). Guardar dinero en
 `float` produce errores de redondeo.
 
-**El pago en línea con PayPal no está implementado.** La pantalla lo dice en lugar de
-mostrar un botón que no hace nada. El schema ya tiene las columnas `method` y
-`externalReference` preparadas, así que integrarlo no requerirá otra migración —
-cuando se haga, `externalReference` guarda el id de la orden para conciliar y evitar
-cobros dobles.
+## Pago en línea con PayPal
+
+Alumnos y tutores pueden pagar cada mensualidad pendiente con los Smart Payment
+Buttons de PayPal (`@paypal/react-paypal-js`). Se cobra **una mensualidad por
+orden**.
+
+```
+Navegador                       Backend                        PayPal
+  │ clic en el botón              │                              │
+  ├─ POST /payments/:id/paypal/order ─►  monto desde la BD ──────►│ crea orden
+  │◄──────────── orderId ─────────┤◄─────────────────────────────┤
+  │ el usuario aprueba en PayPal  │                              │
+  ├─ POST /payments/:id/paypal/capture ► captura con el secreto ─►│
+  │                               │  verifica COMPLETED, monto,  │
+  │                               │  moneda y custom_id          │
+  │◄──────────── ok ──────────────┤  PAGADO + method PAYPAL +    │
+  │                               │  externalReference = orderId │
+```
+
+- El navegador **nunca** decide el monto ni marca un pago como pagado.
+- `externalReference` es `@unique`: una orden no puede pagar dos mensualidades.
+- La captura manda `PayPal-Request-Id`, así que reintentarla no cobra dos veces, y
+  la escritura solo procede si el pago sigue sin pagar.
+
+Para activarlo hay que configurar `PAYPAL_CLIENT_ID` y `PAYPAL_CLIENT_SECRET` en
+`backend/.env` y `VITE_PAYPAL_CLIENT_ID` en `frontend/.env` (ver los `.env.example`).
+Sin ellas, la pantalla avisa que el pago en línea no está disponible.
 
 Registrar y editar cobros corresponde al módulo `feature/payments`.
 

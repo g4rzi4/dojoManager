@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
-import { Receipt, TriangleAlert } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { CreditCard, Receipt, TriangleAlert } from "lucide-react";
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import PayPalPayButton from "../components/PayPalPayButton";
 import { ApiError, getPayments } from "../services/api";
 import type { PaymentsResponse } from "../types/payment";
 import { PAYMENT_METHOD_LABELS } from "../types/payment";
@@ -13,10 +15,45 @@ import {
 import { formatLongDate, fromDateKey } from "../utils/date";
 import { formatMoney, formatPeriod } from "../utils/format";
 
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID?.trim() ?? "";
+const PAYPAL_CURRENCY = (
+  import.meta.env.VITE_PAYPAL_CURRENCY ?? "MXN"
+).toUpperCase();
+
+/**
+ * Carga el SDK de PayPal solo cuando hace falta: si el dojo no lo configuró
+ * o quien mira es admin/profesor, no se descarga nada.
+ */
+function ConPayPal({
+  activo,
+  children,
+}: {
+  activo: boolean;
+  children: ReactNode;
+}) {
+  if (!activo) return <>{children}</>;
+
+  return (
+    <PayPalScriptProvider
+      options={{
+        clientId: PAYPAL_CLIENT_ID,
+        currency: PAYPAL_CURRENCY,
+        intent: "capture",
+      }}
+    >
+      {children}
+    </PayPalScriptProvider>
+  );
+}
+
 function Payments() {
   const [data, setData] = useState<PaymentsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [payError, setPayError] = useState("");
+  const [payOk, setPayOk] = useState(false);
+  // Al cambiar, vuelve a pedir los pagos (después de pagar con PayPal).
+  const [recarga, setRecarga] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -41,10 +78,23 @@ function Payments() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [recarga]);
 
   // El alcance lo decide el backend según el rol, no el frontend.
   const esVistaPropia = data?.alcance === "propios";
+  // Solo alumno y tutor pagan en línea; el admin registra cobros aparte.
+  const paypalHabilitado = esVistaPropia && PAYPAL_CLIENT_ID.length > 0;
+
+  function handlePaid() {
+    setPayError("");
+    setPayOk(true);
+    setRecarga((n) => n + 1);
+  }
+
+  function handlePayError(message: string) {
+    setPayOk(false);
+    setPayError(message);
+  }
 
   return (
     <DashboardLayout>
@@ -121,28 +171,69 @@ function Payments() {
             </Card>
           </div>
 
-          {/* PayPal: pendiente. Lo decimos en pantalla en lugar de poner un
-              botón que no hace nada. */}
-          {esVistaPropia && data.resumen.pendientes > 0 && (
-            <Card className="mt-4 flex gap-3 border-amber-200 bg-amber-50 p-4">
-              <TriangleAlert
-                size={20}
-                aria-hidden="true"
-                className="mt-0.5 shrink-0 text-amber-700"
-              />
-              <div>
-                <p className="text-sm font-semibold text-amber-900">
-                  El pago en línea todavía no está disponible
+          {/* PayPal: si el dojo no configuró el client id, lo decimos en
+              pantalla en lugar de poner un botón que no hace nada. */}
+          {esVistaPropia &&
+            data.resumen.pendientes > 0 &&
+            (paypalHabilitado ? (
+              <Card className="mt-4 flex gap-3 border-blue-200 bg-blue-50 p-4">
+                <CreditCard
+                  size={20}
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0 text-blue-700"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-blue-900">
+                    Paga en línea con PayPal
+                  </p>
+                  <p className="mt-1 text-sm text-blue-900">
+                    Elige la mensualidad en la tabla y usa el botón de PayPal.
+                    Se marca como pagada en cuanto PayPal confirma el cobro.
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              <Card className="mt-4 flex gap-3 border-amber-200 bg-amber-50 p-4">
+                <TriangleAlert
+                  size={20}
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0 text-amber-700"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">
+                    El pago en línea todavía no está disponible
+                  </p>
+                  <p className="mt-1 text-sm text-amber-900">
+                    Por ahora las mensualidades se pagan directamente en el
+                    dojo.
+                  </p>
+                </div>
+              </Card>
+            ))}
+
+          <div role="status">
+            {payOk && (
+              <Card className="mt-4 border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-sm font-semibold text-emerald-900">
+                  Pago recibido. La mensualidad ya aparece como pagada.
                 </p>
-                <p className="mt-1 text-sm text-amber-900">
-                  Por ahora las mensualidades se pagan directamente en el dojo.
-                  La integración con PayPal está planeada para más adelante.
+              </Card>
+            )}
+          </div>
+
+          <div role="alert">
+            {payError && (
+              <Card className="mt-4 border-red-200 p-4">
+                <p className="text-sm font-semibold text-red-800">
+                  No se completó el pago
                 </p>
-              </div>
-            </Card>
-          )}
+                <p className="mt-1 text-sm text-red-700">{payError}</p>
+              </Card>
+            )}
+          </div>
 
           {/* Tabla */}
+          <ConPayPal activo={paypalHabilitado}>
           <section className="mt-6">
             {data.payments.length === 0 ? (
               <Card className="p-8 text-center">
@@ -185,6 +276,11 @@ function Payments() {
                         <th scope="col" className="px-4 py-3 font-semibold">
                           Fecha de pago
                         </th>
+                        {paypalHabilitado && (
+                          <th scope="col" className="px-4 py-3 font-semibold">
+                            Pagar
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -219,6 +315,21 @@ function Payments() {
                               ? formatLongDate(fromDateKey(p.paidAt))
                               : "—"}
                           </td>
+                          {paypalHabilitado && (
+                            <td className="px-4 py-3">
+                              {p.status !== "PAGADO" ? (
+                                <div className="w-44">
+                                  <PayPalPayButton
+                                    paymentId={p.id}
+                                    onPaid={handlePaid}
+                                    onError={handlePayError}
+                                  />
+                                </div>
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -227,6 +338,7 @@ function Payments() {
               </Card>
             )}
           </section>
+          </ConPayPal>
         </>
       ) : null}
     </DashboardLayout>

@@ -61,4 +61,18 @@ export const config = {
 
   /** Duración del token en segundos. 7 días. */
   jwtExpiresInSeconds: 60 * 60 * 24 * 7,
+
+  /**
+   * PayPal es opcional: sin credenciales el backend arranca igual y las rutas
+   * de pago en línea responden 503. El secreto vive SOLO aquí, nunca en el
+   * frontend.
+   */
+  paypal: {
+    clientId: process.env.PAYPAL_CLIENT_ID ?? "",
+    clientSecret: process.env.PAYPAL_CLIENT_SECRET ?? "",
+    apiBase: sinDiagonalFinal(
+      process.env.PAYPAL_API_BASE ?? "https://api-m.sandbox.paypal.com"
+    ),
+    currency: (process.env.PAYPAL_CURRENCY ?? "MXN").toUpperCase(),
+  },
 };
