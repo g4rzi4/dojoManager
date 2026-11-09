@@ -313,6 +313,9 @@ El flujo, de principio a fin:
 5. **Al confirmar, el alumno queda inscrito** en el mismo movimiento, y el cobro
    aparece en el historial de ese profesor. A la familia le llega la notificación.
 
+Si la familia elige **PayPal**, se salta la confirmación del profesor: al capturarse
+el pago queda inscrito. Ver [Pago en línea con PayPal](#pago-en-línea-con-paypal).
+
 ## Categorías de competencia
 
 Cada inscripción lleva su categoría, en tres ejes: **rama** (femenil o varonil),
@@ -380,7 +383,7 @@ sirve para sugerir.
 
 Además, cada inscripción guarda:
 
-- **Método de pago** — efectivo o transferencia, para los que pagan en la mano.
+- **Método de pago** — efectivo, transferencia o PayPal.
 - **Nota libre** — para la excepción que no encaje en ningún campo.
 
 El profesor ve el desglose completo al confirmar: qué modalidades, en qué división,
@@ -487,22 +490,76 @@ tutores**, resuelto por `audienceForStudent`.
 
 # Pagos
 
-Es solo consulta. El alcance lo decide el backend según el rol:
+El alcance lo decide el backend según el rol:
 
-- **Admin y profesor** — todas las mensualidades del dojo.
+- **Admin** — todas las mensualidades del dojo.
+- **Profesor** — las de sus alumnos.
 - **Tutor** — las de sus hijos, sumadas.
 - **Alumno** — las suyas.
 
 Los montos se guardan en **centavos como entero** (`amountCents`). Guardar dinero en
 `float` produce errores de redondeo.
 
-**El pago en línea con PayPal no está implementado.** La pantalla lo dice en lugar de
-mostrar un botón que no hace nada. El schema ya tiene las columnas `method` y
-`externalReference` preparadas, así que integrarlo no requerirá otra migración —
-cuando se haga, `externalReference` guarda el id de la orden para conciliar y evitar
-cobros dobles.
+Registrar y editar cobros a mano corresponde al módulo `feature/payments`.
 
-Registrar y editar cobros corresponde al módulo `feature/payments`.
+## Pago en línea con PayPal
+
+Alumnos y tutores pueden pagar con PayPal:
+
+- **Mensualidades** — en **Pagos**, con el botón de cada mensualidad pendiente.
+- **Eventos** — en **Eventos → Pagar**, eligiendo PayPal como método. También se
+  pagan así las inscripciones que hizo el profesor y quedaron pendientes de pago.
+
+Al capturarse el pago, la mensualidad queda pagada o el alumno queda inscrito **sin
+que el profesor tenga que confirmar nada**. Al profesor le llega una notificación y
+el cobro sigue acreditándose a su clave. Todo el dinero entra a una sola cuenta de
+PayPal, la del dojo: el reparto a cada profesor es interno.
+
+### Configuración
+
+Crea una app en [developer.paypal.com](https://developer.paypal.com) (Apps &
+Credentials, modo Sandbox) y agrega a **`backend/.env`**:
+
+```env
+PAYPAL_CLIENT_ID="..."
+PAYPAL_CLIENT_SECRET="..."
+PAYPAL_ENV="sandbox"
+PAYPAL_CURRENCY="MXN"
+PAYPAL_WEBHOOK_ID="..."
+```
+
+Sin credenciales, la app funciona igual y solo se oculta el pago en línea.
+
+El webhook (`POST /paypal/webhook`, evento `PAYMENT.CAPTURE.COMPLETED`) es un
+respaldo por si alguien cierra la ventana justo después de pagar. Necesita una URL
+pública, así que en local no llega y `PAYPAL_WEBHOOK_ID` se puede dejar vacío.
+
+### Probarlo
+
+1. En [Sandbox Accounts](https://developer.paypal.com/dashboard/accounts), copia el
+   correo y la contraseña de la cuenta **Personal**.
+2. Entra a la app con `tutor@dojo.com` / `123456` y abre **Pagos**.
+3. Elige **Pagar con PayPal** en una mensualidad pendiente e inicia sesión con la
+   cuenta Personal. El dinero es ficticio.
+
+### Lo que protege el cobro
+
+- **El navegador solo dice qué cobro se paga.** El monto sale de la base de datos y
+  la captura ocurre en el servidor.
+- **Solo se paga lo propio.** El cobro tiene que ser de un alumno de la familia de
+  quien inicia sesión.
+- **Una orden liquida un solo cobro.** `externalReference` guarda el id de la orden y
+  es único. Una orden anterior abandonada ya no puede liquidar ese cobro.
+- **Se compara lo capturado con lo que se debe.** Si el monto o la moneda no
+  coinciden, el pago no se aplica y queda en el log.
+- **El botón y el webhook no se pisan.** Comparten la misma función y solo uno aplica
+  el cambio, sin importar cuál llegue primero.
+- **El webhook se verifica con PayPal** antes de creer lo que dice.
+- **El `PAYPAL_CLIENT_SECRET` nunca sale del backend.** El `PAYPAL_CLIENT_ID` sí llega
+  al navegador: es público.
+
+La integración está en [paypal.ts](backend/src/lib/paypal.ts) y
+[paypal.routes.ts](backend/src/routes/paypal.routes.ts).
 
 ---
 
