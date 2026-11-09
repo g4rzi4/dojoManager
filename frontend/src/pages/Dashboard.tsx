@@ -79,7 +79,7 @@ function Dashboard() {
           module="pagos"
           label="Por cubrir"
           value={payments ? formatMoney(payments.resumen.totalPendienteCents) : "—"}
-          hint={`${pendientes} ${pendientes === 1 ? "mensualidad" : "mensualidades"}`}
+          hint={`${pendientes} ${pendientes === 1 ? "cobro" : "cobros"}`}
           alert={pendientes > 0}
         />
         <ShortcutCard

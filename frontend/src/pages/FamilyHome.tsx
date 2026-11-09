@@ -107,7 +107,7 @@ function FamilyHome() {
               module="pagos"
               label="Por cubrir"
               value={formatMoney(totalPendiente)}
-              hint={`${payments?.resumen.pendientes ?? 0} mensualidades`}
+              hint={`${payments?.resumen.pendientes ?? 0} ${payments?.resumen.pendientes === 1 ? "cobro" : "cobros"}`}
               alert={totalPendiente > 0}
             />
             <ShortcutCard
