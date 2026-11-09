@@ -89,6 +89,13 @@ model User {
   /// Cobros de eventos que confirmó.
   eventPaymentsConfirmed EventEnrollment[]      @relation("CobroConfirmadoPor")
 
+  /// Solicitudes de uniformes y protecciones.
+  equipmentRequestsMade     EquipmentRequest[] @relation("SolicitudEquipoHechaPor")
+  equipmentRequestsAssigned EquipmentRequest[] @relation("SolicitudEquipoProfesor")
+
+  /// Clases del horario que imparte.
+  classesTaught DojoClass[] @relation("ClaseDeProfesor")
+
   /// Notificaciones que recibe.
   notifications     Notification[] @relation("NotificacionDestinatario")
   /// Avisos que redactó, si es ADMIN o PROFESOR.
@@ -169,6 +176,9 @@ model Student {
 
   /// Eventos a los que reportó pago o quedó inscrito.
   eventEnrollments EventEnrollment[]
+
+  /// Uniformes y protecciones que se han pedido para él.
+  equipmentRequests EquipmentRequest[]
 
   @@index([lastName, firstName])
   @@index([active])
@@ -287,6 +297,11 @@ model Payment {
   /// Id de la orden de PayPal. Único: una orden liquida un solo cobro, y es
   /// lo que permite conciliar y evitar cobros dobles.
   externalReference String? @unique
+
+  /// La familia dijo que pagó en efectivo o transferencia. No cuenta como
+  /// pagado hasta que el admin o el profesor lo confirme.
+  reportedMethod PaymentMethod?
+  reportedAt     DateTime?
 
   registeredById Int?
   registeredBy   User? @relation("PagoRegistradoPor", fields: [registeredById], references: [id], onDelete: SetNull)
@@ -670,4 +685,188 @@ model EventEnrollmentModality {
   priceCents Int
 
   @@unique([enrollmentId, modalityId])
+}
+
+// ---------------------------------------------------------------------------
+// Uniformes y protecciones
+// ---------------------------------------------------------------------------
+
+enum EquipmentCategory {
+  UNIFORME
+  PROTECCION
+}
+
+enum EquipmentRequestStatus {
+  /// La familia lo pidió. Falta que el profesor confirme disponibilidad y precio.
+  SOLICITADO
+  /// El profesor confirmó el precio. Ya se puede pagar.
+  CONFIRMADO
+  /// La familia dijo que pagó en efectivo o transferencia. Falta que lo confirmen.
+  REPORTADO
+  PAGADO
+  ENTREGADO
+  RECHAZADO
+}
+
+/// Una marca del catálogo, con la dirección de su tienda.
+model EquipmentBrand {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  url    String?
+  active Boolean @default(true)
+
+  models EquipmentModel[]
+}
+
+/// Lo que se puede pedir, sin importar la marca: guantes, casco, uniforme de kata.
+model EquipmentProduct {
+  id        Int               @id @default(autoincrement())
+  name      String            @unique
+  category  EquipmentCategory
+  sortOrder Int               @default(0)
+
+  /// Cada producto define las suyas: los uniformes van por estatura, las
+  /// protecciones por letra y el bucal solo es niño o adulto.
+  sizes  String[]
+  /// Vacío si el producto no se pide por color.
+  colors String[]
+
+  models EquipmentModel[]
+  items  EquipmentRequestItem[]
+}
+
+/// Una opción concreta: el producto de una marca, con su precio.
+model EquipmentModel {
+  id Int @id @default(autoincrement())
+
+  productId Int
+  product   EquipmentProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  brandId Int
+  brand   EquipmentBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  name       String
+  priceCents Int
+  url        String?
+  active     Boolean @default(true)
+
+  /// Verdadero si el modelo y su precio son de muestra y no datos reales.
+  isExample Boolean @default(false)
+
+  items EquipmentRequestItem[]
+
+  @@unique([productId, brandId, name])
+  @@index([productId])
+}
+
+/// Lo que una familia le pide al profesor para un alumno.
+model EquipmentRequest {
+  id Int @id @default(autoincrement())
+
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  /// Quién hizo la solicitud: el alumno o uno de sus tutores.
+  requestedById Int?
+  requestedBy   User? @relation("SolicitudEquipoHechaPor", fields: [requestedById], references: [id], onDelete: SetNull)
+
+  /// El profesor del alumno al solicitar. Nulo si no tenía: entonces la ve el admin.
+  teacherId Int?
+  teacher   User? @relation("SolicitudEquipoProfesor", fields: [teacherId], references: [id], onDelete: SetNull)
+
+  status EquipmentRequestStatus @default(SOLICITADO)
+
+  /// Total en centavos. Nulo mientras algún renglón no tenga precio.
+  amountCents Int?
+
+  note      String?
+  staffNote String?
+  method    PaymentMethod?
+
+  /// Id de la orden de PayPal, si se pagó en línea.
+  externalReference String? @unique
+
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+  paidAt      DateTime?
+  deliveredAt DateTime?
+
+  items EquipmentRequestItem[]
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([status])
+}
+
+/// Un renglón de la solicitud. Copia los nombres y congela el precio, para
+/// que cambiar el catálogo después no altere lo que ya se pidió.
+model EquipmentRequestItem {
+  id Int @id @default(autoincrement())
+
+  requestId Int
+  request   EquipmentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  productId Int?
+  product   EquipmentProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  modelId Int?
+  model   EquipmentModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+
+  productName String
+  /// La marca del catálogo, o la que escribió la familia en "Otra marca".
+  brandName   String
+  modelName   String?
+  size        String
+  color       String?
+
+  /// Nulo si es "Otra marca": el precio lo define el profesor.
+  priceCents Int?
+
+  @@index([requestId])
+}
+
+// ---------------------------------------------------------------------------
+// Horario de clases
+// ---------------------------------------------------------------------------
+
+enum Discipline {
+  KARATE
+  JUDO
+  TAEKWONDO
+  DEFENSA_PERSONAL
+  ACONDICIONAMIENTO
+}
+
+enum Level {
+  PRINCIPIANTES
+  INTERMEDIOS
+  AVANZADOS
+  MIXTO
+}
+
+/// Una clase que se repite cada semana.
+model DojoClass {
+  id         Int        @id @default(autoincrement())
+  title      String
+  discipline Discipline
+
+  /// 0 = lunes ... 6 = domingo, como en el resto de la app.
+  dayOfWeek Int
+  /// "16:00". Con ceros a la izquierda, ordenar el texto ordena por hora.
+  startTime String
+  endTime   String
+
+  location String
+  level    Level
+  capacity Int
+
+  /// SetNull para que dar de baja a un profesor no borre su lugar en el horario.
+  teacherId Int?
+  teacher   User? @relation("ClaseDeProfesor", fields: [teacherId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dayOfWeek])
+  @@index([teacherId])
 }
