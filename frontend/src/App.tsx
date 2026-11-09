@@ -14,9 +14,11 @@ const TeacherCard = lazy(() => import("./pages/TeacherCard"));
 const Students = lazy(() => import("./pages/Students"));
 const StudentDetail = lazy(() => import("./pages/StudentDetail"));
 const MyCard = lazy(() => import("./pages/MyCard"));
+const MyCards = lazy(() => import("./pages/MyCards"));
 const Events = lazy(() => import("./pages/Events"));
 const Classes = lazy(() => import("./pages/Classes"));
 const Payments = lazy(() => import("./pages/Payments"));
+const Equipment = lazy(() => import("./pages/Equipment"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -124,6 +126,24 @@ function App() {
           element={
             <ProtectedRoute permission="events:read">
               <Classes />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/mis-fichas"
+          element={
+            <ProtectedRoute>
+              <MyCards />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/uniformes"
+          element={
+            <ProtectedRoute>
+              <Equipment />
             </ProtectedRoute>
           }
         />
