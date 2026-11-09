@@ -14,6 +14,7 @@ import {
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import PageHeading from "../components/PageHeading";
 import { ApiError, getTeacherCard } from "../services/api";
 import { can, getUser } from "../services/session";
 import type { TeacherCard as TeacherCardData } from "../types/teacher";
@@ -80,20 +81,20 @@ function TeacherCard() {
       <Link
         to={esAdmin ? "/profesores" : "/dashboard"}
         className="
-          inline-flex items-center gap-2 rounded-lg py-2 text-sm font-semibold
-          text-blue-700 transition-colors duration-200
+          inline-flex items-center gap-2 rounded-xl py-2 text-sm font-semibold
+          text-violet-700 transition-colors duration-200
           motion-reduce:transition-none
-          hover:text-blue-900
-          focus:ring-2 focus:ring-blue-600 focus:outline-none
+          hover:text-violet-900
+          focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
         "
       >
         <ArrowLeft size={17} aria-hidden="true" />
         {esAdmin ? "Volver a profesores" : "Volver al panel"}
       </Link>
 
-      <h1 className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">
+      <PageHeading module="profesores"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
         Ficha del profesor
-      </h1>
+      </h1></PageHeading>
 
       <div className="mt-6">
         {estadoFinal.status === "cargando" && (
@@ -128,12 +129,12 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
       {/* Cabecera */}
       <Card className="p-5 sm:p-6">
         <div className="flex flex-wrap items-start gap-5">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-violet-600 text-2xl font-bold text-white">
             {teacher.name.charAt(0).toUpperCase()}
           </span>
 
           <div className="min-w-0 flex-1">
-            <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+            <h2 className="text-xl font-bold text-neutral-900 sm:text-2xl">
               {teacher.name}
             </h2>
 
@@ -152,7 +153,7 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
                 className={`rounded-full border px-3 py-1 text-xs font-semibold ${
                   teacher.active
                     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : "border-slate-300 bg-slate-100 text-slate-700"
+                    : "border-neutral-300 bg-neutral-100 text-neutral-700"
                 }`}
               >
                 {teacher.active ? "Activo" : "Dado de baja"}
@@ -160,7 +161,7 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
             </div>
 
             {teacher.specialty && (
-              <p className="mt-3 text-sm text-slate-700">
+              <p className="mt-3 text-sm text-neutral-700">
                 {teacher.specialty}
               </p>
             )}
@@ -168,19 +169,19 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
 
           {/* La clave: en monoespaciada porque se dicta y se copia */}
           {teacher.teacherCode && (
-            <div className="shrink-0 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-center">
-              <p className="flex items-center justify-center gap-1.5 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+            <div className="shrink-0 rounded-2xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-center">
+              <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-600">
                 <KeyRound size={13} aria-hidden="true" />
                 Su clave
               </p>
-              <p className="mt-1 font-mono text-lg font-bold text-slate-900">
+              <p className="mt-1 font-mono text-lg font-bold text-neutral-900">
                 {teacher.teacherCode}
               </p>
             </div>
           )}
         </div>
 
-        <dl className="mt-6 grid gap-5 border-t border-slate-200 pt-5 sm:grid-cols-2 lg:grid-cols-3">
+        <dl className="mt-6 grid gap-5 border-t border-neutral-200 pt-5 sm:grid-cols-2 lg:grid-cols-3">
           <Dato icon={Mail} label="Correo" valor={teacher.email} />
           <Dato
             icon={Phone}
@@ -200,20 +201,20 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
 
         {/* Notas internas: el backend solo las manda al administrador */}
         {teacher.adminNotes && (
-          <div className="mt-5 flex gap-3 rounded-xl border border-slate-300 bg-slate-50 p-4">
+          <div className="mt-5 flex gap-3 rounded-2xl border border-neutral-300 bg-neutral-50 p-4">
             <Lock
               size={18}
               aria-hidden="true"
-              className="mt-0.5 shrink-0 text-slate-500"
+              className="mt-0.5 shrink-0 text-neutral-500"
             />
             <div>
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-sm font-semibold text-neutral-900">
                 Notas del administrador
               </p>
-              <p className="mt-1 text-sm text-slate-700">
+              <p className="mt-1 text-sm text-neutral-700">
                 {teacher.adminNotes}
               </p>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-neutral-500">
                 El profesor no las ve.
               </p>
             </div>
@@ -247,13 +248,13 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
 
       {/* Sus alumnos */}
       <Card className="p-5 sm:p-6">
-        <h3 className="flex items-center gap-2 font-bold text-slate-900">
-          <Users size={18} aria-hidden="true" className="text-slate-400" />
+        <h3 className="flex items-center gap-2 font-bold text-neutral-900">
+          <Users size={18} aria-hidden="true" className="text-neutral-400" />
           Sus alumnos
         </h3>
 
         {teacher.alumnos.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-600">
+          <p className="mt-4 text-sm text-neutral-600">
             Todavía no tiene alumnos asignados. Se le asignan al registrarlos
             con su clave.
           </p>
@@ -264,15 +265,15 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
                 <Link
                   to={`/alumnos/${a.id}`}
                   className="
-                    flex items-center gap-2 rounded-xl border border-slate-200
-                    bg-slate-50 px-3 py-2 text-sm
+                    flex items-center gap-2 rounded-2xl border border-neutral-200
+                    bg-neutral-50 px-3 py-2 text-sm
                     transition-colors duration-200
                     motion-reduce:transition-none
-                    hover:bg-slate-100
-                    focus:ring-2 focus:ring-blue-600 focus:outline-none
+                    hover:bg-neutral-100
+                    focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                   "
                 >
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-neutral-900">
                     {a.firstName} {a.lastName}
                   </span>
                   <span
@@ -283,7 +284,7 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
                     {BELT_LABELS[a.currentBelt]}
                   </span>
                   {!a.active && (
-                    <span className="text-xs text-slate-500">(inactivo)</span>
+                    <span className="text-xs text-neutral-500">(inactivo)</span>
                   )}
                 </Link>
               </li>
@@ -294,27 +295,27 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
 
       {/* Historial de cobros */}
       <Card className="p-5 sm:p-6">
-        <h3 className="flex items-center gap-2 font-bold text-slate-900">
-          <Receipt size={18} aria-hidden="true" className="text-slate-400" />
+        <h3 className="flex items-center gap-2 font-bold text-neutral-900">
+          <Receipt size={18} aria-hidden="true" className="text-neutral-400" />
           Historial de cobros
         </h3>
 
         {/* Eventos */}
-        <h4 className="mt-5 flex items-center gap-2 text-sm font-semibold text-slate-900">
-          <Award size={15} aria-hidden="true" className="text-slate-400" />
+        <h4 className="mt-5 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+          <Award size={15} aria-hidden="true" className="text-neutral-400" />
           Eventos acreditados a su clave
         </h4>
 
         {historialCobros.eventos.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-neutral-600">
             Sin cobros de eventos. Aparecen cuando un alumno reporta un pago
             con su clave y él lo confirma.
           </p>
         ) : (
-          <div className="mt-3 overflow-x-auto">
+          <div className="relative mt-3 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-slate-600">
+                <tr className="border-b border-neutral-200 text-left text-neutral-600">
                   <th scope="col" className="pb-2 pr-4 font-semibold">Alumno</th>
                   <th scope="col" className="pb-2 pr-4 font-semibold">Evento</th>
                   <th scope="col" className="pb-2 pr-4 font-semibold">Monto</th>
@@ -323,15 +324,15 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
               </thead>
               <tbody>
                 {historialCobros.eventos.map((c) => (
-                  <tr key={c.id} className="border-b border-slate-100">
-                    <td className="py-2 pr-4 font-medium text-slate-900">
+                  <tr key={c.id} className="border-b border-neutral-100">
+                    <td className="py-2 pr-4 font-medium text-neutral-900">
                       {c.alumno}
                     </td>
-                    <td className="py-2 pr-4 text-slate-700">{c.evento}</td>
-                    <td className="py-2 pr-4 text-slate-900">
+                    <td className="py-2 pr-4 text-neutral-700">{c.evento}</td>
+                    <td className="py-2 pr-4 text-neutral-900">
                       {formatMoney(c.amountCents)}
                     </td>
-                    <td className="py-2 text-slate-600">
+                    <td className="py-2 text-neutral-600">
                       {c.confirmadoEn
                         ? new Date(c.confirmadoEn).toLocaleDateString("es-MX", {
                             day: "numeric",
@@ -347,20 +348,20 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
         )}
 
         {/* Mensualidades */}
-        <h4 className="mt-6 flex items-center gap-2 text-sm font-semibold text-slate-900">
-          <Receipt size={15} aria-hidden="true" className="text-slate-400" />
+        <h4 className="mt-6 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+          <Receipt size={15} aria-hidden="true" className="text-neutral-400" />
           Mensualidades de sus alumnos
         </h4>
 
         {historialCobros.mensualidades.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-neutral-600">
             Sin mensualidades pagadas todavía.
           </p>
         ) : (
-          <div className="mt-3 overflow-x-auto">
+          <div className="relative mt-3 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-slate-600">
+                <tr className="border-b border-neutral-200 text-left text-neutral-600">
                   <th scope="col" className="pb-2 pr-4 font-semibold">Alumno</th>
                   <th scope="col" className="pb-2 pr-4 font-semibold">Mes</th>
                   <th scope="col" className="pb-2 font-semibold">Monto</th>
@@ -368,14 +369,14 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
               </thead>
               <tbody>
                 {historialCobros.mensualidades.map((m) => (
-                  <tr key={m.id} className="border-b border-slate-100">
-                    <td className="py-2 pr-4 font-medium text-slate-900">
+                  <tr key={m.id} className="border-b border-neutral-100">
+                    <td className="py-2 pr-4 font-medium text-neutral-900">
                       {m.alumno}
                     </td>
-                    <td className="py-2 pr-4 text-slate-700 first-letter:uppercase">
+                    <td className="py-2 pr-4 text-neutral-700 first-letter:uppercase">
                       {formatPeriod(m.periodYear, m.periodMonth)}
                     </td>
-                    <td className="py-2 text-slate-900">
+                    <td className="py-2 text-neutral-900">
                       {formatMoney(m.amountCents)}
                     </td>
                   </tr>
@@ -403,13 +404,13 @@ function Dato({
       <Icon
         size={18}
         aria-hidden="true"
-        className="mt-0.5 shrink-0 text-slate-400"
+        className="mt-0.5 shrink-0 text-neutral-400"
       />
       <div className="min-w-0">
-        <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        <dt className="text-sm font-semibold text-neutral-600">
           {label}
         </dt>
-        <dd className="mt-1 text-sm break-words text-slate-900">{valor}</dd>
+        <dd className="mt-1 text-sm break-words text-neutral-900">{valor}</dd>
       </div>
     </div>
   );
@@ -426,11 +427,11 @@ function Tile({
 }) {
   return (
     <Card className="p-4">
-      <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+      <p className="text-sm font-semibold text-neutral-600">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-bold text-slate-900">{valor}</p>
-      <p className="mt-1 text-xs text-slate-600">{pista}</p>
+      <p className="mt-2 text-2xl font-bold text-neutral-900">{valor}</p>
+      <p className="mt-1 text-xs text-neutral-600">{pista}</p>
     </Card>
   );
 }

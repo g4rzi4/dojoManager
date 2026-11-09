@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { Receipt, TriangleAlert } from "lucide-react";
+import { Receipt } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import PageHeading from "../components/PageHeading";
+import PagarConPayPal from "../components/PagarConPayPal";
 import { ApiError, getPayments } from "../services/api";
+import { can, getUser } from "../services/session";
 import type { PaymentsResponse } from "../types/payment";
 import { PAYMENT_METHOD_LABELS } from "../types/payment";
 import {
@@ -17,6 +20,11 @@ function Payments() {
   const [data, setData] = useState<PaymentsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [recarga, setRecarga] = useState(0);
+
+  // Pagan las familias. Un profesor también ve "propios" (su grupo), pero
+  // esas mensualidades no le toca pagarlas a él.
+  const puedePagar = !can(getUser(), "events:write");
 
   useEffect(() => {
     let activo = true;
@@ -41,7 +49,7 @@ function Payments() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [recarga]);
 
   // El alcance lo decide el backend según el rol, no el frontend.
   const esVistaPropia = data?.alcance === "propios";
@@ -49,14 +57,14 @@ function Payments() {
   return (
     <DashboardLayout>
       <header>
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+        <PageHeading module="pagos"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
           Pagos
         </h1>
-        <p className="mt-2 text-slate-600">
+        <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
           {esVistaPropia
             ? "Historial de mensualidades y lo que queda por cubrir."
             : "Historial de mensualidades de todo el dojo."}
-        </p>
+        </p></PageHeading>
       </header>
 
       {loading ? (
@@ -74,21 +82,21 @@ function Payments() {
       ) : data ? (
         <>
           {/* Resumen */}
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <Card className="p-4">
-              <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+            <Card className="col-span-2 p-4 sm:col-span-1">
+              <p className="text-sm font-semibold text-neutral-600">
                 Por cubrir
               </p>
               <p
                 className={`mt-2 text-2xl font-bold ${
                   data.resumen.totalPendienteCents > 0
                     ? "text-amber-700"
-                    : "text-slate-900"
+                    : "text-neutral-900"
                 }`}
               >
                 {formatMoney(data.resumen.totalPendienteCents)}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-neutral-600">
                 {data.resumen.pendientes}{" "}
                 {data.resumen.pendientes === 1
                   ? "mensualidad"
@@ -97,74 +105,97 @@ function Payments() {
             </Card>
 
             <Card className="p-4">
-              <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              <p className="text-sm font-semibold text-neutral-600">
                 Registros
               </p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">
+              <p className="mt-2 text-2xl font-bold text-neutral-900">
                 {data.resumen.pagos}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-neutral-600">
                 mensualidades en total
               </p>
             </Card>
 
             <Card className="p-4">
-              <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              <p className="text-sm font-semibold text-neutral-600">
                 Al día
               </p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">
+              <p className="mt-2 text-2xl font-bold text-neutral-900">
                 {data.resumen.pagos - data.resumen.pendientes}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-neutral-600">
                 mensualidades pagadas
               </p>
             </Card>
           </div>
 
-          {/* PayPal: pendiente. Lo decimos en pantalla en lugar de poner un
-              botón que no hace nada. */}
-          {esVistaPropia && data.resumen.pendientes > 0 && (
-            <Card className="mt-4 flex gap-3 border-amber-200 bg-amber-50 p-4">
-              <TriangleAlert
-                size={20}
-                aria-hidden="true"
-                className="mt-0.5 shrink-0 text-amber-700"
-              />
-              <div>
-                <p className="text-sm font-semibold text-amber-900">
-                  El pago en línea todavía no está disponible
-                </p>
-                <p className="mt-1 text-sm text-amber-900">
-                  Por ahora las mensualidades se pagan directamente en el dojo.
-                  La integración con PayPal está planeada para más adelante.
-                </p>
-              </div>
-            </Card>
-          )}
-
           {/* Tabla */}
           <section className="mt-6">
             {data.payments.length === 0 ? (
               <Card className="p-8 text-center">
-                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-neutral-100 text-neutral-500">
                   <Receipt size={26} aria-hidden="true" />
                 </span>
-                <h2 className="mt-4 font-bold text-slate-900">
+                <h2 className="mt-4 font-bold text-neutral-900">
                   No hay pagos registrados
                 </h2>
-                <p className="mt-2 text-sm text-slate-600">
+                <p className="mt-2 text-sm text-neutral-600">
                   Cuando el dojo registre una mensualidad, aparecerá aquí.
                 </p>
               </Card>
             ) : (
               <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
+                <ul className="divide-y divide-neutral-100 md:hidden">
+                  {data.payments.map((p) => (
+                    <li key={p.id} className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold break-words text-neutral-800">
+                            {p.studentName}
+                          </p>
+                          <p className="text-sm text-neutral-600 first-letter:uppercase">
+                            {formatPeriod(p.periodYear, p.periodMonth)}
+                          </p>
+                        </div>
+                        <p className="shrink-0 font-bold text-neutral-800">
+                          {formatMoney(p.amountCents)}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                            PAYMENT_STATUS_STYLES[p.status]
+                          }`}
+                        >
+                          {PAYMENT_STATUS_LABELS[p.status]}
+                        </span>
+                        {p.method && (
+                          <span className="text-sm text-neutral-600">
+                            {PAYMENT_METHOD_LABELS[p.method]}
+                          </span>
+                        )}
+                        {puedePagar && p.status !== "PAGADO" && (
+                          <div className="ml-auto">
+                            <PagarConPayPal
+                              tipo="MENSUALIDAD"
+                              id={p.id}
+                              onPagado={() => setRecarga((n) => n + 1)}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="relative hidden overflow-x-auto md:block">
                   <table className="w-full text-sm">
                     <caption className="sr-only">
                       Historial de mensualidades
                     </caption>
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-600">
+                      <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-neutral-600">
                         {/* La columna de alumno sirve en los dos casos: el
                             tutor puede tener varios hijos. */}
                         <th scope="col" className="px-4 py-3 font-semibold">
@@ -185,21 +216,26 @@ function Payments() {
                         <th scope="col" className="px-4 py-3 font-semibold">
                           Fecha de pago
                         </th>
+                        {puedePagar && (
+                          <th scope="col" className="px-4 py-3 font-semibold">
+                            <span className="sr-only">Pagar</span>
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
                       {data.payments.map((p) => (
                         <tr
                           key={p.id}
-                          className="border-b border-slate-100 last:border-0"
+                          className="border-b border-neutral-100 last:border-0"
                         >
-                          <td className="px-4 py-3 font-medium text-slate-900">
+                          <td className="px-4 py-3 font-medium text-neutral-900">
                             {p.studentName}
                           </td>
-                          <td className="px-4 py-3 text-slate-900 first-letter:uppercase">
+                          <td className="px-4 py-3 text-neutral-900 first-letter:uppercase">
                             {formatPeriod(p.periodYear, p.periodMonth)}
                           </td>
-                          <td className="px-4 py-3 text-slate-900">
+                          <td className="px-4 py-3 text-neutral-900">
                             {formatMoney(p.amountCents)}
                           </td>
                           <td className="px-4 py-3">
@@ -211,14 +247,25 @@ function Payments() {
                               {PAYMENT_STATUS_LABELS[p.status]}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-slate-600">
+                          <td className="px-4 py-3 text-neutral-600">
                             {p.method ? PAYMENT_METHOD_LABELS[p.method] : "—"}
                           </td>
-                          <td className="px-4 py-3 text-slate-600 first-letter:uppercase">
+                          <td className="px-4 py-3 text-neutral-600 first-letter:uppercase">
                             {p.paidAt
                               ? formatLongDate(fromDateKey(p.paidAt))
                               : "—"}
                           </td>
+                          {puedePagar && (
+                            <td className="px-4 py-3">
+                              {p.status !== "PAGADO" && (
+                                <PagarConPayPal
+                                  tipo="MENSUALIDAD"
+                                  id={p.id}
+                                  onPagado={() => setRecarga((n) => n + 1)}
+                                />
+                              )}
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

@@ -4,7 +4,7 @@ import type { MyStudent, PaymentsResponse } from "../types/payment";
 import type { AppNotification, Audience } from "../types/notification";
 import type { DojoEvent, EventCategory } from "../types/event";
 import type { Teacher, TeacherCard, TeacherUpdate } from "../types/teacher";
-import type { EventEnrollment } from "../types/eventPayment";
+import type { CategoryCatalog, EventEnrollment } from "../types/eventPayment";
 import type {
   EnrollGuardianPayload,
   EnrollStudentPayload,
@@ -144,6 +144,30 @@ export async function getPayments(): Promise<PaymentsResponse> {
   return request<PaymentsResponse>("/payments");
 }
 
+export async function getPayPalConfig(): Promise<{
+  enabled: boolean;
+  clientId: string | null;
+  currency: string;
+}> {
+  return request("/paypal/config");
+}
+
+/** Solo indica qué cobro se paga: el monto lo decide el backend. */
+export async function createPayPalOrder(
+  tipo: "MENSUALIDAD" | "EVENTO",
+  id: number
+): Promise<{ orderId: string }> {
+  return request("/paypal/orders", { method: "POST", body: { tipo, id } });
+}
+
+export async function capturePayPalOrder(
+  orderId: string
+): Promise<{ message: string }> {
+  return request(`/paypal/orders/${encodeURIComponent(orderId)}/capture`, {
+    method: "POST",
+  });
+}
+
 export async function getNotifications(): Promise<{
   unread: number;
   notifications: AppNotification[];
@@ -218,6 +242,31 @@ export async function createStudent(params: {
   teacherCode?: string;
 }): Promise<{ student: { id: number } }> {
   return request("/students", { method: "POST", body: params });
+}
+
+/**
+ * Edita la ficha de un alumno. Admin y profesores, cada profesor sobre los
+ * alumnos de su grupo.
+ *
+ * Solo se mandan los campos que cambian.
+ */
+export async function updateStudent(
+  id: number,
+  cambios: {
+    firstName?: string;
+    lastName?: string;
+    birthDate?: string | null;
+    phone?: string | null;
+    guardianName?: string | null;
+    guardianPhone?: string | null;
+    medicalNotes?: string | null;
+    currentBelt?: string;
+    active?: boolean;
+    /** Reasignar de profesor. Solo el admin puede pasarlo a otro. */
+    teacherCode?: string | null;
+  }
+): Promise<{ message: string }> {
+  return request(`/students/${id}`, { method: "PATCH", body: cambios });
 }
 
 /** Da de baja a un alumno. Es baja lógica: conserva su historial. */
@@ -312,10 +361,58 @@ export async function createEvent(params: {
   category: EventCategory;
   /** Si hay que pagar para participar. */
   requiresPayment?: boolean;
-  /** Costo en CENTAVOS como entero. Obligatorio si requiresPayment. */
+  /** Costo en CENTAVOS. Se usa solo si el evento NO tiene modalidades. */
   priceCents?: number;
+  /** Modalidades con su costo. Si hay, el total es la suma de las elegidas. */
+  modalities?: { name: string; priceCents: number }[];
 }): Promise<{ event: DojoEvent }> {
   return request("/events", { method: "POST", body: params });
+}
+
+/**
+ * Edita un evento, incluidos los costos por modalidad.
+ *
+ * Las modalidades con `id` se actualizan, las que no lo traen se crean, y
+ * las que faltan en la lista se borran. El backend rechaza borrar una que ya
+ * tenga alumnos inscritos.
+ */
+export async function updateEvent(
+  id: string,
+  cambios: {
+    title?: string;
+    date?: string;
+    time?: string | null;
+    category?: EventCategory;
+    requiresPayment?: boolean;
+    priceCents?: number | null;
+    modalities?: { id?: number; name: string; priceCents: number }[];
+  }
+): Promise<{ message: string }> {
+  return request(`/events/${id}`, { method: "PATCH", body: cambios });
+}
+
+/**
+ * El profesor inscribe a uno de sus alumnos, eligiendo sus modalidades.
+ *
+ * La inscripción nace sin pagar: al alumno y a sus tutores les llega la
+ * notificación con lo que deben, y quedan inscritos cuando el profesor
+ * confirme el pago.
+ */
+export async function enrollStudentInEvent(
+  eventId: string,
+  params: {
+    studentId: number;
+    modalityIds?: number[];
+    gender?: string;
+    beltClass?: string;
+    ageCategory?: string;
+    note?: string;
+  }
+): Promise<{ message: string }> {
+  return request(`/events/${eventId}/enroll`, {
+    method: "POST",
+    body: params,
+  });
 }
 
 export async function deleteEvent(id: string): Promise<void> {
@@ -331,12 +428,32 @@ export async function deleteEvent(id: string): Promise<void> {
  */
 export async function reportEventPayment(
   eventId: string,
-  params: { teacherCode: string; studentId?: number; method?: string; note?: string }
+  params: {
+    teacherCode: string;
+    studentId?: number;
+    /** Modalidades elegidas. Obligatorio si el evento tiene modalidades. */
+    modalityIds?: number[];
+    /** Los tres van juntos o ninguno. */
+    gender?: string;
+    beltClass?: string;
+    ageCategory?: string;
+    method?: string;
+    note?: string;
+  }
 ): Promise<{ message: string }> {
   return request(`/events/${eventId}/report-payment`, {
     method: "POST",
     body: params,
   });
+}
+
+/**
+ * El catálogo de categorías de competencia, con sus rangos de edad.
+ *
+ * Lo sirve el backend para no duplicar la tabla en el frontend.
+ */
+export async function getCategoryCatalog(): Promise<CategoryCatalog> {
+  return request<CategoryCatalog & { success: boolean }>("/events/categories");
 }
 
 /** Los reportes de pago de un evento. El profesor ve los de su clave. */

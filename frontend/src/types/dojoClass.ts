@@ -90,8 +90,8 @@ export const DISCIPLINE_STYLES: Record<
     dot: "bg-amber-600",
   },
   ACONDICIONAMIENTO: {
-    card: "bg-slate-100 border-slate-300 text-slate-900",
-    dot: "bg-slate-600",
+    card: "bg-neutral-100 border-neutral-300 text-neutral-900",
+    dot: "bg-neutral-600",
   },
 };
 

@@ -68,7 +68,7 @@ function EventCalendar({ events }: Props) {
       {/* Cuadrícula del mes */}
       <Card className="p-4 sm:p-6">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-slate-900">
+          <h2 className="text-lg font-bold text-neutral-900">
             <span className="capitalize">{MONTH_NAMES[month]}</span> {year}
           </h2>
 
@@ -77,11 +77,11 @@ function EventCalendar({ events }: Props) {
               type="button"
               onClick={goToToday}
               className="
-                mr-1 cursor-pointer rounded-lg px-3 py-2 text-sm font-semibold
-                text-blue-700 transition-colors duration-200
+                mr-1 cursor-pointer rounded-xl px-3 py-2 text-sm font-semibold
+                text-violet-700 transition-colors duration-200
                 motion-reduce:transition-none
-                hover:bg-blue-50
-                focus:ring-2 focus:ring-blue-600 focus:outline-none
+                hover:bg-violet-50
+                focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
               "
             >
               Hoy
@@ -92,11 +92,11 @@ function EventCalendar({ events }: Props) {
               onClick={() => changeMonth(-1)}
               aria-label="Mes anterior"
               className="
-                flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg
-                text-slate-600 transition-colors duration-200
+                flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl
+                text-neutral-600 transition-colors duration-200
                 motion-reduce:transition-none
-                hover:bg-slate-100 hover:text-slate-900
-                focus:ring-2 focus:ring-blue-600 focus:outline-none
+                hover:bg-neutral-100 hover:text-neutral-900
+                focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
               "
             >
               <ChevronLeft size={20} aria-hidden="true" />
@@ -107,11 +107,11 @@ function EventCalendar({ events }: Props) {
               onClick={() => changeMonth(1)}
               aria-label="Mes siguiente"
               className="
-                flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg
-                text-slate-600 transition-colors duration-200
+                flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl
+                text-neutral-600 transition-colors duration-200
                 motion-reduce:transition-none
-                hover:bg-slate-100 hover:text-slate-900
-                focus:ring-2 focus:ring-blue-600 focus:outline-none
+                hover:bg-neutral-100 hover:text-neutral-900
+                focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
               "
             >
               <ChevronRight size={20} aria-hidden="true" />
@@ -124,7 +124,7 @@ function EventCalendar({ events }: Props) {
           {WEEKDAY_LABELS.map((label) => (
             <div
               key={label}
-              className="pb-2 text-center text-xs font-semibold text-slate-600"
+              className="pb-2 text-center text-xs font-semibold text-neutral-600"
               aria-hidden="true"
             >
               {label}
@@ -154,16 +154,16 @@ function EventCalendar({ events }: Props) {
                     : ", sin eventos"
                 }`}
                 className={`
-                  flex min-h-16 cursor-pointer flex-col items-center gap-1 rounded-xl
+                  flex min-h-16 cursor-pointer flex-col items-center gap-1 rounded-2xl
                   px-1 py-2 transition-colors duration-200
                   motion-reduce:transition-none
-                  focus:ring-2 focus:ring-blue-600 focus:outline-none
+                  focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                   ${
                     isSelected
-                      ? "bg-blue-600 text-white"
+                      ? "bg-violet-600 text-white"
                       : inMonth
-                        ? "text-slate-900 hover:bg-slate-100"
-                        : "text-slate-400 hover:bg-slate-50"
+                        ? "text-neutral-900 hover:bg-neutral-100"
+                        : "text-neutral-400 hover:bg-neutral-50"
                   }
                 `}
               >
@@ -172,7 +172,7 @@ function EventCalendar({ events }: Props) {
                     flex h-7 w-7 items-center justify-center rounded-full text-sm
                     ${
                       isToday && !isSelected
-                        ? "bg-blue-100 font-bold text-blue-800"
+                        ? "bg-violet-100 font-bold text-violet-800"
                         : isSelected
                           ? "font-bold"
                           : "font-medium"
@@ -198,7 +198,7 @@ function EventCalendar({ events }: Props) {
                     {dayEvents.length > 3 && (
                       <span
                         className={`text-[10px] font-semibold ${
-                          isSelected ? "text-white" : "text-slate-600"
+                          isSelected ? "text-white" : "text-neutral-600"
                         }`}
                       >
                         +{dayEvents.length - 3}
@@ -212,13 +212,13 @@ function EventCalendar({ events }: Props) {
         </div>
 
         {/* Leyenda */}
-        <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 border-t border-slate-200 pt-4">
+        <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 border-t border-neutral-200 pt-4">
           {(
             Object.keys(CATEGORY_LABELS) as Array<keyof typeof CATEGORY_LABELS>
           ).map((category) => (
             <span
               key={category}
-              className="flex items-center gap-2 text-xs text-slate-700"
+              className="flex items-center gap-2 text-xs text-neutral-700"
             >
               <span
                 className={`h-2 w-2 rounded-full ${CATEGORY_STYLES[category].dot}`}
@@ -231,16 +231,16 @@ function EventCalendar({ events }: Props) {
 
       {/* Detalle del día seleccionado */}
       <Card className="p-4 sm:p-6">
-        <h3 className="text-sm font-semibold tracking-wide text-slate-500 uppercase">
+        <h3 className="text-lg font-bold text-neutral-800">
           {isSameDay(selected, today) ? "Hoy" : "Día seleccionado"}
         </h3>
 
-        <p className="mt-1 font-bold text-slate-900 first-letter:uppercase">
+        <p className="mt-1 font-bold text-neutral-900 first-letter:uppercase">
           {formatLongDate(selected)}
         </p>
 
         {selectedEvents.length === 0 ? (
-          <p className="mt-6 text-sm text-slate-600">
+          <p className="mt-6 text-sm text-neutral-600">
             No hay eventos programados para este día.
           </p>
         ) : (
@@ -248,7 +248,7 @@ function EventCalendar({ events }: Props) {
             {selectedEvents.map((event) => (
               <li
                 key={event.id}
-                className={`rounded-xl border p-3 ${
+                className={`rounded-2xl border p-3 ${
                   CATEGORY_STYLES[event.category].chip
                 }`}
               >

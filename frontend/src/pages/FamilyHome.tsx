@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Bell, Receipt, Users } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import ShortcutCard from "../components/ShortcutCard";
+import PageHeading from "../components/PageHeading";
 import EventCalendar from "../components/EventCalendar";
 import FamilyStudentCards from "../components/FamilyStudentCards";
 import { ApiError, getEvents, getMyStudents, getNotifications, getPayments } from "../services/api";
@@ -74,14 +74,14 @@ function FamilyHome() {
   return (
     <DashboardLayout>
       <header>
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+        <PageHeading module="inicio"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
           Hola, {user?.name ?? "bienvenido"}
         </h1>
-        <p className="mt-2 text-slate-600">
+        <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
           {esTutor
             ? "Aquí puedes consultar el expediente de tus hijos, el calendario del dojo y sus pagos."
             : "Aquí puedes consultar tu expediente, el calendario del dojo y tus pagos."}
-        </p>
+        </p></PageHeading>
       </header>
 
       {error && (
@@ -104,7 +104,7 @@ function FamilyHome() {
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <ShortcutCard
               to="/pagos"
-              icon={Receipt}
+              module="pagos"
               label="Por cubrir"
               value={formatMoney(totalPendiente)}
               hint={`${payments?.resumen.pendientes ?? 0} mensualidades`}
@@ -112,15 +112,15 @@ function FamilyHome() {
             />
             <ShortcutCard
               to="/notificaciones"
-              icon={Bell}
+              module="notificaciones"
               label="Notificaciones"
               value={String(sinLeer)}
-              hint={sinLeer === 1 ? "sin leer" : "sin leer"}
+              hint="sin leer"
               alert={sinLeer > 0}
             />
             <ShortcutCard
               to="/eventos"
-              icon={Users}
+              module="alumnos"
               label={esTutor ? "Hijos inscritos" : "Mi expediente"}
               value={String(students.length)}
               hint={esTutor ? "en el dojo" : "activo"}
@@ -131,7 +131,7 @@ function FamilyHome() {
           <section className="mt-8" aria-labelledby="titulo-expedientes">
             <h2
               id="titulo-expedientes"
-              className="mb-4 text-sm font-semibold tracking-wide text-slate-500 uppercase"
+              className="mb-4 text-lg font-bold text-neutral-800"
             >
               {esTutor
                 ? students.length > 1
@@ -147,7 +147,7 @@ function FamilyHome() {
           <section className="mt-8" aria-labelledby="titulo-calendario">
             <h2
               id="titulo-calendario"
-              className="mb-4 text-sm font-semibold tracking-wide text-slate-500 uppercase"
+              className="mb-4 text-lg font-bold text-neutral-800"
             >
               Calendario del dojo
             </h2>
@@ -156,53 +156,6 @@ function FamilyHome() {
         </>
       )}
     </DashboardLayout>
-  );
-}
-
-type ShortcutCardProps = {
-  to: string;
-  icon: typeof Receipt;
-  label: string;
-  value: string;
-  hint: string;
-  alert?: boolean;
-};
-
-function ShortcutCard({
-  to,
-  icon: Icon,
-  label,
-  value,
-  hint,
-  alert = false,
-}: ShortcutCardProps) {
-  return (
-    <Link
-      to={to}
-      className="
-        block rounded-2xl transition-shadow duration-200
-        motion-reduce:transition-none
-        hover:shadow-xl
-        focus:ring-2 focus:ring-blue-600 focus:outline-none
-      "
-    >
-      <Card className="cursor-pointer p-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-            {label}
-          </p>
-          <Icon size={18} aria-hidden="true" className="text-slate-400" />
-        </div>
-        <p
-          className={`mt-2 text-2xl font-bold ${
-            alert ? "text-amber-700" : "text-slate-900"
-          }`}
-        >
-          {value}
-        </p>
-        <p className="mt-1 text-xs text-slate-600">{hint}</p>
-      </Card>
-    </Link>
   );
 }
 

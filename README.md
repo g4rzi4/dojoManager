@@ -185,38 +185,17 @@ http://localhost:5173
 
 # Probar que todo funciona
 
-Con el backend y el frontend corriendo, abre `http://localhost:5173` y entra con
-cualquiera de las cinco cuentas que crea el seed. Cada una lleva a una pantalla
-distinta, según su rol:
-
-| Rol | Correo | Contraseña | Clave | Qué ve al entrar |
-| --- | --- | --- | --- | --- |
-| Administrador | `admin@dojo.com` | `123456` | — | Todo el dojo, incluyendo Profesores |
-| Profesor | `profesor@dojo.com` | `123456` | `PROF-7K2M` | **Solo** Ana y Diego |
-| Profesor | `profesora@dojo.com` | `123456` | `PROF-3XQ8` | **Solo** Luis |
+Con el backend y el frontend corriendo, abre `http://localhost:5173` y entra con las
+cuentas del [Dojo de demostración](#dojo-de-demostración). Cada rol lleva a una
+pantalla distinta.
 
 > Los profesores necesitan **los tres datos**: correo, contraseña y clave. En el login
 > hay que elegir "Profesor" para que aparezca el campo de la clave.
-| Tutor | `tutor@dojo.com` | `123456` | — | Panel familiar con **sus dos hijos** |
-| Alumno | `alumno@dojo.com` | `123456` | — | Panel familiar con su propio expediente |
 
-Entra con los dos profesores para comprobar que **cada uno ve solo a su grupo**.
+Entra con dos profesores para comprobar que **cada uno ve solo a su grupo**.
 
 Las contraseñas se guardan con hash de **bcrypt** y la sesión viaja en un **JWT**
-firmado con tu `JWT_SECRET`. Son cuentas de **desarrollo local**: no las subas a un
-servidor público.
-
-Datos que crea el seed:
-
-- **Ana López** — alumna con cuenta propia e historial completo: 4 graduaciones de
-  cinta, 13 registros de asistencia, 4 mensualidades y 3 observaciones.
-- **Diego López** — hermano menor de Ana, sin cuenta propia. Sirve para ver cómo un
-  alumno existe en el sistema sin poder iniciar sesión.
-- **Marta López** (`tutor@dojo.com`) — madre de los dos. Al entrar ve ambos
-  expedientes, el calendario, los pagos de los dos y sus notificaciones.
-- **Luis Hernández** — alumno adulto, sin tutor ni cuenta. Comprueba que el tutor
-  **no** puede abrir su expediente.
-- 9 eventos del mes en curso y un aviso del dojo en la bandeja.
+firmado con tu `JWT_SECRET`.
 
 Para comprobar solo el backend:
 
@@ -224,6 +203,62 @@ Para comprobar solo el backend:
 curl http://localhost:3000
 # {"message":"Backend funcionando 🚀"}
 ```
+
+---
+
+# Dojo de demostración
+
+Un segundo juego de cuentas, en una **base de datos aparte**: la app no separa los
+datos por dojo y un admin ve todo lo que hay en la base, así que esta es la forma de
+tener un dojo nuevo sin los registros del seed normal. Trae solo cuentas y alumnos;
+todavía no tiene mensualidades ni eventos.
+
+Para crearla, desde `backend/` (ajusta usuario y contraseña a tu `DATABASE_URL`):
+
+```bash
+createdb dojomanager_demo
+export DATABASE_URL="postgresql://TU_USUARIO@localhost:5432/dojomanager_demo"
+npx prisma db push
+npx tsx prisma/seed-demo.ts
+unset DATABASE_URL
+```
+
+> Se usa `db push` porque hoy `prisma migrate deploy` falla en una base vacía: por el
+> nombre de las carpetas, una migración corre antes que otra de la que depende.
+
+Para usarla, cambia en `backend/.env` el final de `DATABASE_URL` a `/dojomanager_demo`
+y reinicia el backend. Para volver a tus datos, deshaz el cambio.
+
+La contraseña de todas las cuentas es **`Dojo2026!`**. Son datos ficticios: no guardes
+información real en esta base.
+
+**Administrador:** `admin@dojodemo.test` (Valeria Campos)
+
+| Profesor | Correo | Clave | Alumnos |
+| --- | --- | --- | :-: |
+| Tomás Herrera | `t.herrera@dojodemo.test` | `PROF-A3KM` | 4 |
+| Paula Ibarra | `p.ibarra@dojodemo.test` | `PROF-B7TR` | 3 |
+| Andrés Rojas | `a.rojas@dojodemo.test` | `PROF-C4WX` | 4 |
+| Lucía Ferrer | `l.ferrer@dojodemo.test` | `PROF-D9HN` | 2 |
+| Rubén Salas | `r.salas@dojodemo.test` | `PROF-E5QZ` | 2 |
+
+| Tutor | Correo | Hijos | Profesor |
+| --- | --- | --- | --- |
+| Carolina Morales | `c.morales@dojodemo.test` | Mateo | Herrera |
+| Javier Núñez | `j.nunez@dojodemo.test` | Sofía, Emilio | Ibarra |
+| Daniela Ortega | `d.ortega@dojodemo.test` | Regina, Santiago, Camila | Rojas |
+| Héctor Vargas | `h.vargas@dojodemo.test` | Valentina | Ferrer |
+| Mónica Aguilar | `m.aguilar@dojodemo.test` | Diego, Renata | Salas |
+| Ricardo Silva | `r.silva@dojodemo.test` | Ximena, Leonardo, Julieta | Herrera |
+
+| Alumno con cuenta propia | Correo | Profesor |
+| --- | --- | --- |
+| Fernanda Cruz | `f.cruz@dojodemo.test` | Ibarra |
+| Alejandro Mejía | `a.mejia@dojodemo.test` | Rojas |
+| Natalia Reyes | `n.reyes@dojodemo.test` | Ferrer |
+
+Los hijos de una misma familia entrenan con el mismo profesor. Los profesores entran
+con correo, contraseña **y su clave**.
 
 ---
 
@@ -289,7 +324,19 @@ y el dinero que maneja.
 # Eventos con costo
 
 Un torneo o un examen pueden requerir pago. Al crear el evento se marca **Requiere
-pago** y se pone el costo.
+pago**, y hay dos formas de cobrar:
+
+| Forma | Cuándo | Ejemplo |
+| --- | --- | --- |
+| **Cuota única** | El evento cobra lo mismo a todos | Examen de cinta: $300 |
+| **Por modalidad** | Cada modalidad cuesta aparte y el alumno paga la **suma** de las que elija | Torneo: kata $450, kumite $450, equipos $300 |
+
+Las modalidades **las define cada evento**, no una lista fija: un torneo tiene kata y
+kumite, otro puede tener equipos o formas con arma, y agregar una nueva no exige tocar
+el código.
+
+Esto existe porque el caso real no es uniforme: **hay padres que inscriben a su hijo
+en kata y kumite**, y pagan las dos.
 
 El flujo, de principio a fin:
 
@@ -301,8 +348,87 @@ El flujo, de principio a fin:
 5. **Al confirmar, el alumno queda inscrito** en el mismo movimiento, y el cobro
    aparece en el historial de ese profesor. A la familia le llega la notificación.
 
+Si la familia elige **PayPal**, se salta la confirmación del profesor: al capturarse
+el pago queda inscrito. Ver [Pago en línea con PayPal](#pago-en-línea-con-paypal).
+
+## Categorías de competencia
+
+Cada inscripción lleva su categoría, en tres ejes: **rama** (femenil o varonil),
+**tipo de cinta** y **rango de edad**. Los rangos **no son los mismos** en las dos
+ramas de cinta.
+
+### Cintas de color
+
+| Categoría | Edad |
+| --- | --- |
+| Infantil | 4-5 · 6-7 · 8-9 · 10-11 · 12-13 años |
+| Juvenil | 14-15 · 16-17 años |
+| Adultos | 18-35 años |
+| Masters | 36 años en adelante |
+
+### Cintas negras
+
+| Categoría | Edad |
+| --- | --- |
+| U10 | 8-9 años |
+| U12 | 10-11 años |
+| U14 | 12-13 años |
+| Cadete | 14-15 años |
+| Junior | 16-17 años |
+| U21 | 18-20 años |
+| Senior | 21-35 años |
+| Masters | 36 años en adelante |
+
+## Precios por profesor
+
+El **administrador** fija el costo base de cada modalidad. Cada **profesor** puede
+ajustarlo para **sus** alumnos, sin afectar a los demás grupos. Un profesor que no
+ajusta nada cobra el base.
+
+| Quién | Qué puede cambiar |
+| --- | --- |
+| Administrador | Título, fecha, modalidades y **precios base** (afecta a todos) |
+| Profesor | **Solo los precios, y solo para sus alumnos** |
+
+Qué precio aplica lo decide **el profesor al que se acredita el cobro**, que es quien
+recibe el dinero:
+
+- El alumno escribe una clave al reportar → aplican los precios de ese profesor.
+- El profesor inscribe a su alumno → aplican los suyos.
+
+Esto significa que la misma modalidad puede costar distinto según con quién entrenes,
+y cada quien ve en pantalla lo que de verdad va a pagar.
+
+Un profesor **no** puede agregar ni quitar modalidades, ni cambiar el título o la
+fecha: eso es global y lo maneja el administrador. Si lo intenta, el sistema se lo
+explica en lugar de dejarlo creer que cambió algo.
+
+---
+
+El catálogo de categorías vive en
+[backend/src/lib/competitionCategories.ts](backend/src/lib/competitionCategories.ts) y
+el frontend lo **pide** a `GET /events/categories` en lugar de duplicarlo: si cambian
+los rangos, se cambian en un solo lugar.
+
+**Lo que se valida y lo que no.** El sistema rechaza una categoría que no exista en la
+rama elegida —un "U10" en cintas de color simplemente no existe— pero **nunca bloquea
+por la edad del alumno**. Inscribir a una alumna de 14 años en Adultos para foguearla
+con las grandes es un caso legítimo, y el sistema no debe estorbarlo. La edad solo
+sirve para sugerir.
+
+Además, cada inscripción guarda:
+
+- **Método de pago** — efectivo, transferencia o PayPal.
+- **Nota libre** — para la excepción que no encaje en ningún campo.
+
+El profesor ve el desglose completo al confirmar: qué modalidades, en qué división,
+cómo pagó y la nota.
+
 Detalles que importan:
 
+- **Los precios se congelan al reportar.** Si el dojo sube el costo del kata después,
+  los cobros ya hechos siguen en el monto original. Cada inscripción guarda el precio
+  de cada modalidad por separado, así que el desglose se puede reconstruir siempre.
 - **El alumno nunca manda el id del profesor**, solo la clave. Si pudiera mandar un
   id, cualquiera podría acreditar cobros a un profesor que nunca vio el dinero.
 - **Un profesor solo ve y resuelve los cobros de su clave.** El admin ve todos. Si un
@@ -399,22 +525,77 @@ tutores**, resuelto por `audienceForStudent`.
 
 # Pagos
 
-Es solo consulta. El alcance lo decide el backend según el rol:
+El alcance lo decide el backend según el rol:
 
-- **Admin y profesor** — todas las mensualidades del dojo.
+- **Admin** — todas las mensualidades del dojo.
+- **Profesor** — las de sus alumnos.
 - **Tutor** — las de sus hijos, sumadas.
 - **Alumno** — las suyas.
 
 Los montos se guardan en **centavos como entero** (`amountCents`). Guardar dinero en
 `float` produce errores de redondeo.
 
-**El pago en línea con PayPal no está implementado.** La pantalla lo dice en lugar de
-mostrar un botón que no hace nada. El schema ya tiene las columnas `method` y
-`externalReference` preparadas, así que integrarlo no requerirá otra migración —
-cuando se haga, `externalReference` guarda el id de la orden para conciliar y evitar
-cobros dobles.
+Registrar y editar cobros a mano corresponde al módulo `feature/payments`.
 
-Registrar y editar cobros corresponde al módulo `feature/payments`.
+## Pago en línea con PayPal
+
+Alumnos y tutores pueden pagar con PayPal:
+
+- **Mensualidades** — en **Pagos**, con el botón de cada mensualidad pendiente.
+- **Eventos** — en **Eventos → Pagar**, eligiendo PayPal como método. También se
+  pagan así las inscripciones que hizo el profesor y quedaron pendientes de pago.
+
+Al capturarse el pago, la mensualidad queda pagada o el alumno queda inscrito **sin
+que el profesor tenga que confirmar nada**. Al profesor le llega una notificación y
+el cobro sigue acreditándose a su clave. Todo el dinero entra a una sola cuenta de
+PayPal, la del dojo: el reparto a cada profesor es interno.
+
+### Configuración
+
+Crea una app en [developer.paypal.com](https://developer.paypal.com) (Apps &
+Credentials, modo Sandbox) y agrega a **`backend/.env`**:
+
+```env
+PAYPAL_CLIENT_ID="..."
+PAYPAL_CLIENT_SECRET="..."
+PAYPAL_ENV="sandbox"
+PAYPAL_CURRENCY="MXN"
+PAYPAL_WEBHOOK_ID="..."
+```
+
+Sin credenciales, la app funciona igual y solo se oculta el pago en línea.
+
+El webhook (`POST /paypal/webhook`, evento `PAYMENT.CAPTURE.COMPLETED`) es un
+respaldo por si alguien cierra la ventana justo después de pagar. Necesita una URL
+pública, así que en local no llega y `PAYPAL_WEBHOOK_ID` se puede dejar vacío.
+
+### Probarlo
+
+1. En [Sandbox Accounts](https://developer.paypal.com/dashboard/accounts), copia el
+   correo y la contraseña de la cuenta **Personal**.
+2. Entra a la app con un tutor o alumno que tenga una mensualidad pendiente y abre
+   **Pagos**.
+3. Elige **Pagar con PayPal** en una mensualidad pendiente e inicia sesión con la
+   cuenta Personal. El dinero es ficticio.
+
+### Lo que protege el cobro
+
+- **El navegador solo dice qué cobro se paga.** El monto sale de la base de datos y
+  la captura ocurre en el servidor.
+- **Solo se paga lo propio.** El cobro tiene que ser de un alumno de la familia de
+  quien inicia sesión.
+- **Una orden liquida un solo cobro.** `externalReference` guarda el id de la orden y
+  es único. Una orden anterior abandonada ya no puede liquidar ese cobro.
+- **Se compara lo capturado con lo que se debe.** Si el monto o la moneda no
+  coinciden, el pago no se aplica y queda en el log.
+- **El botón y el webhook no se pisan.** Comparten la misma función y solo uno aplica
+  el cambio, sin importar cuál llegue primero.
+- **El webhook se verifica con PayPal** antes de creer lo que dice.
+- **El `PAYPAL_CLIENT_SECRET` nunca sale del backend.** El `PAYPAL_CLIENT_ID` sí llega
+  al navegador: es público.
+
+La integración está en [paypal.ts](backend/src/lib/paypal.ts) y
+[paypal.routes.ts](backend/src/routes/paypal.routes.ts).
 
 ---
 

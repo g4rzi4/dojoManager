@@ -68,13 +68,13 @@ function FamilyStudentCards({ students }: Props) {
   if (students.length === 0) {
     return (
       <Card className="p-8 text-center">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-neutral-100 text-neutral-500">
           <IdCard size={26} aria-hidden="true" />
         </span>
-        <h3 className="mt-4 font-bold text-slate-900">
+        <h3 className="mt-4 font-bold text-neutral-900">
           No hay expedientes ligados a tu cuenta
         </h3>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-neutral-600">
           Pide al dojo que ligue el expediente a tu cuenta.
         </p>
       </Card>
@@ -108,22 +108,22 @@ function FamilyStudentCards({ students }: Props) {
                 aria-selected={activa}
                 onClick={() => setSeleccionado(s.id)}
                 className={`
-                  flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3
+                  flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3
                   text-left transition-colors duration-200
                   motion-reduce:transition-none
-                  focus:ring-2 focus:ring-blue-600 focus:outline-none
+                  focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                   ${
                     activa
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-slate-300 bg-white hover:bg-slate-50"
+                      ? "border-violet-600 bg-violet-50"
+                      : "border-neutral-300 bg-white hover:bg-neutral-50"
                   }
                 `}
               >
                 <span
                   className={`
-                    flex h-10 w-10 shrink-0 items-center justify-center rounded-xl
+                    flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl
                     text-sm font-bold
-                    ${activa ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-700"}
+                    ${activa ? "bg-violet-600 text-white" : "bg-neutral-200 text-neutral-700"}
                   `}
                 >
                   {s.firstName.charAt(0).toUpperCase()}
@@ -133,7 +133,7 @@ function FamilyStudentCards({ students }: Props) {
                 <span className="min-w-0">
                   <span
                     className={`block text-sm font-semibold ${
-                      activa ? "text-blue-900" : "text-slate-900"
+                      activa ? "text-violet-900" : "text-neutral-900"
                     }`}
                   >
                     {s.firstName} {s.lastName}

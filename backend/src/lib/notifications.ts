@@ -216,13 +216,59 @@ export async function notifyEventPaymentReported(
   ]);
 }
 
+/**
+ * Llamar cuando el profesor inscribe a un alumno en un evento.
+ *
+ * Le dice al alumno y a sus tutores EN QUÉ MODALIDADES va y cuánto debe
+ * pagar, que es justo lo que necesitan saber para ir a pagar.
+ */
+export async function notifyEnrolledByTeacher(
+  enrollmentId: number,
+  studentId: number,
+  eventTitle: string,
+  modalidades: string[],
+  amountCents: number,
+  categoria: string | null
+) {
+  const destinatarios = await audienceForStudent(studentId);
+
+  const monto = (amountCents / 100).toLocaleString("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  });
+
+  const lista = modalidades.length > 0 ? modalidades.join(" y ") : "el evento";
+
+  return createAutomatic(
+    destinatarios.map((userId) => ({
+      userId,
+      topic: NotificationTopic.PAGO,
+      title: `Te inscribieron en ${eventTitle}`,
+      body: `Participas en ${lista}${
+        categoria ? ` · ${categoria}` : ""
+      }. Son ${monto}. Quedarás inscrito en cuanto tu profesor confirme el pago.`,
+      link: "/eventos",
+      dedupeKey: `inscripcion-profesor-${enrollmentId}-${userId}`,
+    }))
+  );
+}
+
 /** Llamar al confirmar o rechazar el pago. Avisa al alumno y a sus tutores. */
 export async function notifyEventPaymentResolved(
   enrollmentId: number,
   studentId: number,
-  confirmado: boolean
+  confirmado: boolean,
+  eventTitle?: string,
+  modalidades: string[] = []
 ) {
   const destinatarios = await audienceForStudent(studentId);
+
+  // Repetir en qué modalidades va: es el dato que la familia necesita el
+  // día del torneo, y no tienen por qué recordar lo que eligieron.
+  const detalle =
+    modalidades.length > 0 ? ` Participa en ${modalidades.join(" y ")}.` : "";
+
+  const evento = eventTitle ? ` de ${eventTitle}` : " del evento";
 
   return createAutomatic(
     destinatarios.map((userId) => ({
@@ -230,12 +276,58 @@ export async function notifyEventPaymentResolved(
       topic: NotificationTopic.PAGO,
       title: confirmado ? "Inscripción confirmada" : "Pago rechazado",
       body: confirmado
-        ? "Tu profesor confirmó el pago y ya quedaste inscrito en el evento."
-        : "Tu profesor no pudo confirmar el pago del evento. Acércate con él.",
+        ? `Tu profesor confirmó el pago${evento} y ya quedaste inscrito.${detalle}`
+        : `Tu profesor no pudo confirmar el pago${evento}. Acércate con él.`,
       link: "/eventos",
       dedupeKey: `cobro-evento-${confirmado ? "ok" : "no"}-${enrollmentId}-${userId}`,
     }))
   );
+}
+
+/**
+ * Llamar cuando un evento se paga con PayPal. Ahí no confirma el profesor: el
+ * pago ya está verificado, así que se avisa a la familia y a él.
+ */
+export async function notifyEventPaidOnline(
+  enrollmentId: number,
+  studentId: number,
+  teacherUserId: number | null,
+  eventTitle: string,
+  modalidades: string[],
+  amountCents: number
+) {
+  const familia = await audienceForStudent(studentId);
+
+  const monto = (amountCents / 100).toLocaleString("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  });
+
+  const detalle =
+    modalidades.length > 0 ? ` Participa en ${modalidades.join(" y ")}.` : "";
+
+  return createAutomatic([
+    ...familia.map((userId) => ({
+      userId,
+      topic: NotificationTopic.PAGO,
+      title: "Inscripción confirmada",
+      body: `Recibimos tu pago de ${monto} con PayPal para "${eventTitle}" y ya quedaste inscrito.${detalle}`,
+      link: "/eventos",
+      dedupeKey: `cobro-evento-paypal-${enrollmentId}-${userId}`,
+    })),
+    ...(teacherUserId === null
+      ? []
+      : [
+          {
+            userId: teacherUserId,
+            topic: NotificationTopic.PAGO,
+            title: "Pago con PayPal recibido",
+            body: `Un alumno pagó ${monto} con PayPal para "${eventTitle}". Ya quedó inscrito; no tienes que confirmar nada.`,
+            link: "/eventos",
+            dedupeKey: `cobro-evento-paypal-profesor-${enrollmentId}`,
+          },
+        ]),
+  ]);
 }
 
 /**

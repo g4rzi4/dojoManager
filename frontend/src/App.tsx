@@ -1,20 +1,24 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
-import Enroll from "./pages/Enroll";
-import Dashboard from "./pages/Dashboard";
-import FamilyHome from "./pages/FamilyHome";
-import Teachers from "./pages/Teachers";
-import TeacherCard from "./pages/TeacherCard";
-import Students from "./pages/Students";
-import StudentDetail from "./pages/StudentDetail";
-import MyCard from "./pages/MyCard";
-import Events from "./pages/Events";
-import Classes from "./pages/Classes";
-import Payments from "./pages/Payments";
-import Notifications from "./pages/Notifications";
-import NotFound from "./pages/NotFound";
+
+// Cada pantalla se descarga al abrirla: así el SDK de PayPal y los formularios
+// grandes no pesan en el login.
+const Enroll = lazy(() => import("./pages/Enroll"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const FamilyHome = lazy(() => import("./pages/FamilyHome"));
+const Teachers = lazy(() => import("./pages/Teachers"));
+const TeacherCard = lazy(() => import("./pages/TeacherCard"));
+const Students = lazy(() => import("./pages/Students"));
+const StudentDetail = lazy(() => import("./pages/StudentDetail"));
+const MyCard = lazy(() => import("./pages/MyCard"));
+const Events = lazy(() => import("./pages/Events"));
+const Classes = lazy(() => import("./pages/Classes"));
+const Payments = lazy(() => import("./pages/Payments"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 /**
  * Cada ruta declara el permiso que exige. Es navegación, no seguridad: el
@@ -27,6 +31,7 @@ import NotFound from "./pages/NotFound";
 function App() {
   return (
     <BrowserRouter>
+      <Suspense fallback={null}>
       <Routes>
         <Route path="/" element={<Login />} />
 
@@ -143,6 +148,7 @@ function App() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

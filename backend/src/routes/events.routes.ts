@@ -1,16 +1,29 @@
 import { Router } from "express";
 
 import { prisma } from "../lib/prisma";
-import { familyStudentIds } from "../lib/access";
+import { canManageStudent, familyStudentIds } from "../lib/access";
 import {
+  notifyEnrolledByTeacher,
   notifyEventPaymentReported,
   notifyEventPaymentResolved,
   notifyNewEvent,
 } from "../lib/notifications";
+import { paypalConfigured } from "../lib/paypal";
 import { normalizeTeacherCode } from "../lib/teacherCode";
+import { preciosParaProfesor, profesorDeAlumno } from "../lib/eventPricing";
 import { requireAuth, requirePermission } from "../middleware/auth";
 import { can } from "../permissions";
 import {
+  CATEGORIAS,
+  categoriaValida,
+  categoriasDe,
+  infoDeCategoria,
+  rangoLegible,
+} from "../lib/competitionCategories";
+import {
+  AgeCategory,
+  BeltClass,
+  CompetitionGender,
   EventCategory,
   EventPaymentStatus,
   PaymentMethod,
@@ -18,6 +31,22 @@ import {
 } from "../generated/prisma/enums";
 
 const router = Router();
+
+/** Arma el texto de la categoría: "Infantil 8-9 años · femenil · color". */
+function describirCategoria(
+  gender: CompetitionGender | null,
+  beltClass: BeltClass | null,
+  ageCategory: AgeCategory | null
+): string | null {
+  if (!gender || !beltClass || !ageCategory) return null;
+
+  const info = infoDeCategoria(ageCategory);
+  if (!info) return null;
+
+  const rama = beltClass === BeltClass.NEGRA ? "cinta negra" : "cinta de color";
+
+  return `${info.label} ${rangoLegible(info)} · ${gender.toLowerCase()} · ${rama}`;
+}
 
 /**
  * GET /events
@@ -42,6 +71,7 @@ router.get(
         orderBy: [{ date: "asc" }, { time: "asc" }],
         include: {
           createdBy: { select: { name: true } },
+          modalities: { orderBy: { id: "asc" } },
           _count: { select: { enrollments: true } },
         },
       }),
@@ -50,6 +80,7 @@ router.get(
         : prisma.eventEnrollment.findMany({
             where: { studentId: { in: propios } },
             select: {
+              id: true,
               eventId: true,
               studentId: true,
               status: true,
@@ -57,6 +88,29 @@ router.get(
             },
           }),
     ]);
+
+    /**
+     * Qué lista de precios ve quien consulta:
+     *   PROFESOR         la suya
+     *   ALUMNO / TUTOR   la del profesor de su alumno, que es a quien pagará
+     *   ADMIN            los precios base
+     */
+    let precioDe: number | null = null;
+
+    if (req.user!.role === Role.PROFESOR) {
+      precioDe = req.user!.id;
+    } else if (propios.length > 0) {
+      precioDe = await profesorDeAlumno(propios[0]);
+    }
+
+    const modalidadesPorEvento = new Map(
+      await Promise.all(
+        events.map(
+          async (e) =>
+            [e.id, await preciosParaProfesor(e.modalities, precioDe)] as const
+        )
+      )
+    );
 
     return res.json({
       success: true,
@@ -74,10 +128,12 @@ router.get(
           createdBy: e.createdBy?.name ?? null,
           requiresPayment: e.requiresPayment,
           priceCents: e.priceCents,
+          modalities: modalidadesPorEvento.get(e.id) ?? [],
           /** Cuántos reportes de pago lleva, para admin y profesores. */
           reportes: e._count.enrollments,
           /** Estado de los alumnos a cargo de quien consulta. */
           misAlumnos: mias.map((i) => ({
+            enrollmentId: i.id,
             studentId: i.studentId,
             status: i.status,
             enrolled: i.enrolled,
@@ -88,8 +144,172 @@ router.get(
   }
 );
 
-/** Las categorías válidas, para validar lo que llega del cliente. */
-const CATEGORIAS = Object.values(EventCategory) as string[];
+/**
+ * GET /events/categories
+ *
+ * El catálogo de categorías de competencia, con sus rangos de edad.
+ *
+ * Lo sirve el backend para que el frontend no duplique la tabla: si algún
+ * día cambian los rangos, se cambian en un solo lugar.
+ *
+ * Va ANTES de /:id para que Express no tome "categories" por un id.
+ */
+router.get(
+  "/categories",
+  requireAuth,
+  requirePermission("events:read"),
+  async (_req, res) => {
+    return res.json({
+      success: true,
+      generos: Object.values(CompetitionGender),
+      ramas: Object.values(BeltClass),
+      categorias: CATEGORIAS.map((c) => ({
+        value: c.category,
+        label: c.label,
+        rango: rangoLegible(c),
+        minAge: c.minAge,
+        maxAge: c.maxAge,
+        beltClasses: c.beltClasses,
+      })),
+    });
+  }
+);
+
+
+type ModalidadEvento = { id: number; name: string; priceCents: number };
+
+/**
+ * Calcula cuánto se cobra y por qué conceptos.
+ *
+ * Recibe las modalidades con el precio YA resuelto para el profesor que
+ * cobra: cada profesor puede tener el suyo para sus alumnos.
+ *
+ * Con modalidades, el total es la SUMA de las elegidas: hay padres que
+ * inscriben a su hijo en kata y kumite y pagan las dos. Sin modalidades, es
+ * el precio único del evento.
+ *
+ * Los precios se COPIAN aquí para guardarlos en la inscripción, y así poder
+ * reconstruir el desglose aunque el evento cambie de precio después.
+ *
+ * Lo comparten el reporte del alumno y la inscripción que hace el profesor,
+ * para que las dos rutas cobren exactamente igual.
+ */
+function resolverCobro(
+  event: { priceCents: number | null; modalities: ModalidadEvento[] },
+  modalityIds: unknown
+): { elegidas: ModalidadEvento[]; total: number; error?: string } {
+  const vacio = { elegidas: [] as ModalidadEvento[], total: 0 };
+
+  if (event.modalities.length === 0) {
+    if (event.priceCents === null) {
+      return { ...vacio, error: "Este evento no tiene costo configurado." };
+    }
+
+    return { elegidas: [], total: event.priceCents };
+  }
+
+  if (!Array.isArray(modalityIds) || modalityIds.length === 0) {
+    return {
+      ...vacio,
+      error: `Elige al menos una modalidad: ${event.modalities
+        .map((m) => m.name)
+        .join(", ")}.`,
+    };
+  }
+
+  const elegidas: ModalidadEvento[] = [];
+  const vistos = new Set<number>();
+
+  for (const raw of modalityIds) {
+    const mid = Number(raw);
+    const modalidad = event.modalities.find((m) => m.id === mid);
+
+    if (!modalidad) {
+      return {
+        ...vacio,
+        error: "Una de las modalidades no pertenece a este evento.",
+      };
+    }
+
+    // Elegir la misma dos veces no debe cobrarse doble.
+    if (vistos.has(mid)) continue;
+    vistos.add(mid);
+
+    elegidas.push(modalidad);
+  }
+
+  return {
+    elegidas,
+    total: elegidas.reduce((suma, m) => suma + m.priceCents, 0),
+  };
+}
+
+/**
+ * Valida la categoría de competencia.
+ *
+ * Los tres ejes van juntos o ninguno: una categoría a medias no sirve para
+ * armar las llaves de un torneo. Se comprueba que exista en la rama de cinta
+ * elegida, pero NUNCA contra la edad del alumno: inscribir a alguien en una
+ * categoría mayor para foguearlo es legítimo.
+ */
+function resolverCategoria(
+  gender: unknown,
+  beltClass: unknown,
+  ageCategory: unknown
+):
+  | {
+      valor: {
+        gender: CompetitionGender;
+        beltClass: BeltClass;
+        ageCategory: AgeCategory;
+      } | null;
+    }
+  | { error: string } {
+  if (gender === undefined || gender === null || gender === "") {
+    return { valor: null };
+  }
+
+  const generos = Object.values(CompetitionGender) as string[];
+  const ramas = Object.values(BeltClass) as string[];
+  const categorias = Object.values(AgeCategory) as string[];
+
+  if (typeof gender !== "string" || !generos.includes(gender)) {
+    return { error: `Rama no válida. Opciones: ${generos.join(", ")}.` };
+  }
+
+  if (typeof beltClass !== "string" || !ramas.includes(beltClass)) {
+    return {
+      error: "Indica si compite en cintas de color o en cintas negras.",
+    };
+  }
+
+  if (typeof ageCategory !== "string" || !categorias.includes(ageCategory)) {
+    return { error: "Indica la categoría de edad." };
+  }
+
+  if (!categoriaValida(ageCategory as AgeCategory, beltClass as BeltClass)) {
+    const validas = categoriasDe(beltClass as BeltClass)
+      .map((c) => `${c.label} (${rangoLegible(c)})`)
+      .join(", ");
+
+    return {
+      error: `Esa categoría no existe en ${
+        beltClass === "NEGRA" ? "cintas negras" : "cintas de color"
+      }. Opciones: ${validas}.`,
+    };
+  }
+
+  return {
+    valor: {
+      gender: gender as CompetitionGender,
+      beltClass: beltClass as BeltClass,
+      ageCategory: ageCategory as AgeCategory,
+    },
+  };
+}
+
+/** Tipos de evento válidos (clase, examen, torneo, pago). */
+const CATEGORIAS_EVENTO = Object.values(EventCategory) as string[];
 
 // ---------------------------------------------------------------------------
 // Pago e inscripción a eventos
@@ -118,7 +338,16 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     });
   }
 
-  const { teacherCode, studentId, method, note } = req.body ?? {};
+  const {
+    teacherCode,
+    studentId,
+    method,
+    note,
+    modalityIds,
+    gender,
+    beltClass,
+    ageCategory,
+  } = req.body ?? {};
 
   if (typeof teacherCode !== "string" || teacherCode.trim().length === 0) {
     return res.status(400).json({
@@ -129,7 +358,13 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, requiresPayment: true, priceCents: true, title: true },
+    select: {
+      id: true,
+      requiresPayment: true,
+      priceCents: true,
+      title: true,
+      modalities: { select: { id: true, name: true, priceCents: true } },
+    },
   });
 
   if (!event) {
@@ -139,11 +374,17 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     });
   }
 
-  if (!event.requiresPayment || event.priceCents === null) {
+  if (!event.requiresPayment) {
     return res.status(400).json({
       success: false,
       message: "Este evento no requiere pago.",
     });
+  }
+
+  const categoria = resolverCategoria(gender, beltClass, ageCategory);
+
+  if ("error" in categoria) {
+    return res.status(400).json({ success: false, message: categoria.error });
   }
 
   // Qué alumno. Un alumno solo puede reportar por sí mismo; un tutor tiene
@@ -181,7 +422,8 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     alumnoId = pedido;
   }
 
-  // Resolver la clave del profesor.
+  // La clave decide a quién se le acredita el cobro Y qué precios aplican:
+  // cada profesor puede tener los suyos para sus alumnos.
   const code = normalizeTeacherCode(teacherCode);
 
   const teacher = await prisma.user.findUnique({
@@ -196,10 +438,41 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     });
   }
 
-  const yaReportado = await prisma.eventEnrollment.findUnique({
+  const conPrecios = await preciosParaProfesor(event.modalities, teacher.id);
+
+  const { elegidas, total, error: errorCobro } = resolverCobro(
+    { priceCents: event.priceCents, modalities: conPrecios },
+    modalityIds
+  );
+
+  if (errorCobro) {
+    return res.status(400).json({ success: false, message: errorCobro });
+  }
+
+  const pagaConPayPal = method === PaymentMethod.PAYPAL;
+
+  if (pagaConPayPal && !paypalConfigured()) {
+    return res.status(503).json({
+      success: false,
+      message: "El pago en línea no está disponible.",
+    });
+  }
+
+  let yaReportado = await prisma.eventEnrollment.findUnique({
     where: { eventId_studentId: { eventId, studentId: alumnoId } },
-    select: { id: true, status: true },
+    select: { id: true, status: true, method: true },
   });
+
+  // Un checkout de PayPal que quedó sin pagar no debe bloquear para siempre:
+  // se descarta y la familia puede volver a elegir. Es seguro porque capturar
+  // exige que la orden siga ligada a una inscripción existente.
+  if (
+    yaReportado?.status === EventPaymentStatus.PENDIENTE_PAGO &&
+    yaReportado.method === PaymentMethod.PAYPAL
+  ) {
+    await prisma.eventEnrollment.delete({ where: { id: yaReportado.id } });
+    yaReportado = null;
+  }
 
   if (yaReportado) {
     return res.status(409).json({
@@ -218,16 +491,42 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
       creditedToId: teacher.id,
       // El monto se congela al reportar: si el dojo cambia el precio
       // después, los cobros ya hechos no se alteran.
-      amountCents: event.priceCents,
+      amountCents: total,
+      // Con PayPal aún no hay nada que confirmar: queda pendiente hasta que
+      // se capture el pago, y entonces se inscribe solo.
+      status: pagaConPayPal
+        ? EventPaymentStatus.PENDIENTE_PAGO
+        : EventPaymentStatus.REPORTADO,
+      gender: categoria.valor?.gender ?? null,
+      beltClass: categoria.valor?.beltClass ?? null,
+      ageCategory: categoria.valor?.ageCategory ?? null,
       method:
         typeof method === "string" &&
         Object.values(PaymentMethod).includes(method as PaymentMethod)
           ? (method as PaymentMethod)
           : null,
       note: typeof note === "string" ? note.trim() || null : null,
+      modalities:
+        elegidas.length > 0
+          ? {
+              create: elegidas.map((m) => ({
+                modalityId: m.id,
+                priceCents: m.priceCents,
+              })),
+            }
+          : undefined,
     },
     select: { id: true },
   });
+
+  if (pagaConPayPal) {
+    return res.status(201).json({
+      success: true,
+      enrollmentId: enrollment.id,
+      amountCents: total,
+      message: "Completa tu pago con PayPal para quedar inscrito.",
+    });
+  }
 
   // Avisarle al profesor que tiene un pago por confirmar.
   try {
@@ -235,7 +534,7 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
       enrollment.id,
       teacher.id,
       event.title,
-      event.priceCents
+      total
     );
   } catch (error) {
     console.error("[events] no se pudo notificar el pago reportado", error);
@@ -246,6 +545,162 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     message: `Listo. Le avisamos a ${teacher.name} para que confirme tu pago.`,
   });
 });
+
+
+/**
+ * POST /events/:id/enroll
+ *
+ * El profesor inscribe a uno de SUS alumnos, eligiendo sus modalidades.
+ *
+ * La inscripción nace en PENDIENTE_PAGO: el alumno ya sabe en qué va y
+ * cuánto debe, pero no está inscrito hasta que el pago se confirme. Al
+ * alumno y a sus tutores les llega la notificación con el detalle.
+ *
+ * Un profesor solo puede inscribir alumnos de su grupo; el admin, a
+ * cualquiera.
+ */
+router.post(
+  "/:id/enroll",
+  requireAuth,
+  requirePermission("events:write"),
+  async (req, res) => {
+    const eventId = Number(req.params.id);
+
+    if (!Number.isInteger(eventId) || eventId < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "El id del evento no es válido.",
+      });
+    }
+
+    const { studentId, modalityIds, gender, beltClass, ageCategory, note } =
+      req.body ?? {};
+
+    const alumnoId = Number(studentId);
+
+    if (!Number.isInteger(alumnoId) || alumnoId < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica a qué alumno inscribes.",
+      });
+    }
+
+    // Un profesor solo inscribe a los suyos.
+    if (!(await canManageStudent(req.user!, alumnoId))) {
+      return res.status(403).json({
+        success: false,
+        message: "Ese alumno no está en tu grupo.",
+      });
+    }
+
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: {
+        id: true,
+        title: true,
+        requiresPayment: true,
+        priceCents: true,
+        modalities: { select: { id: true, name: true, priceCents: true } },
+      },
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "No existe ese evento.",
+      });
+    }
+
+    if (!event.requiresPayment) {
+      return res.status(400).json({
+        success: false,
+        message: "Este evento no requiere inscripción con pago.",
+      });
+    }
+
+    // Los precios del profesor que inscribe: son los que cobra a su grupo.
+    const conPrecios = await preciosParaProfesor(
+      event.modalities,
+      req.user!.id
+    );
+
+    const { elegidas, total, error } = resolverCobro(
+      { priceCents: event.priceCents, modalities: conPrecios },
+      modalityIds
+    );
+
+    if (error) {
+      return res.status(400).json({ success: false, message: error });
+    }
+
+    const categoria = resolverCategoria(gender, beltClass, ageCategory);
+
+    if ("error" in categoria) {
+      return res.status(400).json({ success: false, message: categoria.error });
+    }
+
+    const yaExiste = await prisma.eventEnrollment.findUnique({
+      where: { eventId_studentId: { eventId, studentId: alumnoId } },
+      select: { id: true },
+    });
+
+    if (yaExiste) {
+      return res.status(409).json({
+        success: false,
+        message: "Ese alumno ya está en la lista de este evento.",
+      });
+    }
+
+    const enrollment = await prisma.eventEnrollment.create({
+      data: {
+        eventId,
+        studentId: alumnoId,
+        // Se acredita a quien inscribe: es quien va a recibir el pago.
+        creditedToId: req.user!.id,
+        amountCents: total,
+        status: EventPaymentStatus.PENDIENTE_PAGO,
+        enrolled: false,
+        gender: categoria.valor?.gender ?? null,
+        beltClass: categoria.valor?.beltClass ?? null,
+        ageCategory: categoria.valor?.ageCategory ?? null,
+        note: typeof note === "string" ? note.trim() || null : null,
+        modalities:
+          elegidas.length > 0
+            ? {
+                create: elegidas.map((m) => ({
+                  modalityId: m.id,
+                  priceCents: m.priceCents,
+                })),
+              }
+            : undefined,
+      },
+      select: { id: true },
+    });
+
+    // Avisarle a la familia en qué va y cuánto debe.
+    try {
+      await notifyEnrolledByTeacher(
+        enrollment.id,
+        alumnoId,
+        event.title,
+        elegidas.map((m) => m.name),
+        total,
+        describirCategoria(
+          categoria.valor?.gender ?? null,
+          categoria.valor?.beltClass ?? null,
+          categoria.valor?.ageCategory ?? null
+        )
+      );
+    } catch (e) {
+      console.error("[events] no se pudo notificar la inscripción", e);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Alumno inscrito. Le avisamos lo que tiene que pagar.",
+    });
+  }
+);
 
 /**
  * GET /events/:id/enrollments
@@ -282,6 +737,7 @@ router.get(
           select: { id: true, firstName: true, lastName: true },
         },
         creditedTo: { select: { id: true, name: true } },
+        modalities: { include: { modality: { select: { name: true } } } },
       },
     });
 
@@ -295,6 +751,16 @@ router.get(
         amountCents: e.amountCents,
         status: e.status,
         enrolled: e.enrolled,
+        gender: e.gender,
+        beltClass: e.beltClass,
+        ageCategory: e.ageCategory,
+        /** Texto listo para mostrar: "Infantil 8-9 años · femenil". */
+        categoriaLegible: describirCategoria(e.gender, e.beltClass, e.ageCategory),
+        /** Desglose: qué modalidades y cuánto costó cada una. */
+        modalidades: e.modalities.map((m) => ({
+          name: m.modality.name,
+          priceCents: m.priceCents,
+        })),
         method: e.method,
         note: e.note,
         acreditadoA: e.creditedTo?.name ?? null,
@@ -341,7 +807,14 @@ router.patch(
 
     const enrollment = await prisma.eventEnrollment.findUnique({
       where: { id },
-      select: { id: true, creditedToId: true, status: true, studentId: true },
+      select: {
+        id: true,
+        creditedToId: true,
+        status: true,
+        studentId: true,
+        event: { select: { title: true } },
+        modalities: { select: { modality: { select: { name: true } } } },
+      },
     });
 
     if (!enrollment) {
@@ -376,7 +849,15 @@ router.patch(
 
     // Avisarle a la familia cómo quedó.
     try {
-      await notifyEventPaymentResolved(enrollment.id, enrollment.studentId, confirmar);
+      // Con el título y las modalidades: es el dato que la familia necesita
+      // el día del torneo, y no tienen por qué recordar lo que eligieron.
+      await notifyEventPaymentResolved(
+        enrollment.id,
+        enrollment.studentId,
+        confirmar,
+        enrollment.event.title,
+        enrollment.modalities.map((m) => m.modality.name)
+      );
     } catch (error) {
       console.error("[events] no se pudo notificar la resolución", error);
     }
@@ -403,8 +884,15 @@ router.post(
   requireAuth,
   requirePermission("events:write"),
   async (req, res) => {
-    const { title, date, time, category, requiresPayment, priceCents } =
-      req.body ?? {};
+    const {
+      title,
+      date,
+      time,
+      category,
+      requiresPayment,
+      priceCents,
+      modalities,
+    } = req.body ?? {};
 
     if (typeof title !== "string" || title.trim().length === 0) {
       return res.status(400).json({
@@ -420,10 +908,10 @@ router.post(
       });
     }
 
-    if (typeof category !== "string" || !CATEGORIAS.includes(category)) {
+    if (typeof category !== "string" || !CATEGORIAS_EVENTO.includes(category)) {
       return res.status(400).json({
         success: false,
-        message: `Categoría no válida. Opciones: ${CATEGORIAS.join(", ")}.`,
+        message: `Categoría no válida. Opciones: ${CATEGORIAS_EVENTO.join(", ")}.`,
       });
     }
 
@@ -441,18 +929,55 @@ router.post(
       hora = time.trim();
     }
 
-    // Pago: si el evento lo requiere, el precio es obligatorio y en centavos.
+    // Pago. Un evento con modalidades saca el costo de ellas; uno sin
+    // modalidades usa un precio único.
     const conPago = requiresPayment === true;
     let precio: number | null = null;
 
-    if (conPago) {
+    const listaModalidades: { name: string; priceCents: number }[] = [];
+
+    if (conPago && Array.isArray(modalities) && modalities.length > 0) {
+      const vistos = new Set<string>();
+
+      for (const [i, m] of modalities.entries()) {
+        const name = typeof m?.name === "string" ? m.name.trim() : "";
+        const cents = Number(m?.priceCents);
+
+        if (name.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Falta el nombre de la modalidad ${i + 1}.`,
+          });
+        }
+
+        if (!Number.isInteger(cents) || cents <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `El costo de "${name}" debe ser un entero de centavos mayor a cero.`,
+          });
+        }
+
+        // El índice único de la base lo rechazaría igual, pero aquí el
+        // mensaje dice cuál es la repetida.
+        const clave = name.toLowerCase();
+        if (vistos.has(clave)) {
+          return res.status(400).json({
+            success: false,
+            message: `La modalidad "${name}" está repetida.`,
+          });
+        }
+        vistos.add(clave);
+
+        listaModalidades.push({ name, priceCents: cents });
+      }
+    } else if (conPago) {
       const cents = Number(priceCents);
 
       if (!Number.isInteger(cents) || cents <= 0) {
         return res.status(400).json({
           success: false,
           message:
-            "Si el evento requiere pago, indica el costo en centavos como un entero mayor a cero.",
+            "Si el evento requiere pago, indica el costo o define al menos una modalidad.",
         });
       }
 
@@ -471,7 +996,12 @@ router.post(
         requiresPayment: conPago,
         priceCents: precio,
         createdById: req.user!.id,
+        modalities:
+          listaModalidades.length > 0
+            ? { create: listaModalidades }
+            : undefined,
       },
+      include: { modalities: true },
     });
 
     // Avisa a las familias. Si falla, el evento ya quedó creado: no tiene
@@ -502,8 +1032,351 @@ router.post(
         category: event.category,
         requiresPayment: event.requiresPayment,
         priceCents: event.priceCents,
+        modalities: event.modalities.map((m) => ({
+          id: m.id,
+          name: m.name,
+          priceCents: m.priceCents,
+        })),
       },
     });
+  }
+);
+
+
+/**
+ * PATCH /events/:id
+ *
+ * Edita un evento: sus datos y los costos por modalidad. Lo hacen el ADMIN
+ * y los PROFESOR, aunque el evento lo haya creado alguien más.
+ *
+ * Sobre las modalidades:
+ *
+ *  - Las que traen `id` se actualizan.
+ *  - Las que no lo traen se crean.
+ *  - Las que existían y no vienen en la lista se BORRAN, pero solo si nadie
+ *    las ha usado todavía. Borrar una modalidad con alumnos inscritos
+ *    destruiría el desglose de sus cobros, así que se rechaza.
+ *
+ * Cambiar un precio NO altera los cobros ya hechos: cada inscripción guardó
+ * su propio precio al momento de reportarse.
+ */
+router.patch(
+  "/:id",
+  requireAuth,
+  requirePermission("events:write"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "El id del evento no es válido.",
+      });
+    }
+
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: {
+        modalities: {
+          include: { _count: { select: { enrollments: true } } },
+        },
+      },
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "No existe ese evento.",
+      });
+    }
+
+    const { title, date, time, category, requiresPayment, priceCents, modalities } =
+      req.body ?? {};
+
+    const datos: {
+      title?: string;
+      date?: Date;
+      time?: string | null;
+      category?: EventCategory;
+      requiresPayment?: boolean;
+      priceCents?: number | null;
+    } = {};
+
+    if (title !== undefined) {
+      if (typeof title !== "string" || title.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "El título no puede quedar vacío.",
+        });
+      }
+      datos.title = title.trim();
+    }
+
+    if (date !== undefined) {
+      if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date.trim())) {
+        return res.status(400).json({
+          success: false,
+          message: "La fecha debe venir como AAAA-MM-DD.",
+        });
+      }
+      const [y, m, d] = date.trim().split("-").map(Number);
+      datos.date = new Date(Date.UTC(y, m - 1, d));
+    }
+
+    if (time !== undefined) {
+      if (time === null || time === "") {
+        datos.time = null;
+      } else if (
+        typeof time === "string" &&
+        /^([01]\d|2[0-3]):[0-5]\d$/.test(time.trim())
+      ) {
+        datos.time = time.trim();
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "La hora debe venir como HH:MM, de 00:00 a 23:59.",
+        });
+      }
+    }
+
+    if (category !== undefined) {
+      if (typeof category !== "string" || !CATEGORIAS_EVENTO.includes(category)) {
+        return res.status(400).json({
+          success: false,
+          message: `Categoría no válida. Opciones: ${CATEGORIAS_EVENTO.join(", ")}.`,
+        });
+      }
+      datos.category = category as EventCategory;
+    }
+
+    if (requiresPayment !== undefined) {
+      datos.requiresPayment = requiresPayment === true;
+    }
+
+    if (priceCents !== undefined) {
+      if (priceCents === null) {
+        datos.priceCents = null;
+      } else {
+        const cents = Number(priceCents);
+        if (!Number.isInteger(cents) || cents <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: "El costo debe ser un entero de centavos mayor a cero.",
+          });
+        }
+        datos.priceCents = cents;
+      }
+    }
+
+    const esAdminEditando = req.user!.role === Role.ADMIN;
+
+    /**
+     * Un PROFESOR no cambia el evento para todos: solo ajusta lo que les
+     * cobra a SUS alumnos. Si manda datos estructurales se le rechaza, para
+     * que no crea que cambió algo global y luego descubra que no.
+     */
+    if (!esAdminEditando) {
+      const estructurales = ["title", "date", "time", "category", "requiresPayment", "priceCents"]
+        .filter((campo) => req.body?.[campo] !== undefined);
+
+      if (estructurales.length > 0) {
+        return res.status(403).json({
+          success: false,
+          message: `Solo el administrador puede cambiar ${estructurales.join(", ")}. Tú puedes ajustar los costos por modalidad para tus alumnos.`,
+        });
+      }
+
+      if (!Array.isArray(modalities) || modalities.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Manda los costos por modalidad que quieres ajustar.",
+        });
+      }
+
+      const ajustes: { modalityId: number; priceCents: number }[] = [];
+
+      for (const m of modalities) {
+        const mid = Number(m?.id);
+        const cents = Number(m?.priceCents);
+
+        if (!event.modalities.some((x) => x.id === mid)) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Solo puedes ajustar el precio de modalidades que ya existen. Pídele al administrador que agregue o quite modalidades.",
+          });
+        }
+
+        if (!Number.isInteger(cents) || cents <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: "El costo debe ser un entero de centavos mayor a cero.",
+          });
+        }
+
+        ajustes.push({ modalityId: mid, priceCents: cents });
+      }
+
+      for (const a of ajustes) {
+        await prisma.teacherModalityPrice.upsert({
+          where: {
+            modalityId_teacherId: {
+              modalityId: a.modalityId,
+              teacherId: req.user!.id,
+            },
+          },
+          update: { priceCents: a.priceCents },
+          create: { ...a, teacherId: req.user!.id },
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Listo. Estos precios aplican solo a tus alumnos.",
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // Modalidades (solo el administrador llega aquí)
+    // -----------------------------------------------------------------------
+    type CambioModalidad = { id?: number; name: string; priceCents: number };
+    let plan: {
+      crear: { name: string; priceCents: number }[];
+      actualizar: { id: number; name: string; priceCents: number }[];
+      borrar: number[];
+    } | null = null;
+
+    if (modalities !== undefined) {
+      if (!Array.isArray(modalities)) {
+        return res.status(400).json({
+          success: false,
+          message: "Las modalidades deben venir como lista.",
+        });
+      }
+
+      const limpias: CambioModalidad[] = [];
+      const nombres = new Set<string>();
+
+      for (const [i, m] of modalities.entries()) {
+        const name = typeof m?.name === "string" ? m.name.trim() : "";
+        const cents = Number(m?.priceCents);
+
+        if (name.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Falta el nombre de la modalidad ${i + 1}.`,
+          });
+        }
+
+        if (!Number.isInteger(cents) || cents <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `El costo de "${name}" debe ser un entero de centavos mayor a cero.`,
+          });
+        }
+
+        const clave = name.toLowerCase();
+        if (nombres.has(clave)) {
+          return res.status(400).json({
+            success: false,
+            message: `La modalidad "${name}" está repetida.`,
+          });
+        }
+        nombres.add(clave);
+
+        const mid = m?.id === undefined || m?.id === null ? undefined : Number(m.id);
+
+        if (mid !== undefined && !event.modalities.some((x) => x.id === mid)) {
+          return res.status(400).json({
+            success: false,
+            message: "Una de las modalidades no pertenece a este evento.",
+          });
+        }
+
+        limpias.push({ id: mid, name, priceCents: cents });
+      }
+
+      const conservados = new Set(
+        limpias.filter((m) => m.id !== undefined).map((m) => m.id as number)
+      );
+
+      const aBorrar = event.modalities.filter((m) => !conservados.has(m.id));
+
+      // Guardarraíl: borrar una modalidad con inscritos destruiría el
+      // desglose de sus cobros.
+      const conInscritos = aBorrar.filter((m) => m._count.enrollments > 0);
+
+      if (conInscritos.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: `No puedes quitar ${conInscritos
+            .map((m) => `"${m.name}"`)
+            .join(", ")}: ya hay alumnos inscritos en esa modalidad. Puedes cambiarle el precio, pero no borrarla.`,
+        });
+      }
+
+      plan = {
+        crear: limpias
+          .filter((m) => m.id === undefined)
+          .map((m) => ({ name: m.name, priceCents: m.priceCents })),
+        actualizar: limpias
+          .filter((m) => m.id !== undefined)
+          .map((m) => ({ id: m.id as number, name: m.name, priceCents: m.priceCents })),
+        borrar: aBorrar.map((m) => m.id),
+      };
+    }
+
+    /**
+     * Un evento "con pago" pero sin costo ni modalidades es una trampa: el
+     * alumno abre el formulario y no puede pagar nada. Se comprueba el
+     * estado FINAL, no solo lo que llegó en esta petición.
+     */
+    const pagoFinal = datos.requiresPayment ?? event.requiresPayment;
+
+    const modalidadesFinales = plan
+      ? plan.actualizar.length + plan.crear.length
+      : event.modalities.length;
+
+    const precioFinal =
+      datos.priceCents !== undefined ? datos.priceCents : event.priceCents;
+
+    if (pagoFinal && modalidadesFinales === 0 && !precioFinal) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Si el evento requiere pago, define un costo o al menos una modalidad.",
+      });
+    }
+
+    // Todo junto: si algo falla, el evento no queda a medias.
+    await prisma.$transaction(async (tx) => {
+      if (Object.keys(datos).length > 0) {
+        await tx.event.update({ where: { id }, data: datos });
+      }
+
+      if (plan) {
+        if (plan.borrar.length > 0) {
+          await tx.eventModality.deleteMany({
+            where: { id: { in: plan.borrar } },
+          });
+        }
+
+        for (const m of plan.actualizar) {
+          await tx.eventModality.update({
+            where: { id: m.id },
+            data: { name: m.name, priceCents: m.priceCents },
+          });
+        }
+
+        if (plan.crear.length > 0) {
+          await tx.eventModality.createMany({
+            data: plan.crear.map((m) => ({ ...m, eventId: id })),
+          });
+        }
+      }
+    });
+
+    return res.json({ success: true, message: "Evento actualizado." });
   }
 );
 

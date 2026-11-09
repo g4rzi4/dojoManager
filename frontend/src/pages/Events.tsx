@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CalendarPlus, Clock, Receipt, Trash2 } from "lucide-react";
+import { CalendarDays, CalendarPlus, Clock, Pencil, Receipt, Trash2 } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import PageHeading from "../components/PageHeading";
 import EventForm from "../components/EventForm";
 import EventPaymentPanel from "../components/EventPaymentPanel";
+import EventEditForm from "../components/EventEditForm";
 import { ApiError, deleteEvent, getEvents, getMyStudents } from "../services/api";
 import { can, getUser } from "../services/session";
 import type { DojoEvent } from "../types/event";
@@ -25,6 +27,8 @@ function Events() {
   const [misAlumnos, setMisAlumnos] = useState<MyStudent[]>([]);
   /** Qué evento tiene abierto su panel de pago. */
   const [abierto, setAbierto] = useState<string | null>(null);
+  /** Qué evento se está editando. */
+  const [editando, setEditando] = useState<string | null>(null);
 
   function cargar() {
     return getEvents()
@@ -123,15 +127,15 @@ function Events() {
 
   return (
     <DashboardLayout>
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <PageHeading module="eventos">
+          <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
             Eventos
           </h1>
-          <p className="mt-2 text-slate-600">
+          <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
             Clases, exámenes de cinta, torneos y fechas de cobro.
           </p>
-        </div>
+        </PageHeading>
 
         {puedeEditar && (
           <button
@@ -139,12 +143,12 @@ function Events() {
             onClick={() => setAgregando((v) => !v)}
             aria-expanded={agregando}
             className="
-              flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600
+              flex cursor-pointer items-center gap-2 rounded-2xl bg-violet-600
               px-4 py-2.5 text-sm font-semibold text-white
               transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
             "
           >
             <CalendarPlus size={17} aria-hidden="true" />
@@ -181,13 +185,13 @@ function Events() {
           </div>
         ) : upcomingByDay.length === 0 ? (
           <Card className="p-8 text-center">
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-neutral-100 text-neutral-500">
               <CalendarDays size={26} aria-hidden="true" />
             </span>
-            <h2 className="mt-4 font-bold text-slate-900">
+            <h2 className="mt-4 font-bold text-neutral-900">
               No hay eventos próximos
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-neutral-600">
               {puedeEditar
                 ? "Agrega el primero con el botón de arriba."
                 : "Los eventos que programe el dojo aparecerán aquí."}
@@ -197,25 +201,20 @@ function Events() {
           <ul className="space-y-6">
             {upcomingByDay.map(([dateKey, dayEvents]) => (
               <li key={dateKey}>
-                <h2 className="text-sm font-semibold text-slate-900 first-letter:uppercase">
+                <h2 className="text-sm font-semibold text-neutral-900 first-letter:uppercase">
                   {formatLongDate(fromDateKey(dateKey))}
                 </h2>
 
                 <ul className="mt-3 space-y-2">
                   {dayEvents.map((event) => (
                     <li key={event.id}>
-                      <Card className="flex items-center gap-4 p-4">
-                        <span
-                          className={`h-10 w-1.5 shrink-0 rounded-full ${
-                            CATEGORY_STYLES[event.category].dot
-                          }`}
-                        />
+                      <Card className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4">
 
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-slate-900">
+                        <div className="min-w-0 flex-1 basis-40">
+                          <p className="font-semibold break-words text-neutral-900">
                             {event.title}
                           </p>
-                          <p className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-600">
+                          <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-600">
                             {event.time ? (
                               <>
                                 <Clock size={14} aria-hidden="true" />
@@ -237,7 +236,13 @@ function Events() {
 
                         {event.requiresPayment && (
                           <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
-                            {formatMoney(event.priceCents ?? 0)}
+                            {event.modalities && event.modalities.length > 0
+                              ? `${event.modalities.length} modalidades · desde ${formatMoney(
+                                  Math.min(
+                                    ...event.modalities.map((m) => m.priceCents)
+                                  )
+                                )}`
+                              : formatMoney(event.priceCents ?? 0)}
                           </span>
                         )}
 
@@ -248,18 +253,42 @@ function Events() {
                               setAbierto((a) => (a === event.id ? null : event.id))
                             }
                             aria-expanded={abierto === event.id}
-                            className="
-                              flex shrink-0 cursor-pointer items-center gap-1.5
-                              rounded-lg border border-slate-300 bg-white px-3 py-2
-                              text-xs font-semibold text-slate-700
+                            className={`
+                              flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5
+                              rounded-2xl px-4 py-2 text-sm font-semibold
                               transition-colors duration-200
                               motion-reduce:transition-none
-                              hover:bg-slate-50
-                              focus:ring-2 focus:ring-blue-600 focus:outline-none
-                            "
+                              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
+                              ${
+                                puedeEditar
+                                  ? "border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                                  : "bg-violet-600 text-white hover:bg-violet-700"
+                              }
+                            `}
                           >
                             <Receipt size={14} aria-hidden="true" />
                             {puedeEditar ? "Pagos" : "Pagar"}
+                          </button>
+                        )}
+
+                        {puedeEditar && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditando((x) => (x === event.id ? null : event.id))
+                            }
+                            aria-expanded={editando === event.id}
+                            aria-label={`Editar ${event.title}`}
+                            className="
+                              flex h-11 w-11 shrink-0 cursor-pointer items-center
+                              justify-center rounded-xl text-neutral-500
+                              transition-colors duration-200
+                              motion-reduce:transition-none
+                              hover:bg-neutral-100 hover:text-neutral-900
+                              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
+                            "
+                          >
+                            <Pencil size={17} aria-hidden="true" />
                           </button>
                         )}
 
@@ -271,11 +300,11 @@ function Events() {
                             aria-label={`Quitar ${event.title} del calendario`}
                             className="
                               flex h-11 w-11 shrink-0 cursor-pointer items-center
-                              justify-center rounded-lg text-slate-500
+                              justify-center rounded-xl text-neutral-500
                               transition-colors duration-200
                               motion-reduce:transition-none
                               hover:bg-red-50 hover:text-red-700
-                              focus:ring-2 focus:ring-blue-600 focus:outline-none
+                              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                               disabled:cursor-not-allowed disabled:opacity-50
                             "
                           >
@@ -283,6 +312,19 @@ function Events() {
                           </button>
                         )}
                       </Card>
+
+                      {editando === event.id && puedeEditar && (
+                        <div className="mt-2">
+                          <EventEditForm
+                            event={event}
+                            onGuardado={async () => {
+                              setEditando(null);
+                              await cargar();
+                            }}
+                            onCancelar={() => setEditando(null)}
+                          />
+                        </div>
+                      )}
 
                       {abierto === event.id && event.requiresPayment && (
                         <div className="mt-2">

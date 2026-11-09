@@ -35,7 +35,7 @@ export const TOPIC_STYLES: Record<NotificationTopic, string> = {
   GRADUACION: "bg-violet-50 text-violet-800 border-violet-200",
   ASISTENCIA: "bg-red-50 text-red-800 border-red-200",
   EVENTO: "bg-blue-50 text-blue-800 border-blue-200",
-  GENERAL: "bg-slate-100 text-slate-800 border-slate-300",
+  GENERAL: "bg-neutral-100 text-neutral-800 border-neutral-300",
 };
 
 /** A quiénes se le puede mandar un aviso. Coincide con el backend. */

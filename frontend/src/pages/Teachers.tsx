@@ -4,6 +4,8 @@ import { Check, ChevronRight, Copy, GraduationCap, UserPlus } from "lucide-react
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import ModuleTile from "../components/ModuleTile";
+import PageHeading from "../components/PageHeading";
 import TeacherForm from "../components/TeacherForm";
 import { ApiError, getTeachers, setTeacherActive } from "../services/api";
 import type { Teacher } from "../types/teacher";
@@ -83,28 +85,28 @@ function Teachers() {
 
   return (
     <DashboardLayout>
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <PageHeading module="profesores">
+          <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
             Profesores
           </h1>
-          <p className="mt-2 text-slate-600">
+          <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
             Cada profesor tiene una clave única. Se escribe al registrar un
             alumno para asignarlo a su grupo.
           </p>
-        </div>
+        </PageHeading>
 
         <button
           type="button"
           onClick={() => setRegistrando((v) => !v)}
           aria-expanded={registrando}
           className="
-            flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600
+            flex cursor-pointer items-center gap-2 rounded-2xl bg-violet-600
             px-4 py-2.5 text-sm font-semibold text-white
             transition-colors duration-200
             motion-reduce:transition-none
-            hover:bg-blue-700
-            focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+            hover:bg-violet-700
+            focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
           "
         >
           <UserPlus size={17} aria-hidden="true" />
@@ -139,13 +141,13 @@ function Teachers() {
           </div>
         ) : teachers.length === 0 ? (
           <Card className="p-8 text-center">
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-neutral-100 text-neutral-500">
               <GraduationCap size={26} aria-hidden="true" />
             </span>
-            <h2 className="mt-4 font-bold text-slate-900">
+            <h2 className="mt-4 font-bold text-neutral-900">
               Todavía no hay profesores
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-neutral-600">
               Registra el primero para poder asignarle alumnos.
             </p>
           </Card>
@@ -155,13 +157,11 @@ function Teachers() {
               <li key={t.id}>
                 <Card className="p-4">
                   <div className="flex flex-wrap items-center gap-4">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
-                      <GraduationCap size={20} aria-hidden="true" />
-                    </span>
+                    <ModuleTile module="profesores" />
 
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-900">{t.name}</p>
-                      <p className="truncate text-sm text-slate-600">
+                      <p className="font-semibold text-neutral-900">{t.name}</p>
+                      <p className="truncate text-sm text-neutral-600">
                         {t.email}
                       </p>
                     </div>
@@ -173,13 +173,13 @@ function Teachers() {
                         onClick={() => copiarClave(t.teacherCode!)}
                         aria-label={`Copiar la clave ${t.teacherCode}`}
                         className="
-                          flex shrink-0 cursor-pointer items-center gap-2 rounded-lg
-                          border border-slate-300 bg-slate-50 px-3 py-2
-                          font-mono text-sm font-semibold text-slate-900
+                          flex shrink-0 cursor-pointer items-center gap-2 rounded-xl
+                          border border-neutral-300 bg-neutral-50 px-3 py-2
+                          font-mono text-sm font-semibold text-neutral-900
                           transition-colors duration-200
                           motion-reduce:transition-none
-                          hover:bg-slate-100
-                          focus:ring-2 focus:ring-blue-600 focus:outline-none
+                          hover:bg-neutral-100
+                          focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                         "
                       >
                         {t.teacherCode}
@@ -193,13 +193,13 @@ function Teachers() {
                           <Copy
                             size={15}
                             aria-hidden="true"
-                            className="text-slate-500"
+                            className="text-neutral-500"
                           />
                         )}
                       </button>
                     )}
 
-                    <span className="shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                    <span className="shrink-0 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-semibold text-neutral-700">
                       {t.alumnos} {t.alumnos === 1 ? "alumno" : "alumnos"}
                     </span>
 
@@ -207,7 +207,7 @@ function Teachers() {
                       className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${
                         t.active
                           ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                          : "border-slate-300 bg-slate-100 text-slate-700"
+                          : "border-neutral-300 bg-neutral-100 text-neutral-700"
                       }`}
                     >
                       {t.active ? "Activo" : "Inactivo"}
@@ -216,12 +216,12 @@ function Teachers() {
                     <Link
                       to={`/profesores/${t.id}`}
                       className="
-                        flex shrink-0 cursor-pointer items-center gap-1 rounded-lg
-                        px-3 py-2 text-sm font-semibold text-blue-700
+                        flex shrink-0 cursor-pointer items-center gap-1 rounded-xl
+                        px-3 py-2 text-sm font-semibold text-violet-700
                         transition-colors duration-200
                         motion-reduce:transition-none
-                        hover:bg-blue-50
-                        focus:ring-2 focus:ring-blue-600 focus:outline-none
+                        hover:bg-violet-50
+                        focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                       "
                     >
                       Ver ficha
@@ -232,11 +232,11 @@ function Teachers() {
                       type="button"
                       onClick={() => cambiarEstado(t)}
                       className="
-                        shrink-0 cursor-pointer rounded-lg px-3 py-2 text-sm
-                        font-semibold text-slate-700 transition-colors duration-200
+                        shrink-0 cursor-pointer rounded-xl px-3 py-2 text-sm
+                        font-semibold text-neutral-700 transition-colors duration-200
                         motion-reduce:transition-none
-                        hover:bg-slate-100 hover:text-slate-900
-                        focus:ring-2 focus:ring-blue-600 focus:outline-none
+                        hover:bg-neutral-100 hover:text-neutral-900
+                        focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                       "
                     >
                       {t.active ? "Dar de baja" : "Reactivar"}
@@ -244,7 +244,7 @@ function Teachers() {
                   </div>
 
                   {!t.active && t.alumnos > 0 && (
-                    <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-amber-800">
+                    <p className="mt-3 border-t border-neutral-100 pt-3 text-xs text-amber-800">
                       Tiene {t.alumnos} alumnos asignados. Al estar inactivo no
                       puede entrar al sistema, pero sus alumnos siguen ligados a
                       él. Reasígnalos a otro profesor si hace falta.

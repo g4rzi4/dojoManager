@@ -16,8 +16,10 @@ export type DojoEvent = {
 
   /** Si hay que pagar para participar. Un torneo o un examen suelen costar. */
   requiresPayment?: boolean;
-  /** Costo en centavos. Nulo si es gratuito. */
+  /** Costo en centavos cuando el evento NO tiene modalidades. */
   priceCents?: number | null;
+  /** Modalidades con su propio costo. Si hay, el total es la suma. */
+  modalities?: import("./eventPayment").EventModality[];
   /** Cuántos reportes de pago lleva. Solo lo usan admin y profesores. */
   reportes?: number;
   /** Estado de los alumnos a cargo de quien consulta. */
@@ -40,19 +42,19 @@ export const CATEGORY_STYLES: Record<
   { dot: string; chip: string }
 > = {
   CLASE: {
-    dot: "bg-blue-600",
-    chip: "bg-blue-50 text-blue-800 border-blue-200",
+    dot: "bg-orange-700",
+    chip: "bg-orange-50 text-orange-800 border-orange-200",
   },
   EXAMEN: {
-    dot: "bg-amber-600",
-    chip: "bg-amber-50 text-amber-900 border-amber-200",
-  },
-  TORNEO: {
-    dot: "bg-violet-600",
-    chip: "bg-violet-50 text-violet-800 border-violet-200",
-  },
-  PAGO: {
     dot: "bg-emerald-600",
     chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  },
+  TORNEO: {
+    dot: "bg-rose-600",
+    chip: "bg-rose-50 text-rose-800 border-rose-200",
+  },
+  PAGO: {
+    dot: "bg-amber-500",
+    chip: "bg-amber-50 text-amber-900 border-amber-200",
   },
 };

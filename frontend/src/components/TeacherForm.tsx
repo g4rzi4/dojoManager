@@ -69,16 +69,16 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
     return (
       <Card className="p-5 sm:p-6">
         <div className="flex gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
             <KeyRound size={20} aria-hidden="true" />
           </span>
           <div>
-            <h2 className="font-bold text-slate-900">Profesor registrado</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="font-bold text-neutral-900">Profesor registrado</h2>
+            <p className="mt-1 text-sm text-neutral-600">
               Pásale esta clave. La necesita para que sus alumnos queden en su
               grupo.
             </p>
-            <p className="mt-4 inline-block rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 font-mono text-lg font-bold text-slate-900">
+            <p className="mt-4 inline-block rounded-2xl border border-neutral-300 bg-neutral-50 px-4 py-3 font-mono text-lg font-bold text-neutral-900">
               {claveCreada}
             </p>
           </div>
@@ -91,11 +91,11 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
             onCancelar();
           }}
           className="
-            mt-5 cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-3
-            font-semibold text-slate-700 transition-colors duration-200
+            mt-5 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+            font-semibold text-neutral-700 transition-colors duration-200
             motion-reduce:transition-none
-            hover:bg-slate-50
-            focus:ring-2 focus:ring-blue-600 focus:outline-none
+            hover:bg-neutral-50
+            focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
           "
         >
           Listo
@@ -106,8 +106,8 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-slate-900">Registrar un profesor</h2>
-      <p className="mt-1 text-sm text-slate-600">
+      <h2 className="font-bold text-neutral-900">Registrar un profesor</h2>
+      <p className="mt-1 text-sm text-neutral-600">
         El sistema le genera su clave única al guardar.
       </p>
 
@@ -115,7 +115,7 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
         <div className="space-y-2">
           <label
             htmlFor="prof-nombre"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-neutral-700"
           >
             Nombre completo
           </label>
@@ -126,9 +126,9 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
             onChange={(e) => setName(e.target.value)}
             placeholder="Sensei Ramírez"
             className="
-              w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-              outline-none transition-all
-              focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+              w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+              outline-none transition-[border-color,box-shadow,background-color]
+              focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
           />
         </div>
@@ -136,7 +136,7 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
         <div className="space-y-2">
           <label
             htmlFor="prof-correo"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-neutral-700"
           >
             Correo electrónico
           </label>
@@ -147,9 +147,9 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="profesor@dojo.com"
             className="
-              w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-              outline-none transition-all
-              focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+              w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+              outline-none transition-[border-color,box-shadow,background-color]
+              focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
           />
         </div>
@@ -157,7 +157,7 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
         <div className="space-y-2">
           <label
             htmlFor="prof-password"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-neutral-700"
           >
             Contraseña provisional
           </label>
@@ -169,12 +169,12 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
             placeholder="Al menos 8 caracteres"
             aria-describedby="prof-password-ayuda"
             className="
-              w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-              outline-none transition-all
-              focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+              w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+              outline-none transition-[border-color,box-shadow,background-color]
+              focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
           />
-          <p id="prof-password-ayuda" className="text-xs text-slate-500">
+          <p id="prof-password-ayuda" className="text-xs text-neutral-500">
             Mínimo {MIN_PASSWORD} caracteres. Pídele que la cambie al entrar.
           </p>
         </div>
@@ -190,26 +190,26 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
             type="submit"
             disabled={!valido || guardando}
             className="
-              cursor-pointer rounded-xl bg-blue-600 px-5 py-3 font-semibold
+              cursor-pointer rounded-2xl bg-violet-600 px-5 py-3 font-semibold
               text-white transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Registrando..." : "Registrar profesor"}
+            {guardando ? "Registrando…" : "Registrar profesor"}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-3
-              font-semibold text-slate-700 transition-colors duration-200
+              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-slate-50
-              focus:ring-2 focus:ring-blue-600 focus:outline-none
+              hover:bg-neutral-50
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
             Cancelar

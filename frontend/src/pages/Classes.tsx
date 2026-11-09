@@ -13,6 +13,7 @@ import {
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import PageHeading from "../components/PageHeading";
 import ClassForm from "../components/ClassForm";
 import { can, getUser } from "../services/session";
 import {
@@ -86,36 +87,36 @@ function Classes() {
 
   return (
     <DashboardLayout>
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <PageHeading module="horario">
+          <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
             Horario de clases
           </h1>
-          <p className="mt-2 text-slate-600">
+          <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
             Las clases que se repiten cada semana, por día y horario.
           </p>
-        </div>
+        </PageHeading>
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Cambio de vista */}
           <div
             role="group"
             aria-label="Cambiar vista"
-            className="flex rounded-xl border border-slate-300 bg-white p-1"
+            className="flex rounded-2xl border border-neutral-300 bg-white p-1"
           >
             <button
               type="button"
               onClick={() => setVista("semana")}
               aria-pressed={vista === "semana"}
               className={`
-                flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2
+                flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2
                 text-sm font-semibold transition-colors duration-200
                 motion-reduce:transition-none
-                focus:ring-2 focus:ring-blue-600 focus:outline-none
+                focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                 ${
                   vista === "semana"
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-slate-600 hover:bg-slate-50"
+                    ? "bg-violet-50 text-violet-700"
+                    : "text-neutral-600 hover:bg-neutral-50"
                 }
               `}
             >
@@ -127,14 +128,14 @@ function Classes() {
               onClick={() => setVista("lista")}
               aria-pressed={vista === "lista"}
               className={`
-                flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2
+                flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2
                 text-sm font-semibold transition-colors duration-200
                 motion-reduce:transition-none
-                focus:ring-2 focus:ring-blue-600 focus:outline-none
+                focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                 ${
                   vista === "lista"
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-slate-600 hover:bg-slate-50"
+                    ? "bg-violet-50 text-violet-700"
+                    : "text-neutral-600 hover:bg-neutral-50"
                 }
               `}
             >
@@ -149,12 +150,12 @@ function Classes() {
               onClick={() => setAgregando((v) => !v)}
               aria-expanded={agregando}
               className="
-                flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600
+                flex cursor-pointer items-center gap-2 rounded-2xl bg-violet-600
                 px-4 py-2.5 text-sm font-semibold text-white
                 transition-colors duration-200
                 motion-reduce:transition-none
-                hover:bg-blue-700
-                focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+                hover:bg-violet-700
+                focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               "
             >
               <Plus size={17} aria-hidden="true" />
@@ -194,13 +195,13 @@ function Classes() {
 
       {classes.length === 0 ? (
         <Card className="mt-6 p-8 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-neutral-100 text-neutral-500">
             <CalendarRange size={26} aria-hidden="true" />
           </span>
-          <h2 className="mt-4 font-bold text-slate-900">
+          <h2 className="mt-4 font-bold text-neutral-900">
             No hay clases en el horario
           </h2>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-neutral-600">
             {puedeEditar
               ? "Agrega la primera con el botón de arriba."
               : "El dojo todavía no ha publicado su horario."}
@@ -214,25 +215,25 @@ function Classes() {
             <section key={nombre} aria-label={nombre}>
               <h2
                 className={`mb-3 text-sm font-semibold ${
-                  i === hoy ? "text-blue-700" : "text-slate-900"
+                  i === hoy ? "text-violet-700" : "text-neutral-900"
                 }`}
               >
                 {nombre}
                 {i === hoy && (
-                  <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-800">
+                  <span className="ml-2 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-800">
                     Hoy
                   </span>
                 )}
               </h2>
 
               {porDia[i].length === 0 ? (
-                <p className="text-xs text-slate-500">Sin clases</p>
+                <p className="text-xs text-neutral-500">Sin clases</p>
               ) : (
                 <ul className="space-y-2">
                   {porDia[i].map((c) => (
                     <li key={c.id}>
                       <div
-                        className={`rounded-xl border p-3 ${
+                        className={`rounded-2xl border p-3 ${
                           DISCIPLINE_STYLES[c.discipline].card
                         }`}
                       >
@@ -256,7 +257,7 @@ function Classes() {
                               transition-opacity duration-200
                               motion-reduce:transition-none
                               hover:opacity-100
-                              focus:ring-2 focus:ring-blue-600 focus:outline-none
+                              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                             "
                           >
                             <Trash2 size={12} aria-hidden="true" />
@@ -277,10 +278,10 @@ function Classes() {
           {DAY_NAMES.map((nombre, i) =>
             porDia[i].length === 0 ? null : (
               <section key={nombre}>
-                <h2 className="text-sm font-semibold text-slate-900">
+                <h2 className="text-sm font-semibold text-neutral-900">
                   {nombre}
                   {i === hoy && (
-                    <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-800">
+                    <span className="ml-2 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-800">
                       Hoy
                     </span>
                   )}
@@ -290,17 +291,12 @@ function Classes() {
                   {porDia[i].map((c) => (
                     <li key={c.id}>
                       <Card className="flex flex-wrap items-center gap-4 p-4">
-                        <span
-                          className={`h-10 w-1.5 shrink-0 rounded-full ${
-                            DISCIPLINE_STYLES[c.discipline].dot
-                          }`}
-                        />
 
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-slate-900">
+                          <p className="font-semibold text-neutral-900">
                             {c.title}
                           </p>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
+                          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-600">
                             <span className="flex items-center gap-1">
                               <Clock size={14} aria-hidden="true" />
                               {c.startTime}–{c.endTime}
@@ -328,7 +324,7 @@ function Classes() {
                           {DISCIPLINE_LABELS[c.discipline]}
                         </span>
 
-                        <span className="shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                        <span className="shrink-0 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-semibold text-neutral-700">
                           {LEVEL_LABELS[c.level]}
                         </span>
 
@@ -339,11 +335,11 @@ function Classes() {
                             aria-label={`Quitar ${c.title} del horario`}
                             className="
                               flex h-11 w-11 shrink-0 cursor-pointer items-center
-                              justify-center rounded-lg text-slate-500
+                              justify-center rounded-xl text-neutral-500
                               transition-colors duration-200
                               motion-reduce:transition-none
                               hover:bg-red-50 hover:text-red-700
-                              focus:ring-2 focus:ring-blue-600 focus:outline-none
+                              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                             "
                           >
                             <Trash2 size={18} aria-hidden="true" />
