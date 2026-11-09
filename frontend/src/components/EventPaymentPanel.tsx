@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Check, KeyRound, Receipt, UserPlus, X } from "lucide-react";
 
 import Card from "./Card";
+import PagarConPayPal from "./PagarConPayPal";
 import {
   ApiError,
   enrollStudentInEvent,
   getCategoryCatalog,
   getEventEnrollments,
+  getPayPalConfig,
   getStudents,
   reportEventPayment,
   resolveEventPayment,
@@ -89,6 +91,7 @@ function ReportarPago({
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
   const [exito, setExito] = useState("");
+  const [paypalDisponible, setPaypalDisponible] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -98,6 +101,12 @@ function ReportarPago({
         if (activo) setCatalogo(c.categorias);
       })
       // Sin catálogo se puede reportar el pago igual, solo sin categoría.
+      .catch(() => {});
+
+    getPayPalConfig()
+      .then((c) => {
+        if (activo) setPaypalDisponible(c.enabled);
+      })
       .catch(() => {});
 
     return () => {
@@ -209,6 +218,14 @@ function ReportarPago({
                   {EVENT_PAYMENT_LABELS[r.status]}
                   {r.enrolled && " · inscrito"}
                 </span>
+
+                {r.status === "PENDIENTE_PAGO" && (
+                  <PagarConPayPal
+                    tipo="EVENTO"
+                    id={r.enrollmentId}
+                    onPagado={onCambio}
+                  />
+                )}
               </li>
             );
           })}
@@ -217,7 +234,9 @@ function ReportarPago({
 
       {pendientes.length === 0 ? (
         <p className="mt-4 text-sm text-slate-600">
-          Ya reportaste el pago de todos tus alumnos para este evento.
+          {yaReportados.some((r) => r.status === "PENDIENTE_PAGO")
+            ? "Completa el pago para quedar inscrito."
+            : "Ya reportaste el pago de todos tus alumnos para este evento."}
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -422,6 +441,11 @@ function ReportarPago({
               <option value="TRANSFERENCIA">
                 {PAYMENT_METHOD_LABELS.TRANSFERENCIA}
               </option>
+              {paypalDisponible && (
+                <option value="PAYPAL">
+                  {PAYMENT_METHOD_LABELS.PAYPAL} (pagar en línea ahora)
+                </option>
+              )}
             </select>
           </div>
 
@@ -493,7 +517,11 @@ function ReportarPago({
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {enviando ? "Reportando..." : "Ya pagué"}
+            {enviando
+              ? "Enviando..."
+              : metodo === "PAYPAL"
+                ? "Continuar a PayPal"
+                : "Ya pagué"}
           </button>
         </form>
       )}

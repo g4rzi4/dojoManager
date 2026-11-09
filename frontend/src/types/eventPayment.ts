@@ -1,14 +1,20 @@
 import type { PaymentMethod } from "./payment";
 
-export type EventPaymentStatus = "REPORTADO" | "CONFIRMADO" | "RECHAZADO";
+export type EventPaymentStatus =
+  | "PENDIENTE_PAGO"
+  | "REPORTADO"
+  | "CONFIRMADO"
+  | "RECHAZADO";
 
 export const EVENT_PAYMENT_LABELS: Record<EventPaymentStatus, string> = {
+  PENDIENTE_PAGO: "Pendiente de pago",
   REPORTADO: "Por confirmar",
   CONFIRMADO: "Confirmado",
   RECHAZADO: "Rechazado",
 };
 
 export const EVENT_PAYMENT_STYLES: Record<EventPaymentStatus, string> = {
+  PENDIENTE_PAGO: "bg-slate-50 text-slate-800 border-slate-200",
   REPORTADO: "bg-amber-50 text-amber-900 border-amber-200",
   CONFIRMADO: "bg-emerald-50 text-emerald-800 border-emerald-200",
   RECHAZADO: "bg-red-50 text-red-800 border-red-200",
@@ -100,6 +106,7 @@ export type EventEnrollment = {
 
 /** El estado de un alumno a cargo de quien consulta, dentro de un evento. */
 export type MyEnrollment = {
+  enrollmentId: number;
   studentId: number;
   status: EventPaymentStatus;
   enrolled: boolean;

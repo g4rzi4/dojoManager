@@ -144,6 +144,30 @@ export async function getPayments(): Promise<PaymentsResponse> {
   return request<PaymentsResponse>("/payments");
 }
 
+export async function getPayPalConfig(): Promise<{
+  enabled: boolean;
+  clientId: string | null;
+  currency: string;
+}> {
+  return request("/paypal/config");
+}
+
+/** Solo indica qué cobro se paga: el monto lo decide el backend. */
+export async function createPayPalOrder(
+  tipo: "MENSUALIDAD" | "EVENTO",
+  id: number
+): Promise<{ orderId: string }> {
+  return request("/paypal/orders", { method: "POST", body: { tipo, id } });
+}
+
+export async function capturePayPalOrder(
+  orderId: string
+): Promise<{ message: string }> {
+  return request(`/paypal/orders/${encodeURIComponent(orderId)}/capture`, {
+    method: "POST",
+  });
+}
+
 export async function getNotifications(): Promise<{
   unread: number;
   notifications: AppNotification[];

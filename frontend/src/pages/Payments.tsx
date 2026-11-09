@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Receipt, TriangleAlert } from "lucide-react";
+import { Receipt } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import PagarConPayPal from "../components/PagarConPayPal";
 import { ApiError, getPayments } from "../services/api";
+import { can, getUser } from "../services/session";
 import type { PaymentsResponse } from "../types/payment";
 import { PAYMENT_METHOD_LABELS } from "../types/payment";
 import {
@@ -17,6 +19,11 @@ function Payments() {
   const [data, setData] = useState<PaymentsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [recarga, setRecarga] = useState(0);
+
+  // Pagan las familias. Un profesor también ve "propios" (su grupo), pero
+  // esas mensualidades no le toca pagarlas a él.
+  const puedePagar = !can(getUser(), "events:write");
 
   useEffect(() => {
     let activo = true;
@@ -41,7 +48,7 @@ function Payments() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [recarga]);
 
   // El alcance lo decide el backend según el rol, no el frontend.
   const esVistaPropia = data?.alcance === "propios";
@@ -121,27 +128,6 @@ function Payments() {
             </Card>
           </div>
 
-          {/* PayPal: pendiente. Lo decimos en pantalla en lugar de poner un
-              botón que no hace nada. */}
-          {esVistaPropia && data.resumen.pendientes > 0 && (
-            <Card className="mt-4 flex gap-3 border-amber-200 bg-amber-50 p-4">
-              <TriangleAlert
-                size={20}
-                aria-hidden="true"
-                className="mt-0.5 shrink-0 text-amber-700"
-              />
-              <div>
-                <p className="text-sm font-semibold text-amber-900">
-                  El pago en línea todavía no está disponible
-                </p>
-                <p className="mt-1 text-sm text-amber-900">
-                  Por ahora las mensualidades se pagan directamente en el dojo.
-                  La integración con PayPal está planeada para más adelante.
-                </p>
-              </div>
-            </Card>
-          )}
-
           {/* Tabla */}
           <section className="mt-6">
             {data.payments.length === 0 ? (
@@ -185,6 +171,11 @@ function Payments() {
                         <th scope="col" className="px-4 py-3 font-semibold">
                           Fecha de pago
                         </th>
+                        {puedePagar && (
+                          <th scope="col" className="px-4 py-3 font-semibold">
+                            <span className="sr-only">Pagar</span>
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -219,6 +210,17 @@ function Payments() {
                               ? formatLongDate(fromDateKey(p.paidAt))
                               : "—"}
                           </td>
+                          {puedePagar && (
+                            <td className="px-4 py-3">
+                              {p.status !== "PAGADO" && (
+                                <PagarConPayPal
+                                  tipo="MENSUALIDAD"
+                                  id={p.id}
+                                  onPagado={() => setRecarga((n) => n + 1)}
+                                />
+                              )}
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
