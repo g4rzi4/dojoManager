@@ -70,6 +70,13 @@ const NAV_ITEMS: NavItem[] = [
     permission: "self:read",
   },
   {
+    to: "/uniformes",
+    label: "Uniformes y protecciones",
+    module: "equipo",
+    // Lo usan los cuatro roles: la familia pide y el profesor confirma.
+    permission: "self:read",
+  },
+  {
     to: "/notificaciones",
     label: "Notificaciones",
     module: "notificaciones",
@@ -92,6 +99,7 @@ function Sidebar({ open, onClose }: Props) {
   // Alumno y tutor no administran el dojo: entran a su propio panel.
   const esFamilia = user?.role === "ALUMNO" || user?.role === "TUTOR";
   const esAlumno = user?.role === "ALUMNO";
+  const esTutor = user?.role === "TUTOR";
 
   function handleLogout() {
     clearSession();
@@ -166,7 +174,16 @@ function Sidebar({ open, onClose }: Props) {
             {esAlumno && (
               <SidebarLink
                 to="/mi-tarjeta"
-                label={t("Mi tarjeta")}
+                label={t("Ver mi ficha")}
+                module="tarjeta"
+                onClose={onClose}
+              />
+            )}
+
+            {esTutor && (
+              <SidebarLink
+                to="/mis-fichas"
+                label={t("Ver mis fichas")}
                 module="tarjeta"
                 onClose={onClose}
               />

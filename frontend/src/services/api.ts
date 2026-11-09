@@ -14,6 +14,12 @@ import type {
   PublicInvitation,
 } from "../types/invitation";
 import type { Preferences } from "./preferences";
+import type {
+  EquipmentProduct,
+  EquipmentRequest,
+  NewEquipmentItem,
+} from "../types/equipment";
+import type { DojoClass, NewDojoClass } from "../types/dojoClass";
 import { clearSession, getToken } from "./session";
 import { t } from "../i18n";
 
@@ -163,10 +169,86 @@ export async function getPayPalConfig(): Promise<{
 
 /** Solo indica qué cobro se paga: el monto lo decide el backend. */
 export async function createPayPalOrder(
-  tipo: "MENSUALIDAD" | "EVENTO",
+  tipo: "MENSUALIDAD" | "EVENTO" | "EQUIPO",
   id: number
 ): Promise<{ orderId: string }> {
   return request("/paypal/orders", { method: "POST", body: { tipo, id } });
+}
+
+/** Avisa que se pagó fuera de línea. No lo marca como pagado. */
+export async function reportCharge(
+  tipo: "MENSUALIDAD" | "EVENTO" | "EQUIPO",
+  id: number,
+  method: "EFECTIVO" | "TRANSFERENCIA"
+): Promise<{ message: string }> {
+  return request(`/payments/${tipo}/${id}/report`, {
+    method: "POST",
+    body: { method },
+  });
+}
+
+/** El admin o el profesor confirman si recibieron el pago reportado. */
+export async function resolveCharge(
+  tipo: "MENSUALIDAD" | "EVENTO" | "EQUIPO",
+  id: number,
+  confirmar: boolean
+): Promise<{ message: string }> {
+  return request(`/payments/${tipo}/${id}/resolve`, {
+    method: "POST",
+    body: { confirmar },
+  });
+}
+
+export async function getClasses(): Promise<DojoClass[]> {
+  const data = await request<{ classes: DojoClass[] }>("/classes");
+  return data.classes;
+}
+
+export async function createClass(clase: NewDojoClass): Promise<DojoClass> {
+  const data = await request<{ class: DojoClass }>("/classes", {
+    method: "POST",
+    body: clase,
+  });
+  return data.class;
+}
+
+export async function deleteClass(id: number): Promise<void> {
+  await request(`/classes/${id}`, { method: "DELETE" });
+}
+
+export async function getEquipmentCatalog(): Promise<EquipmentProduct[]> {
+  const data = await request<{ products: EquipmentProduct[] }>(
+    "/equipment/catalog"
+  );
+  return data.products;
+}
+
+export async function getEquipmentRequests(): Promise<EquipmentRequest[]> {
+  const data = await request<{ requests: EquipmentRequest[] }>(
+    "/equipment/requests"
+  );
+  return data.requests;
+}
+
+/** No manda precios: el backend los toma del modelo elegido. */
+export async function createEquipmentRequest(params: {
+  studentId: number;
+  items: NewEquipmentItem[];
+  note?: string;
+}): Promise<{ message: string }> {
+  return request("/equipment/requests", { method: "POST", body: params });
+}
+
+export async function updateEquipmentRequest(
+  id: number,
+  body: {
+    accion: "confirmar" | "rechazar" | "pagado" | "entregado";
+    prices?: { itemId: number; priceCents: number }[];
+    method?: "EFECTIVO" | "TRANSFERENCIA";
+    staffNote?: string;
+  }
+): Promise<{ message: string }> {
+  return request(`/equipment/requests/${id}`, { method: "PATCH", body });
 }
 
 export async function capturePayPalOrder(

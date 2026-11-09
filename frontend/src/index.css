@@ -86,6 +86,15 @@
   --color-neutral-900: oklch(97% 0.006 286);
   --color-neutral-950: oklch(98.5% 0.006 286);
 
+  --color-teal-50: oklch(27% 0.045 185);
+  --color-teal-100: oklch(31% 0.065 185);
+  --color-teal-200: oklch(39% 0.085 185);
+  --color-teal-300: oklch(50% 0.11 185);
+  --color-teal-700: oklch(82% 0.11 185);
+  --color-teal-800: oklch(87% 0.085 185);
+  --color-teal-900: oklch(91% 0.06 185);
+  --color-teal-950: oklch(95% 0.035 185);
+
   --color-violet-50: oklch(27% 0.045 293);
   --color-violet-100: oklch(31% 0.065 293);
   --color-violet-200: oklch(39% 0.085 293);

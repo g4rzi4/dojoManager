@@ -5,6 +5,7 @@ import { pagesA } from "./pagesA";
 import { pagesB } from "./pagesB";
 import { panels } from "./panels";
 import { shell } from "./shell";
+import { uniforms } from "./uniforms";
 
 /** Traducciones al inglés. La llave es el texto original en español. */
 export const en: Record<string, string> = {
@@ -15,4 +16,5 @@ export const en: Record<string, string> = {
   ...pagesB,
   ...panels,
   ...shell,
+  ...uniforms,
 };

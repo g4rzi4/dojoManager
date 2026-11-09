@@ -112,9 +112,11 @@ function FamilyHome() {
               module="pagos"
               label={t("Por cubrir")}
               value={formatMoney(totalPendiente)}
-              hint={t("{n} mensualidades", {
-                n: payments?.resumen.pendientes ?? 0,
-              })}
+              hint={
+                payments?.resumen.pendientes === 1
+                  ? t("{n} cobro", { n: 1 })
+                  : t("{n} cobros", { n: payments?.resumen.pendientes ?? 0 })
+              }
               alert={totalPendiente > 0}
             />
             <ShortcutCard

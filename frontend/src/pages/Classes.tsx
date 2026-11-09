@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarRange,
   Clock,
   List,
   MapPin,
   Plus,
-  TriangleAlert,
   User,
   Users,
   Trash2,
@@ -15,6 +14,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import PageHeading from "../components/PageHeading";
 import ClassForm from "../components/ClassForm";
+import { ApiError, createClass, deleteClass, getClasses } from "../services/api";
 import { can, getUser } from "../services/session";
 import { t } from "../i18n";
 import {
@@ -24,6 +24,7 @@ import {
   LEVEL_LABELS,
   todayIndex,
   type DojoClass,
+  type NewDojoClass,
 } from "../types/dojoClass";
 
 /**
@@ -40,10 +41,11 @@ import {
  *  - La rejilla ya no posiciona las clases de forma absoluta según la hora.
  *    Se veía bien, pero dos clases a la misma hora se encimaban y en móvil
  *    se rompía. Ahora cada día es una columna con sus clases ordenadas.
- *
- * ⚠️ NO PERSISTE todavía: el estado vive en memoria. Ver types/dojoClass.ts
- * para el modelo y los endpoints que faltan.
  */
+function mensajeDe(e: unknown, respaldo: string): string {
+  return e instanceof ApiError ? e.message : respaldo;
+}
+
 function Classes() {
   const user = getUser();
   const puedeEditar = can(user, "events:write");
@@ -51,6 +53,43 @@ function Classes() {
   const [classes, setClasses] = useState<DojoClass[]>([]);
   const [vista, setVista] = useState<"semana" | "lista">("semana");
   const [agregando, setAgregando] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+  const [profesor, setProfesor] = useState<number | "TODOS">("TODOS");
+
+  useEffect(() => {
+    let activo = true;
+
+    getClasses()
+      .then((data) => {
+        if (activo) setClasses(data);
+      })
+      .catch((e: unknown) => {
+        if (activo) setError(mensajeDe(e, t("No fue posible cargar el horario.")));
+      })
+      .finally(() => {
+        if (activo) setCargando(false);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  /** Los profesores que tienen clases, para el filtro. */
+  const profesores = useMemo(() => {
+    const mapa = new Map<number, string>();
+
+    for (const c of classes) {
+      if (c.teacherId !== null) mapa.set(c.teacherId, c.instructor);
+    }
+
+    return [...mapa].sort((a, b) => a[1].localeCompare(b[1], "es"));
+  }, [classes]);
+
+  // El admin quita cualquiera; un profesor, solo las suyas.
+  const puedeQuitar = (clase: DojoClass) =>
+    user?.role === "ADMIN" || clase.teacherId === user?.id;
 
   const hoy = todayIndex();
 
@@ -59,6 +98,7 @@ function Classes() {
     const mapa: DojoClass[][] = Array.from({ length: 7 }, () => []);
 
     for (const c of classes) {
+      if (profesor !== "TODOS" && c.teacherId !== profesor) continue;
       if (c.dayOfWeek >= 0 && c.dayOfWeek < 7) mapa[c.dayOfWeek].push(c);
     }
 
@@ -67,24 +107,30 @@ function Classes() {
     }
 
     return mapa;
-  }, [classes]);
+  }, [classes, profesor]);
 
-  function agregar(clase: Omit<DojoClass, "id">) {
-    setClasses((prev) => [
-      ...prev,
-      // crypto.randomUUID existe en todos los navegadores que soporta Vite.
-      // Cuando esto se conecte al backend, el id vendrá de la base.
-      { ...clase, id: crypto.randomUUID() },
-    ]);
-    setAgregando(false);
+  async function agregar(clase: NewDojoClass) {
+    setError("");
+
+    try {
+      const creada = await createClass(clase);
+      setClasses((prev) => [...prev, creada]);
+      setAgregando(false);
+    } catch (e: unknown) {
+      setError(mensajeDe(e, t("No fue posible agregar la clase.")));
+    }
   }
 
-  function quitar(clase: DojoClass) {
-    const seguro = window.confirm(
-      t('¿Quitar "{titulo}" del horario?', { titulo: clase.title })
-    );
-    if (seguro) {
+  async function quitar(clase: DojoClass) {
+    if (!window.confirm(t('¿Quitar "{titulo}" del horario?', { titulo: clase.title }))) return;
+
+    setError("");
+
+    try {
+      await deleteClass(clase.id);
       setClasses((prev) => prev.filter((c) => c.id !== clase.id));
+    } catch (e: unknown) {
+      setError(mensajeDe(e, t("No fue posible quitar la clase.")));
     }
   }
 
@@ -168,28 +214,45 @@ function Classes() {
         </div>
       </header>
 
-      {/* El original perdía los datos al recargar sin decirlo. Mejor avisarlo. */}
-      <Card className="mt-6 flex gap-3 border-amber-200 bg-amber-50 p-4">
-        <TriangleAlert
-          size={20}
-          aria-hidden="true"
-          className="mt-0.5 shrink-0 text-amber-700"
-        />
-        <div>
-          <p className="text-sm font-semibold text-amber-900">
-            {t("Esta pantalla todavía no guarda en la base de datos")}
+      {error && (
+        <Card className="mt-6 border-red-200 p-4">
+          <p className="text-sm font-medium text-red-700" role="alert">
+            {error}
           </p>
-          <p className="mt-1 text-sm text-amber-900">
-            {t(
-              "Las clases que agregues se pierden al recargar. Falta crear el modelo y los endpoints; está documentado en"
-            )}{" "}
-            <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs">
-              frontend/src/types/dojoClass.ts
-            </code>
-            .
-          </p>
+        </Card>
+      )}
+
+      {profesores.length > 1 && (
+        <div className="mt-6 sm:max-w-xs">
+          <label
+            htmlFor="filtro-profesor"
+            className="block text-sm font-medium text-neutral-700"
+          >
+            {t("Profesor")}
+          </label>
+          <select
+            id="filtro-profesor"
+            value={profesor}
+            onChange={(e) =>
+              setProfesor(
+                e.target.value === "TODOS" ? "TODOS" : Number(e.target.value)
+              )
+            }
+            className="
+              mt-2 w-full cursor-pointer rounded-2xl border border-neutral-300 bg-surface
+              px-4 py-3 text-neutral-800 outline-none
+              focus:border-violet-600 focus:ring-4 focus:ring-violet-100
+            "
+          >
+            <option value="TODOS">{t("Todos los profesores")}</option>
+            {profesores.map(([id, nombre]) => (
+              <option key={id} value={id}>
+                {nombre}
+              </option>
+            ))}
+          </select>
         </div>
-      </Card>
+      )}
 
       {agregando && puedeEditar && (
         <div className="mt-6">
@@ -197,7 +260,9 @@ function Classes() {
         </div>
       )}
 
-      {classes.length === 0 ? (
+      {cargando ? (
+        <Card className="mt-6 h-64 animate-pulse motion-reduce:animate-none" />
+      ) : classes.length === 0 ? (
         <Card className="mt-6 p-8 text-center">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-neutral-100 text-neutral-500">
             <CalendarRange size={26} aria-hidden="true" />
@@ -241,7 +306,7 @@ function Classes() {
                           DISCIPLINE_STYLES[c.discipline].card
                         }`}
                       >
-                        <p className="text-sm font-semibold">{c.title}</p>
+                        <p className="text-sm font-semibold break-words hyphens-auto">{c.title}</p>
                         <p className="mt-1 flex items-center gap-1 text-xs">
                           <Clock size={12} aria-hidden="true" />
                           {c.startTime}–{c.endTime}
@@ -250,7 +315,7 @@ function Classes() {
                           {c.instructor}
                         </p>
 
-                        {puedeEditar && (
+                        {puedeQuitar(c) && (
                           <button
                             type="button"
                             onClick={() => quitar(c)}
@@ -332,7 +397,7 @@ function Classes() {
                           {t(LEVEL_LABELS[c.level])}
                         </span>
 
-                        {puedeEditar && (
+                        {puedeQuitar(c) && (
                           <button
                             type="button"
                             onClick={() => quitar(c)}

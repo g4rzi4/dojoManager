@@ -11,6 +11,8 @@ import teacherRoutes from "./routes/teachers.routes";
 import guardianRoutes from "./routes/guardians.routes";
 import invitationRoutes from "./routes/invitations.routes";
 import paypalRoutes from "./routes/paypal.routes";
+import equipmentRoutes from "./routes/equipment.routes";
+import classRoutes from "./routes/classes.routes";
 
 const app = express();
 
@@ -48,6 +50,8 @@ app.use("/teachers", teacherRoutes);
 app.use("/guardians", guardianRoutes);
 app.use("/invitations", invitationRoutes);
 app.use("/paypal", paypalRoutes);
+app.use("/equipment", equipmentRoutes);
+app.use("/classes", classRoutes);
 
 // Ruta no encontrada
 app.use((_req, res) => {

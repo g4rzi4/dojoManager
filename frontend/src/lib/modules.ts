@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Receipt,
   SlidersHorizontal,
+  Shirt,
   Users,
 } from "lucide-react";
 
@@ -41,6 +42,10 @@ export const MODULES = {
   pagos: {
     icon: Receipt,
     tile: "border-amber-200 bg-amber-50 text-amber-700 [--tile-shadow:var(--color-amber-400)]",
+  },
+  equipo: {
+    icon: Shirt,
+    tile: "border-teal-200 bg-teal-50 text-teal-700 [--tile-shadow:var(--color-teal-400)]",
   },
   notificaciones: {
     icon: Bell,

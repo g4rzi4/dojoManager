@@ -82,8 +82,8 @@ function Dashboard() {
           value={payments ? formatMoney(payments.resumen.totalPendienteCents) : "—"}
           hint={
             pendientes === 1
-              ? t("{n} mensualidad", { n: pendientes })
-              : t("{n} mensualidades", { n: pendientes })
+              ? t("{n} cobro", { n: pendientes })
+              : t("{n} cobros", { n: pendientes })
           }
           alert={pendientes > 0}
         />

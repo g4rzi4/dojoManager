@@ -1,18 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Card from "./Card";
 import { t } from "../i18n";
+import { getTeachers } from "../services/api";
+import { getUser } from "../services/session";
+import type { Teacher } from "../types/teacher";
 import {
   DAY_NAMES,
   DISCIPLINE_LABELS,
   LEVEL_LABELS,
   type Discipline,
-  type DojoClass,
   type Level,
+  type NewDojoClass,
 } from "../types/dojoClass";
 
 type Props = {
-  onGuardar: (clase: Omit<DojoClass, "id">) => void;
+  onGuardar: (clase: NewDojoClass) => void;
   onCancelar: () => void;
 };
 
@@ -26,13 +29,32 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
   const [dayOfWeek, setDayOfWeek] = useState(0);
   const [startTime, setStartTime] = useState("16:00");
   const [endTime, setEndTime] = useState("17:30");
-  const [instructor, setInstructor] = useState("");
+  // El admin elige de quién es la clase; un profesor siempre agrega las suyas.
+  const esAdmin = getUser()?.role === "ADMIN";
+  const [profesores, setProfesores] = useState<Teacher[]>([]);
+  const [teacherId, setTeacherId] = useState<number | "">("");
   const [location, setLocation] = useState("Tatami 1");
   const [level, setLevel] = useState<Level>("PRINCIPIANTES");
   const [capacity, setCapacity] = useState(15);
   const [error, setError] = useState("");
 
-  const valido = title.trim().length > 0 && instructor.trim().length > 0;
+  useEffect(() => {
+    if (!esAdmin) return;
+
+    let activo = true;
+
+    getTeachers()
+      .then((data) => {
+        if (activo) setProfesores(data.filter((prof) => prof.active));
+      })
+      .catch(() => {});
+
+    return () => {
+      activo = false;
+    };
+  }, [esAdmin]);
+
+  const valido = title.trim().length > 0 && (!esAdmin || teacherId !== "");
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -60,7 +82,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
       dayOfWeek,
       startTime,
       endTime,
-      instructor: instructor.trim(),
+      teacherId: esAdmin ? Number(teacherId) : undefined,
       location: location.trim(),
       level,
       capacity,
@@ -141,22 +163,33 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
             </select>
           </div>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="cl-instructor"
-              className="block text-sm font-medium text-neutral-700"
-            >
-              {t("Instructor")}
-            </label>
-            <input
-              id="cl-instructor"
-              type="text"
-              value={instructor}
-              onChange={(e) => setInstructor(e.target.value)}
-              placeholder="Sensei Ramírez"
-              className={inputClase}
-            />
-          </div>
+          {esAdmin && (
+            <div className="space-y-2">
+              <label
+                htmlFor="cl-instructor"
+                className="block text-sm font-medium text-neutral-700"
+              >
+                {t("Profesor")}
+              </label>
+              <select
+                id="cl-instructor"
+                value={teacherId}
+                onChange={(e) =>
+                  setTeacherId(
+                    e.target.value === "" ? "" : Number(e.target.value)
+                  )
+                }
+                className={`${inputClase} cursor-pointer`}
+              >
+                <option value="">{t("Elige un profesor")}</option>
+                {profesores.map((prof) => (
+                  <option key={prof.id} value={prof.id}>
+                    {prof.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <label

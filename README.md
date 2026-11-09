@@ -126,6 +126,21 @@ Ejecutar las migraciones:
 npx prisma migrate dev
 ```
 
+> **Si tu base ya estaba migrada** antes de corregir el orden de las migraciones,
+> `prisma migrate status` te dirá que tu historial no coincide. Se arregla una sola
+> vez, sin perder datos:
+>
+> ```bash
+> npx prisma db execute --file prisma/repair/renombrar-migraciones.sql
+> npx prisma migrate deploy
+> ```
+>
+> No uses `prisma migrate reset`: borra los datos y no hace falta.
+>
+> **Si la instalación se detuvo con el error `P3018` o `P3009`**, esa base quedó a
+> medias y sin datos. Solo en ese caso, recréala con `docker compose down -v` y
+> `docker compose up -d --wait`, y vuelve a ejecutar las migraciones.
+
 Cargar los datos iniciales (crea las cuentas de prueba y un alumno con
 historial completo):
 
@@ -210,21 +225,21 @@ curl http://localhost:3000
 
 Un segundo juego de cuentas, en una **base de datos aparte**: la app no separa los
 datos por dojo y un admin ve todo lo que hay en la base, así que esta es la forma de
-tener un dojo nuevo sin los registros del seed normal. Trae solo cuentas y alumnos;
-todavía no tiene mensualidades ni eventos.
+tener un dojo nuevo sin los registros del seed normal. Trae cuentas, alumnos, un
+catálogo de uniformes con **precios de ejemplo** y horarios aleatorios para cada
+profesor. Todavía no tiene mensualidades ni eventos.
 
 Para crearla, desde `backend/` (ajusta usuario y contraseña a tu `DATABASE_URL`):
 
 ```bash
 createdb dojomanager_demo
 export DATABASE_URL="postgresql://TU_USUARIO@localhost:5432/dojomanager_demo"
-npx prisma db push
+npx prisma migrate deploy
 npx tsx prisma/seed-demo.ts
+npx tsx prisma/seed-catalog.ts
+npx tsx prisma/seed-classes.ts
 unset DATABASE_URL
 ```
-
-> Se usa `db push` porque hoy `prisma migrate deploy` falla en una base vacía: por el
-> nombre de las carpetas, una migración corre antes que otra de la que depende.
 
 Para usarla, cambia en `backend/.env` el final de `DATABASE_URL` a `/dojomanager_demo`
 y reinicia el backend. Para volver a tus datos, deshaz el cambio.
@@ -566,6 +581,25 @@ Los montos se guardan en **centavos como entero** (`amountCents`). Guardar diner
 
 Registrar y editar cobros a mano corresponde al módulo `feature/payments`.
 
+La pestaña reúne **todos los cobros**: mensualidades, eventos y uniformes, tanto los
+pagados como los pendientes. Lo que se debe aparece primero.
+
+| Estado | Significado |
+| --- | --- |
+| Pendiente / Vencido | Se debe. Cuenta en "Por cubrir" |
+| Por confirmar | La familia reportó que pagó en efectivo o transferencia |
+| En revisión | Uniformes que el profesor aún no confirma |
+| Pagado | Con su método y fecha |
+| Rechazado | Queda en el historial |
+
+## Efectivo o transferencia
+
+Además de PayPal, la familia puede avisar que pagó en efectivo o por transferencia. El
+cobro queda **por confirmar** y no cuenta como pagado hasta que el administrador o el
+profesor responsable lo confirme en esa misma pestaña, porque nadie ha visto ese dinero
+todavía. Si responde "No lo recibí", la mensualidad o los uniformes vuelven a quedar
+pendientes; el evento se rechaza, igual que al resolverlo desde Eventos.
+
 ## Pago en línea con PayPal
 
 Alumnos y tutores pueden pagar con PayPal:
@@ -625,6 +659,42 @@ pública, así que en local no llega y `PAYPAL_WEBHOOK_ID` se puede dejar vacío
 
 La integración está en [paypal.ts](backend/src/lib/paypal.ts) y
 [paypal.routes.ts](backend/src/routes/paypal.routes.ts).
+
+---
+
+# Uniformes y protecciones
+
+Alumnos y tutores piden equipo a su profesor desde esa opción del menú: uniforme básico,
+de kata o de kumite, guantes, espinilleras, peto, bucal, casco y concha.
+
+1. La familia elige marca y modelo, talla y, si aplica, color. **"Ambos"** colores son
+   dos juegos, así que el precio se duplica.
+2. Al profesor del alumno le llega una notificación. Confirma disponibilidad y precio.
+3. La familia paga con PayPal, en efectivo o por transferencia.
+4. El profesor marca la solicitud como entregada.
+
+El catálogo está en la base de datos, en tres niveles: **producto** (con sus tallas y
+colores), **modelo** (la opción de cada marca, con precio y link) y **solicitud** (con el
+precio congelado). Cambiar el catálogo no altera lo que ya se pidió.
+
+"Otra marca" se escribe a mano y queda sin precio hasta que el profesor lo defina. El
+precio siempre sale del servidor, nunca del navegador.
+
+> ⚠️ Los modelos y precios de [seed-catalog.ts](backend/prisma/seed-catalog.ts) son **de
+> ejemplo** y la pantalla los marca como tales. Las marcas y sus links sí son reales.
+> Todavía no hay pantalla para editar el catálogo.
+
+---
+
+# Horario de clases
+
+Las clases se repiten cada semana y se guardan en la base de datos. Las ven los cuatro
+roles, con filtro por profesor. Un profesor agrega y quita las suyas; el administrador
+elige de quién es cada una.
+
+[seed-classes.ts](backend/prisma/seed-classes.ts) genera horarios aleatorios sin empalmes
+de profesor ni de tatami. Si ya hay clases no hace nada; con `--regenerar` **borra todas**
+y las vuelve a crear.
 
 ---
 
