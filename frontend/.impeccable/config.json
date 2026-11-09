@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "src/pages/NotFound.tsx"
+        ],
+        "createdAt": "2026-11-09T21:22:06.638Z",
+        "reason": "Violet #7F22FE is the primary of the reference page the user asked to resemble; here it is flat text on a light ground with no gradient"
+      }
+    ]
+  }
+}
