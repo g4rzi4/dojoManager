@@ -42,19 +42,19 @@ export const CATEGORY_STYLES: Record<
   { dot: string; chip: string }
 > = {
   CLASE: {
-    dot: "bg-blue-600",
-    chip: "bg-blue-50 text-blue-800 border-blue-200",
+    dot: "bg-orange-700",
+    chip: "bg-orange-50 text-orange-800 border-orange-200",
   },
   EXAMEN: {
-    dot: "bg-amber-600",
-    chip: "bg-amber-50 text-amber-900 border-amber-200",
-  },
-  TORNEO: {
-    dot: "bg-violet-600",
-    chip: "bg-violet-50 text-violet-800 border-violet-200",
-  },
-  PAGO: {
     dot: "bg-emerald-600",
     chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  },
+  TORNEO: {
+    dot: "bg-rose-600",
+    chip: "bg-rose-50 text-rose-800 border-rose-200",
+  },
+  PAGO: {
+    dot: "bg-amber-500",
+    chip: "bg-amber-50 text-amber-900 border-amber-200",
   },
 };

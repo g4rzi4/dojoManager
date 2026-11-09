@@ -291,11 +291,6 @@ function Classes() {
                   {porDia[i].map((c) => (
                     <li key={c.id}>
                       <Card className="flex flex-wrap items-center gap-4 p-4">
-                        <span
-                          className={`h-10 w-1.5 shrink-0 rounded-full ${
-                            DISCIPLINE_STYLES[c.discipline].dot
-                          }`}
-                        />
 
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-neutral-900">

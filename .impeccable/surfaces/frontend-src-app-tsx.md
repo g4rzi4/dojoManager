@@ -19,6 +19,6 @@ STORY: A person signs in, sees which area they are in from its colour, reads wha
 
 FIRST VIEWPORT: Floating rounded sidebar left with module tiles; floating pill top bar with notifications; page header with a large module tile, 40px title and description; work area below. Login: one large rounded container, headline left with labelled tilted module tiles, form in an inner panel right.
 
-FORM: Pinned by the user, so the seeded roll was not applied. Standard web controls and navigation. seed: none (user-pinned direction)
+FORM: Pinned by the user, so the seeded roll does not override it. Standard web controls and navigation. On phones the login hides its module tiles so the form stays near the top. seed:0c4a23173d9c0d19
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

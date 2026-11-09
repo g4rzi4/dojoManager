@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import {
+  PayPalButtons,
+  PayPalScriptProvider,
+  usePayPalScriptReducer,
+} from "@paypal/react-paypal-js";
 
 import {
   ApiError,
@@ -18,6 +22,25 @@ function cargarConfig() {
   });
 
   return configPendiente;
+}
+
+/** Lo que se ve mientras llega el SDK, para que la fila no quede vacía. */
+function EstadoScript() {
+  const [{ isPending, isRejected }] = usePayPalScriptReducer();
+
+  if (isRejected) {
+    return (
+      <p className="text-xs font-medium text-red-700" role="alert">
+        No se pudo cargar PayPal. Recarga la página e inténtalo de nuevo.
+      </p>
+    );
+  }
+
+  return isPending ? (
+    <p className="py-2 text-sm text-neutral-600" role="status">
+      Cargando PayPal…
+    </p>
+  ) : null;
 }
 
 type Props = {
@@ -64,7 +87,7 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
         type="button"
         onClick={() => setAbierto(true)}
         className="
-          cursor-pointer rounded-xl bg-violet-600 px-3 py-2 text-xs font-semibold
+          min-h-11 cursor-pointer rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold
           whitespace-nowrap text-white transition-colors duration-200
           motion-reduce:transition-none
           hover:bg-violet-700
@@ -86,6 +109,7 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
           locale: "es_MX",
         }}
       >
+        <EstadoScript />
         <PayPalButtons
           style={{ layout: "vertical", height: 40 }}
           createOrder={async () => {

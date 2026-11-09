@@ -229,7 +229,7 @@ function SidebarLink({ to, label, module, onClose }: SidebarLinkProps) {
         to={to}
         onClick={onClose}
         className={({ isActive }) => `
-          flex items-center gap-3 rounded-[1.1rem] p-1.5 pr-3
+          group flex items-center gap-3 rounded-[1.1rem] p-1.5 pr-3
           transition-colors duration-200
           motion-reduce:transition-none
           focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
@@ -240,8 +240,20 @@ function SidebarLink({ to, label, module, onClose }: SidebarLinkProps) {
           }
         `}
       >
-        <ModuleTile module={module} size="sm" />
-        {label}
+        {({ isActive }) => (
+          <>
+            <ModuleTile
+              module={module}
+              size="sm"
+              className={
+                isActive
+                  ? ""
+                  : "opacity-55 transition-opacity duration-200 group-hover:opacity-100 motion-reduce:transition-none"
+              }
+            />
+            {label}
+          </>
+        )}
       </NavLink>
     </li>
   );

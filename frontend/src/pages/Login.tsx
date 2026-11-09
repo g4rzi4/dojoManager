@@ -12,11 +12,11 @@ import { homePathFor, saveSession } from "../services/session";
 
 /** Lo que incluye la app, con su color e inclinación. */
 const MODULOS: { module: ModuleKey; label: string; giro: string; tinta: string }[] = [
-  { module: "alumnos", label: "Alumnos", giro: "-rotate-3", tinta: "text-emerald-700" },
-  { module: "profesores", label: "Profesores", giro: "rotate-2", tinta: "text-sky-700" },
-  { module: "eventos", label: "Eventos", giro: "-rotate-2", tinta: "text-rose-600" },
-  { module: "horario", label: "Horario", giro: "rotate-3", tinta: "text-orange-700" },
-  { module: "pagos", label: "Pagos", giro: "-rotate-2", tinta: "text-amber-700" },
+  { module: "alumnos", label: "Alumnos", giro: "rotate-[-9deg] sm:mt-1", tinta: "text-emerald-700" },
+  { module: "profesores", label: "Profesores", giro: "rotate-[11deg] sm:mt-7", tinta: "text-sky-700" },
+  { module: "eventos", label: "Eventos", giro: "rotate-[-6deg] sm:mt-0", tinta: "text-rose-600" },
+  { module: "horario", label: "Horario", giro: "rotate-[8deg] sm:mt-8", tinta: "text-orange-700" },
+  { module: "pagos", label: "Pagos", giro: "rotate-[-12deg] sm:mt-2", tinta: "text-amber-700" },
 ];
 
 function Login() {
@@ -92,13 +92,13 @@ function Login() {
             </p>
           </div>
 
-          <ul className="hidden flex-wrap gap-x-3 gap-y-5 sm:flex">
+          <ul className="hidden flex-wrap justify-between gap-x-2 gap-y-5 sm:flex">
             {MODULOS.map(({ module, label, giro, tinta }) => (
               <li
                 key={module}
                 className={`flex flex-col items-center gap-1.5 ${giro}`}
               >
-                <ModuleTile module={module} />
+                <ModuleTile module={module} size="lg" />
                 <span
                   className={`rounded-xl border border-neutral-200/80 bg-white px-2.5 py-0.5 text-sm font-semibold ${tinta}`}
                 >

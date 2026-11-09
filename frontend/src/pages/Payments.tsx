@@ -82,8 +82,8 @@ function Payments() {
       ) : data ? (
         <>
           {/* Resumen */}
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <Card className="p-4">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+            <Card className="col-span-2 p-4 sm:col-span-1">
               <p className="text-sm font-semibold text-neutral-600">
                 Por cubrir
               </p>

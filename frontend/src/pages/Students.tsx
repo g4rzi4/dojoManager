@@ -162,7 +162,7 @@ function Students() {
                   "
                 >
                   <Card className="flex cursor-pointer items-center gap-4 p-4">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-sm font-bold text-white">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-[1.5px] border-emerald-200 bg-emerald-50 text-sm font-bold text-emerald-800">
                       {s.firstName.charAt(0).toUpperCase()}
                       {s.lastName.charAt(0).toUpperCase()}
                     </span>

@@ -4,6 +4,7 @@ import { Check, ChevronRight, Copy, GraduationCap, UserPlus } from "lucide-react
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import ModuleTile from "../components/ModuleTile";
 import PageHeading from "../components/PageHeading";
 import TeacherForm from "../components/TeacherForm";
 import { ApiError, getTeachers, setTeacherActive } from "../services/api";
@@ -156,9 +157,7 @@ function Teachers() {
               <li key={t.id}>
                 <Card className="p-4">
                   <div className="flex flex-wrap items-center gap-4">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white">
-                      <GraduationCap size={20} aria-hidden="true" />
-                    </span>
+                    <ModuleTile module="profesores" />
 
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-neutral-900">{t.name}</p>
