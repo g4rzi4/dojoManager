@@ -5,31 +5,6 @@
  * la idea y la estructura de la pantalla. Aquí va migrado a la paleta y los
  * componentes del proyecto, y con los tipos que espera el backend.
  *
- * ⚠️ TODAVÍA NO SE GUARDA EN LA BASE. Falta, en este orden:
- *
- *   1. Modelo en backend/prisma/schema.prisma:
- *
- *        model DojoClass {
- *          id          Int      @id @default(autoincrement())
- *          title       String
- *          discipline  Discipline
- *          dayOfWeek   Int        // 0 = lunes ... 6 = domingo
- *          startTime   String     // "16:00"
- *          endTime     String     // "17:30"
- *          location    String
- *          level       Level
- *          capacity    Int
- *          teacherId   Int?
- *          teacher     User?      @relation(fields: [teacherId], references: [id], onDelete: SetNull)
- *          createdAt   DateTime   @default(now())
- *          updatedAt   DateTime   @updatedAt
- *          @@index([dayOfWeek])
- *        }
- *
- *   2. GET /classes con requirePermission("events:read")
- *      POST y DELETE /classes con requirePermission("events:write")
- *   3. Reemplazar el estado local de Classes.tsx por esas llamadas
- *
  * Reusamos los permisos de eventos a propósito: el horario es parte del
  * calendario del dojo, así que no hace falta un permiso nuevo ni migrar la
  * matriz de roles.
@@ -45,7 +20,7 @@ export type Discipline =
 export type Level = "PRINCIPIANTES" | "INTERMEDIOS" | "AVANZADOS" | "MIXTO";
 
 export type DojoClass = {
-  id: string;
+  id: number;
   title: string;
   discipline: Discipline;
   /** 0 = lunes, 6 = domingo. Como en el resto de la app, la semana empieza en lunes. */
@@ -54,10 +29,18 @@ export type DojoClass = {
   startTime: string;
   /** "17:30" */
   endTime: string;
+  /** Nombre del profesor. Lo arma el backend. */
   instructor: string;
+  teacherId: number | null;
   location: string;
   level: Level;
   capacity: number;
+};
+
+/** El instructor no se manda: el backend lo resuelve a partir del profesor. */
+export type NewDojoClass = Omit<DojoClass, "id" | "instructor" | "teacherId"> & {
+  /** Solo el admin lo manda. Un profesor siempre agrega las suyas. */
+  teacherId?: number;
 };
 
 export const DISCIPLINE_LABELS: Record<Discipline, string> = {
