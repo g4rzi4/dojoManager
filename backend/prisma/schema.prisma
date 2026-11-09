@@ -284,13 +284,9 @@ model Payment {
   /// Cómo se pagó. Nulo mientras está pendiente.
   method PaymentMethod?
 
-  /// Id de la transacción en la pasarela externa.
-  ///
-  /// Hoy nadie lo escribe: la columna existe desde ahora para que integrar
-  /// PayPal más adelante no requiera otra migración, que obligaría a los 6 a
-  /// correr `prisma migrate dev` de nuevo. Al integrarlo, aquí va el
-  /// identificador de la orden para poder conciliar y evitar cobros dobles.
-  externalReference String?
+  /// Id de la orden de PayPal. Único: una orden liquida un solo cobro, y es
+  /// lo que permite conciliar y evitar cobros dobles.
+  externalReference String? @unique
 
   registeredById Int?
   registeredBy   User? @relation("PagoRegistradoPor", fields: [registeredById], references: [id], onDelete: SetNull)
@@ -643,6 +639,9 @@ model EventEnrollment {
 
   method PaymentMethod?
   note   String?
+
+  /// Id de la orden de PayPal, si se pagó en línea. Ver Payment.externalReference.
+  externalReference String? @unique
 
   reportedAt  DateTime  @default(now())
   confirmedAt DateTime?

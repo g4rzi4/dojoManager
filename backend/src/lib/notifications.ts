@@ -285,6 +285,52 @@ export async function notifyEventPaymentResolved(
 }
 
 /**
+ * Llamar cuando un evento se paga con PayPal. Ahí no confirma el profesor: el
+ * pago ya está verificado, así que se avisa a la familia y a él.
+ */
+export async function notifyEventPaidOnline(
+  enrollmentId: number,
+  studentId: number,
+  teacherUserId: number | null,
+  eventTitle: string,
+  modalidades: string[],
+  amountCents: number
+) {
+  const familia = await audienceForStudent(studentId);
+
+  const monto = (amountCents / 100).toLocaleString("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  });
+
+  const detalle =
+    modalidades.length > 0 ? ` Participa en ${modalidades.join(" y ")}.` : "";
+
+  return createAutomatic([
+    ...familia.map((userId) => ({
+      userId,
+      topic: NotificationTopic.PAGO,
+      title: "Inscripción confirmada",
+      body: `Recibimos tu pago de ${monto} con PayPal para "${eventTitle}" y ya quedaste inscrito.${detalle}`,
+      link: "/eventos",
+      dedupeKey: `cobro-evento-paypal-${enrollmentId}-${userId}`,
+    })),
+    ...(teacherUserId === null
+      ? []
+      : [
+          {
+            userId: teacherUserId,
+            topic: NotificationTopic.PAGO,
+            title: "Pago con PayPal recibido",
+            body: `Un alumno pagó ${monto} con PayPal para "${eventTitle}". Ya quedó inscrito; no tienes que confirmar nada.`,
+            link: "/eventos",
+            dedupeKey: `cobro-evento-paypal-profesor-${enrollmentId}`,
+          },
+        ]),
+  ]);
+}
+
+/**
  * Manda un aviso redactado por el dojo.
  *
  * Sin dedupeKey a propósito: si el profesor quiere repetir el mismo aviso,

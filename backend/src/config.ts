@@ -61,4 +61,31 @@ export const config = {
 
   /** Duración del token en segundos. 7 días. */
   jwtExpiresInSeconds: 60 * 60 * 24 * 7,
+
+  /**
+   * Llave de Anthropic para el asistente de IA. Solo se usa en el servidor:
+   * nunca debe llegar al frontend ni escribirse en logs.
+   *
+   * Es opcional a propósito: sin ella, el resto del backend funciona igual y
+   * solo el asistente queda deshabilitado.
+   */
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || undefined,
+
+  /**
+   * PayPal. Opcional por la misma razón: sin credenciales, la app funciona y
+   * solo el pago en línea queda deshabilitado.
+   *
+   * El clientId es público (lo usa el botón del navegador). El clientSecret
+   * nunca sale del servidor.
+   */
+  paypal: {
+    clientId: process.env.PAYPAL_CLIENT_ID || undefined,
+    clientSecret: process.env.PAYPAL_CLIENT_SECRET || undefined,
+    baseUrl:
+      process.env.PAYPAL_ENV === "live"
+        ? "https://api-m.paypal.com"
+        : "https://api-m.sandbox.paypal.com",
+    currency: process.env.PAYPAL_CURRENCY || "MXN",
+    webhookId: process.env.PAYPAL_WEBHOOK_ID || undefined,
+  },
 };

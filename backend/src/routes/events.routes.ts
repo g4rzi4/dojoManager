@@ -8,6 +8,7 @@ import {
   notifyEventPaymentResolved,
   notifyNewEvent,
 } from "../lib/notifications";
+import { paypalConfigured } from "../lib/paypal";
 import { normalizeTeacherCode } from "../lib/teacherCode";
 import { preciosParaProfesor, profesorDeAlumno } from "../lib/eventPricing";
 import { requireAuth, requirePermission } from "../middleware/auth";
@@ -79,6 +80,7 @@ router.get(
         : prisma.eventEnrollment.findMany({
             where: { studentId: { in: propios } },
             select: {
+              id: true,
               eventId: true,
               studentId: true,
               status: true,
@@ -131,6 +133,7 @@ router.get(
           reportes: e._count.enrollments,
           /** Estado de los alumnos a cargo de quien consulta. */
           misAlumnos: mias.map((i) => ({
+            enrollmentId: i.id,
             studentId: i.studentId,
             status: i.status,
             enrolled: i.enrolled,
@@ -446,10 +449,30 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     return res.status(400).json({ success: false, message: errorCobro });
   }
 
-  const yaReportado = await prisma.eventEnrollment.findUnique({
+  const pagaConPayPal = method === PaymentMethod.PAYPAL;
+
+  if (pagaConPayPal && !paypalConfigured()) {
+    return res.status(503).json({
+      success: false,
+      message: "El pago en línea no está disponible.",
+    });
+  }
+
+  let yaReportado = await prisma.eventEnrollment.findUnique({
     where: { eventId_studentId: { eventId, studentId: alumnoId } },
-    select: { id: true, status: true },
+    select: { id: true, status: true, method: true },
   });
+
+  // Un checkout de PayPal que quedó sin pagar no debe bloquear para siempre:
+  // se descarta y la familia puede volver a elegir. Es seguro porque capturar
+  // exige que la orden siga ligada a una inscripción existente.
+  if (
+    yaReportado?.status === EventPaymentStatus.PENDIENTE_PAGO &&
+    yaReportado.method === PaymentMethod.PAYPAL
+  ) {
+    await prisma.eventEnrollment.delete({ where: { id: yaReportado.id } });
+    yaReportado = null;
+  }
 
   if (yaReportado) {
     return res.status(409).json({
@@ -469,6 +492,11 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
       // El monto se congela al reportar: si el dojo cambia el precio
       // después, los cobros ya hechos no se alteran.
       amountCents: total,
+      // Con PayPal aún no hay nada que confirmar: queda pendiente hasta que
+      // se capture el pago, y entonces se inscribe solo.
+      status: pagaConPayPal
+        ? EventPaymentStatus.PENDIENTE_PAGO
+        : EventPaymentStatus.REPORTADO,
       gender: categoria.valor?.gender ?? null,
       beltClass: categoria.valor?.beltClass ?? null,
       ageCategory: categoria.valor?.ageCategory ?? null,
@@ -490,6 +518,15 @@ router.post("/:id/report-payment", requireAuth, async (req, res) => {
     },
     select: { id: true },
   });
+
+  if (pagaConPayPal) {
+    return res.status(201).json({
+      success: true,
+      enrollmentId: enrollment.id,
+      amountCents: total,
+      message: "Completa tu pago con PayPal para quedar inscrito.",
+    });
+  }
 
   // Avisarle al profesor que tiene un pago por confirmar.
   try {

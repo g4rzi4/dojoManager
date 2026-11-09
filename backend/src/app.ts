@@ -10,6 +10,7 @@ import eventRoutes from "./routes/events.routes";
 import teacherRoutes from "./routes/teachers.routes";
 import guardianRoutes from "./routes/guardians.routes";
 import invitationRoutes from "./routes/invitations.routes";
+import paypalRoutes from "./routes/paypal.routes";
 
 const app = express();
 
@@ -21,7 +22,16 @@ const app = express();
 // computadora) y la IP de red local (para abrir la app desde el celular al
 // escanear un QR).
 app.use(cors({ origin: config.corsOrigins }));
-app.use(express.json());
+app.use(
+  express.json({
+    // El webhook de PayPal se verifica contra el cuerpo exacto que llegó.
+    verify: (req, _res, buffer) => {
+      if (req.url === "/paypal/webhook") {
+        (req as typeof req & { rawBody?: Buffer }).rawBody = buffer;
+      }
+    },
+  })
+);
 
 app.get("/", (_req, res) => {
   res.json({
@@ -37,6 +47,7 @@ app.use("/events", eventRoutes);
 app.use("/teachers", teacherRoutes);
 app.use("/guardians", guardianRoutes);
 app.use("/invitations", invitationRoutes);
+app.use("/paypal", paypalRoutes);
 
 // Ruta no encontrada
 app.use((_req, res) => {
