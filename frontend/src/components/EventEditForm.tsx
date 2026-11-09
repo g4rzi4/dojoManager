@@ -129,17 +129,17 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
   }
 
   const inputClase = `
-    w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-    outline-none transition-all
-    focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    outline-none transition-[border-color,box-shadow,background-color]
+    focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
     <Card className="p-5">
-      <h3 className="font-bold text-slate-900">
+      <h3 className="font-bold text-neutral-900">
         {esAdmin ? "Editar evento" : "Mis costos para este evento"}
       </h3>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-neutral-600">
         {esAdmin
           ? "Cambiar un precio no altera los cobros ya hechos."
           : "Estos precios aplican solo a TUS alumnos. Los demás grupos siguen con el costo base."}
@@ -150,7 +150,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
         <div className="space-y-2">
           <label
             htmlFor={`ed-titulo-${event.id}`}
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-neutral-700"
           >
             Título
           </label>
@@ -169,7 +169,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor={`ed-fecha-${event.id}`}
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Fecha
             </label>
@@ -185,10 +185,10 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor={`ed-hora-${event.id}`}
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Hora{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </label>
             <input
               id={`ed-hora-${event.id}`}
@@ -203,7 +203,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
 
         {/* El admin puede activar el cobro en un evento que se creó gratuito */}
         {esAdmin && (
-          <label className="flex cursor-pointer items-start gap-3 border-t border-slate-200 pt-5">
+          <label className="flex cursor-pointer items-start gap-3 border-t border-neutral-200 pt-5">
             <input
               type="checkbox"
               checked={conPago}
@@ -211,10 +211,10 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
               className="mt-1 cursor-pointer"
             />
             <span>
-              <span className="block text-sm font-medium text-slate-700">
+              <span className="block text-sm font-medium text-neutral-700">
                 Requiere pago para participar
               </span>
-              <span className="mt-0.5 block text-xs text-slate-600">
+              <span className="mt-0.5 block text-xs text-neutral-600">
                 Actívalo para poder definir el costo o las modalidades.
               </span>
             </span>
@@ -224,7 +224,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
         {/* Al profesor hay que decirle por qué no puede hacer nada, en lugar
             de dejarle un formulario vacío */}
         {!esAdmin && !profesorPuedeEditar && (
-          <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <TriangleAlert
               size={18}
               aria-hidden="true"
@@ -246,8 +246,8 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
         )}
 
         {((esAdmin && conPago) || (!esAdmin && profesorPuedeEditar)) && (
-          <fieldset className="border-t border-slate-200 pt-5">
-            <legend className="text-sm font-semibold text-slate-900">
+          <fieldset className="border-t border-neutral-200 pt-5">
+            <legend className="text-sm font-semibold text-neutral-900">
               {tieneModalidades ? "Costos por modalidad" : "Costo"}
             </legend>
 
@@ -259,7 +259,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                       <div className="min-w-36 flex-1 space-y-2">
                         <label
                           htmlFor={`ed-mod-${event.id}-${i}`}
-                          className="block text-sm font-medium text-slate-700"
+                          className="block text-sm font-medium text-neutral-700"
                         >
                           Modalidad
                         </label>
@@ -281,7 +281,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                       <div className="w-32 space-y-2">
                         <label
                           htmlFor={`ed-precio-${event.id}-${i}`}
-                          className="block text-sm font-medium text-slate-700"
+                          className="block text-sm font-medium text-neutral-700"
                         >
                           Costo
                         </label>
@@ -303,7 +303,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                       </div>
 
                       {!esAdmin && m.id !== undefined && (
-                        <p className="w-full text-xs text-slate-500 sm:w-auto sm:pb-3">
+                        <p className="w-full text-xs text-neutral-500 sm:w-auto sm:pb-3">
                           base{" "}
                           {formatMoney(
                             event.modalities?.find((x) => x.id === m.id)
@@ -323,11 +323,11 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                         aria-label={`Quitar ${m.name || "la modalidad"}`}
                         className="
                           flex h-11 w-11 shrink-0 cursor-pointer items-center
-                          justify-center rounded-lg text-slate-500
+                          justify-center rounded-xl text-neutral-500
                           transition-colors duration-200
                           motion-reduce:transition-none
                           hover:bg-red-50 hover:text-red-700
-                          focus:ring-2 focus:ring-blue-600 focus:outline-none
+                          focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                         "
                       >
                         <Trash2 size={17} aria-hidden="true" />
@@ -344,12 +344,12 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                     setModalidades((prev) => [...prev, { name: "", precio: "" }])
                   }
                   className="
-                    mt-3 flex cursor-pointer items-center gap-2 rounded-xl border
-                    border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold
-                    text-slate-700 transition-colors duration-200
+                    mt-3 flex cursor-pointer items-center gap-2 rounded-2xl border
+                    border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+                    text-neutral-700 transition-colors duration-200
                     motion-reduce:transition-none
-                    hover:bg-slate-50
-                    focus:ring-2 focus:ring-blue-600 focus:outline-none
+                    hover:bg-neutral-50
+                    focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                   "
                 >
                   <Plus size={16} aria-hidden="true" />
@@ -358,7 +358,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                 )}
 
                 {esAdmin && (
-                <div className="mt-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <div className="mt-4 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
                   <TriangleAlert
                     size={16}
                     aria-hidden="true"
@@ -376,7 +376,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
               <div className="mt-3 max-w-xs space-y-2">
                 <label
                   htmlFor={`ed-costo-${event.id}`}
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-sm font-medium text-neutral-700"
                 >
                   Costo en pesos
                 </label>
@@ -407,15 +407,15 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
             onClick={guardar}
             disabled={!valido || guardando}
             className="
-              cursor-pointer rounded-xl bg-blue-600 px-5 py-3 font-semibold
+              cursor-pointer rounded-2xl bg-violet-600 px-5 py-3 font-semibold
               text-white transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Guardando..." : "Guardar cambios"}
+            {guardando ? "Guardando…" : "Guardar cambios"}
           </button>
           )}
 
@@ -423,11 +423,11 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-3
-              font-semibold text-slate-700 transition-colors duration-200
+              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-slate-50
-              focus:ring-2 focus:ring-blue-600 focus:outline-none
+              hover:bg-neutral-50
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
             {esAdmin || profesorPuedeEditar ? "Cancelar" : "Cerrar"}

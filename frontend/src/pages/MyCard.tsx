@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import PageHeading from "../components/PageHeading";
 import StudentCardView from "../components/StudentCardView";
 import { ApiError, getStudentCard } from "../services/api";
 import { getUser } from "../services/session";
@@ -49,13 +50,13 @@ function MyCard() {
   return (
     <DashboardLayout>
       <header>
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+        <PageHeading module="tarjeta"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
           Hola, {user?.name ?? "alumno"}
         </h1>
-        <p className="mt-2 text-slate-600">
+        <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
           Esta es tu tarjeta de información: tus cintas, asistencia, pagos
           y las observaciones de tus profesores.
-        </p>
+        </p></PageHeading>
       </header>
 
       <div className="mt-8">

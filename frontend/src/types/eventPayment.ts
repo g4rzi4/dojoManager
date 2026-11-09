@@ -14,7 +14,7 @@ export const EVENT_PAYMENT_LABELS: Record<EventPaymentStatus, string> = {
 };
 
 export const EVENT_PAYMENT_STYLES: Record<EventPaymentStatus, string> = {
-  PENDIENTE_PAGO: "bg-slate-50 text-slate-800 border-slate-200",
+  PENDIENTE_PAGO: "bg-neutral-50 text-neutral-800 border-neutral-200",
   REPORTADO: "bg-amber-50 text-amber-900 border-amber-200",
   CONFIRMADO: "bg-emerald-50 text-emerald-800 border-emerald-200",
   RECHAZADO: "bg-red-50 text-red-800 border-red-200",

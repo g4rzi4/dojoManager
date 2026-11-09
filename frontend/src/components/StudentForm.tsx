@@ -66,15 +66,15 @@ function StudentForm({ onCreado, onCancelar }: Props) {
   }
 
   const inputClase = `
-    w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-    outline-none transition-all
-    focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    outline-none transition-[border-color,box-shadow,background-color]
+    focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-slate-900">Registrar un alumno</h2>
-      <p className="mt-1 text-sm text-slate-600">
+      <h2 className="font-bold text-neutral-900">Registrar un alumno</h2>
+      <p className="mt-1 text-sm text-neutral-600">
         {esAdmin
           ? "Escribe la clave del profesor para asignarlo a su grupo."
           : "Queda asignado a tu grupo automáticamente."}
@@ -85,7 +85,7 @@ function StudentForm({ onCreado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="al-nombre"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Nombre
             </label>
@@ -101,7 +101,7 @@ function StudentForm({ onCreado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="al-apellido"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Apellido
             </label>
@@ -117,10 +117,10 @@ function StudentForm({ onCreado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="al-nacimiento"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Fecha de nacimiento{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </label>
             <input
               id="al-nacimiento"
@@ -134,10 +134,10 @@ function StudentForm({ onCreado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="al-telefono"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Teléfono{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </label>
             <input
               id="al-telefono"
@@ -151,10 +151,10 @@ function StudentForm({ onCreado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="al-tutor"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Nombre del tutor{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </label>
             <input
               id="al-tutor"
@@ -168,10 +168,10 @@ function StudentForm({ onCreado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="al-tutor-tel"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Teléfono del tutor{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </label>
             <input
               id="al-tutor-tel"
@@ -186,10 +186,10 @@ function StudentForm({ onCreado, onCancelar }: Props) {
         <div className="space-y-2">
           <label
             htmlFor="al-medico"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-neutral-700"
           >
             Información médica{" "}
-            <span className="font-normal text-slate-500">(opcional)</span>
+            <span className="font-normal text-neutral-500">(opcional)</span>
           </label>
           <textarea
             id="al-medico"
@@ -207,10 +207,10 @@ function StudentForm({ onCreado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="al-clave"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Clave del profesor{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </label>
             <input
               id="al-clave"
@@ -221,7 +221,7 @@ function StudentForm({ onCreado, onCancelar }: Props) {
               aria-describedby="al-clave-ayuda"
               className={`${inputClase} font-mono`}
             />
-            <p id="al-clave-ayuda" className="text-xs text-slate-500">
+            <p id="al-clave-ayuda" className="text-xs text-neutral-500">
               La encuentras en la sección de Profesores. Si la dejas vacía, el
               alumno queda sin profesor asignado.
             </p>
@@ -239,26 +239,26 @@ function StudentForm({ onCreado, onCancelar }: Props) {
             type="submit"
             disabled={!valido || guardando}
             className="
-              cursor-pointer rounded-xl bg-blue-600 px-5 py-3 font-semibold
+              cursor-pointer rounded-2xl bg-violet-600 px-5 py-3 font-semibold
               text-white transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Registrando..." : "Registrar alumno"}
+            {guardando ? "Registrando…" : "Registrar alumno"}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-3
-              font-semibold text-slate-700 transition-colors duration-200
+              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-slate-50
-              focus:ring-2 focus:ring-blue-600 focus:outline-none
+              hover:bg-neutral-50
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
             Cancelar

@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Card from "../components/Card";
 
 type Props = {
   children: ReactNode;
@@ -7,10 +6,10 @@ type Props = {
 
 function AuthLayout({ children }: Props) {
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
-      <Card className="w-full max-w-5xl overflow-hidden">
+    <div className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-6xl rounded-[2.5rem] border border-neutral-200/80 bg-neutral-50 shadow-float sm:rounded-[3.25rem]">
         {children}
-      </Card>
+      </div>
     </div>
   );
 }

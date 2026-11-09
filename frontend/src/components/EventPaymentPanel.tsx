@@ -179,18 +179,18 @@ function ReportarPago({
   }
 
   const inputClase = `
-    w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-    outline-none transition-all
-    focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    outline-none transition-[border-color,box-shadow,background-color]
+    focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
     <Card className="p-5">
-      <h3 className="flex items-center gap-2 font-bold text-slate-900">
-        <Receipt size={18} aria-hidden="true" className="text-slate-400" />
+      <h3 className="flex items-center gap-2 font-bold text-neutral-900">
+        <Receipt size={18} aria-hidden="true" className="text-neutral-400" />
         Pago del evento
       </h3>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-neutral-600">
         {tieneModalidades
           ? "Cada modalidad tiene su costo. Paga con tu profesor y luego repórtalo aquí con su clave."
           : `Cuesta ${formatMoney(event.priceCents ?? 0)}. Paga con tu profesor y luego repórtalo aquí con su clave.`}
@@ -205,7 +205,7 @@ function ReportarPago({
             return (
               <li
                 key={r.studentId}
-                className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm ${
+                className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-sm ${
                   EVENT_PAYMENT_STYLES[r.status]
                 }`}
               >
@@ -233,7 +233,7 @@ function ReportarPago({
       )}
 
       {pendientes.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-sm text-neutral-600">
           {yaReportados.some((r) => r.status === "PENDIENTE_PAGO")
             ? "Completa el pago para quedar inscrito."
             : "Ya reportaste el pago de todos tus alumnos para este evento."}
@@ -244,7 +244,7 @@ function ReportarPago({
             <div className="space-y-2">
               <label
                 htmlFor={`ep-alumno-${event.id}`}
-                className="block text-sm font-medium text-slate-700"
+                className="block text-sm font-medium text-neutral-700"
               >
                 ¿De quién es el pago?
               </label>
@@ -269,7 +269,7 @@ function ReportarPago({
           {/* Modalidades: se pueden elegir varias y el total se suma */}
           {tieneModalidades && (
             <fieldset>
-              <legend className="text-sm font-medium text-slate-700">
+              <legend className="text-sm font-medium text-neutral-700">
                 ¿A qué modalidades entra?
               </legend>
 
@@ -278,13 +278,13 @@ function ReportarPago({
                   <label
                     key={m.id}
                     className={`
-                      flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3
+                      flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3
                       transition-colors duration-200
                       motion-reduce:transition-none
                       ${
                         elegidas.includes(m.id)
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-slate-300 bg-white hover:bg-slate-50"
+                          ? "border-violet-600 bg-violet-50"
+                          : "border-neutral-300 bg-white hover:bg-neutral-50"
                       }
                     `}
                   >
@@ -300,10 +300,10 @@ function ReportarPago({
                       }
                       className="cursor-pointer"
                     />
-                    <span className="flex-1 text-sm font-medium text-slate-900">
+                    <span className="flex-1 text-sm font-medium text-neutral-900">
                       {m.name}
                     </span>
-                    <span className="text-sm font-semibold text-slate-700">
+                    <span className="text-sm font-semibold text-neutral-700">
                       {formatMoney(m.priceCents)}
                     </span>
                   </label>
@@ -311,11 +311,11 @@ function ReportarPago({
               </div>
 
               {/* El total, para que no haya sorpresas al pagar */}
-              <p className="mt-3 flex items-center justify-between rounded-xl bg-slate-100 px-4 py-3">
-                <span className="text-sm font-medium text-slate-700">
+              <p className="mt-3 flex items-center justify-between rounded-2xl bg-neutral-100 px-4 py-3">
+                <span className="text-sm font-medium text-neutral-700">
                   Total a pagar
                 </span>
-                <span className="text-lg font-bold text-slate-900">
+                <span className="text-lg font-bold text-neutral-900">
                   {formatMoney(total)}
                 </span>
               </p>
@@ -324,17 +324,17 @@ function ReportarPago({
 
           {/* Categoría de competencia: rama, tipo de cinta y edad.
               Los rangos de edad NO son los mismos en color y en negras. */}
-          <fieldset className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <legend className="px-1 text-sm font-medium text-slate-700">
+          <fieldset className="space-y-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+            <legend className="px-1 text-sm font-medium text-neutral-700">
               Categoría de competencia{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </legend>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label
                   htmlFor={`ep-rama-${event.id}`}
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-sm font-medium text-neutral-700"
                 >
                   Rama
                 </label>
@@ -360,7 +360,7 @@ function ReportarPago({
               <div className="space-y-2">
                 <label
                   htmlFor={`ep-cinta-${event.id}`}
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-sm font-medium text-neutral-700"
                 >
                   Tipo de cinta
                 </label>
@@ -389,7 +389,7 @@ function ReportarPago({
               <div className="space-y-2">
                 <label
                   htmlFor={`ep-categoria-${event.id}`}
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-sm font-medium text-neutral-700"
                 >
                   Categoría de edad
                 </label>
@@ -411,7 +411,7 @@ function ReportarPago({
                 </select>
                 <p
                   id={`ep-categoria-ayuda-${event.id}`}
-                  className="text-xs text-slate-500"
+                  className="text-xs text-neutral-500"
                 >
                   Puede no coincidir con su edad: hay alumnos a los que se
                   foguea en una categoría mayor.
@@ -423,10 +423,10 @@ function ReportarPago({
           <div className="space-y-2">
             <label
               htmlFor={`ep-metodo-${event.id}`}
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               ¿Cómo pagaste?{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </label>
             <select
               id={`ep-metodo-${event.id}`}
@@ -452,10 +452,10 @@ function ReportarPago({
           <div className="space-y-2">
             <label
               htmlFor={`ep-nota-${event.id}`}
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Nota para el profesor{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </label>
             <input
               id={`ep-nota-${event.id}`}
@@ -470,7 +470,7 @@ function ReportarPago({
           <div className="space-y-2">
             <label
               htmlFor={`ep-clave-${event.id}`}
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Clave de tu profesor
             </label>
@@ -485,7 +485,7 @@ function ReportarPago({
             />
             <p
               id={`ep-clave-ayuda-${event.id}`}
-              className="flex items-center gap-1.5 text-xs text-slate-500"
+              className="flex items-center gap-1.5 text-xs text-neutral-500"
             >
               <KeyRound size={12} aria-hidden="true" />
               Tu profesor te la comparte. Con ella el cobro queda registrado a
@@ -509,16 +509,16 @@ function ReportarPago({
             type="submit"
             disabled={!valido || enviando}
             className="
-              cursor-pointer rounded-xl bg-blue-600 px-5 py-3 font-semibold
+              cursor-pointer rounded-2xl bg-violet-600 px-5 py-3 font-semibold
               text-white transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
             {enviando
-              ? "Enviando..."
+              ? "Enviando…"
               : metodo === "PAYPAL"
                 ? "Continuar a PayPal"
                 : "Ya pagué"}
@@ -617,13 +617,13 @@ function GestionCobros({
 
   return (
     <Card className="p-5">
-      <h3 className="flex items-center gap-2 font-bold text-slate-900">
-        <Receipt size={18} aria-hidden="true" className="text-slate-400" />
+      <h3 className="flex items-center gap-2 font-bold text-neutral-900">
+        <Receipt size={18} aria-hidden="true" className="text-neutral-400" />
         Pagos e inscritos
       </h3>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-neutral-600">
         Cuesta{" "}
-        <strong className="text-slate-900">
+        <strong className="text-neutral-900">
           {formatMoney(event.priceCents ?? 0)}
         </strong>
         . {inscritos} inscrito{inscritos === 1 ? "" : "s"}
@@ -648,9 +648,9 @@ function GestionCobros({
       />
 
       {!cargado ? (
-        <div className="mt-4 h-20 animate-pulse rounded-xl bg-slate-100 motion-reduce:animate-none" />
+        <div className="mt-4 h-20 animate-pulse rounded-2xl bg-neutral-100 motion-reduce:animate-none" />
       ) : enrollments.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-sm text-neutral-600">
           Nadie ha reportado pago todavía. Comparte tu clave con tus alumnos
           para que lo reporten.
         </p>
@@ -659,20 +659,20 @@ function GestionCobros({
           {enrollments.map((e) => (
             <li
               key={e.id}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
+              className="flex flex-wrap items-center gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-3"
             >
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-neutral-900">
                   {e.studentName}
                 </p>
                 {e.categoriaLegible && (
-                  <p className="mt-0.5 text-xs font-medium text-slate-800">
+                  <p className="mt-0.5 text-xs font-medium text-neutral-800">
                     {e.categoriaLegible}
                   </p>
                 )}
 
                 {e.modalidades.length > 0 && (
-                  <p className="mt-0.5 text-xs text-slate-700">
+                  <p className="mt-0.5 text-xs text-neutral-700">
                     {e.modalidades
                       .map((m) => `${m.name} ${formatMoney(m.priceCents)}`)
                       .join(" + ")}
@@ -680,7 +680,7 @@ function GestionCobros({
                   </p>
                 )}
 
-                <p className="mt-0.5 text-xs text-slate-600">
+                <p className="mt-0.5 text-xs text-neutral-600">
                   {formatMoney(e.amountCents)}
                   {e.method && ` · ${PAYMENT_METHOD_LABELS[e.method].toLowerCase()}`}
                   {" · reportado el "}
@@ -694,7 +694,7 @@ function GestionCobros({
                 </p>
 
                 {e.note && (
-                  <p className="mt-1 text-xs text-slate-600 italic">
+                  <p className="mt-1 text-xs text-neutral-600 italic">
                     "{e.note}"
                   </p>
                 )}
@@ -709,7 +709,7 @@ function GestionCobros({
               </span>
 
               {e.enrolled && (
-                <span className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">
+                <span className="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-800">
                   Inscrito
                 </span>
               )}
@@ -721,12 +721,12 @@ function GestionCobros({
                     onClick={() => resolver(e.id, true)}
                     disabled={resolviendo === e.id}
                     className="
-                      flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600
+                      flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-600
                       px-3 py-2 text-xs font-semibold text-white
                       transition-colors duration-200
                       motion-reduce:transition-none
                       hover:bg-emerald-700
-                      focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 focus:outline-none
+                      focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none
                       disabled:cursor-not-allowed disabled:opacity-50
                     "
                   >
@@ -739,12 +739,12 @@ function GestionCobros({
                     onClick={() => resolver(e.id, false)}
                     disabled={resolviendo === e.id}
                     className="
-                      flex cursor-pointer items-center gap-1.5 rounded-lg border
-                      border-slate-300 bg-white px-3 py-2 text-xs font-semibold
-                      text-slate-700 transition-colors duration-200
+                      flex cursor-pointer items-center gap-1.5 rounded-xl border
+                      border-neutral-300 bg-white px-3 py-2 text-xs font-semibold
+                      text-neutral-700 transition-colors duration-200
                       motion-reduce:transition-none
                       hover:bg-red-50 hover:text-red-700
-                      focus:ring-2 focus:ring-blue-600 focus:outline-none
+                      focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                       disabled:cursor-not-allowed disabled:opacity-50
                     "
                   >
@@ -841,9 +841,9 @@ function InscribirAlumnos({
   }
 
   const inputClase = `
-    w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-    outline-none transition-all
-    focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    outline-none transition-[border-color,box-shadow,background-color]
+    focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   if (!abierto) {
@@ -852,12 +852,12 @@ function InscribirAlumnos({
         type="button"
         onClick={() => setAbierto(true)}
         className="
-          mt-4 flex cursor-pointer items-center gap-2 rounded-xl border
-          border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold
-          text-slate-700 transition-colors duration-200
+          mt-4 flex cursor-pointer items-center gap-2 rounded-2xl border
+          border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+          text-neutral-700 transition-colors duration-200
           motion-reduce:transition-none
-          hover:bg-slate-50
-          focus:ring-2 focus:ring-blue-600 focus:outline-none
+          hover:bg-neutral-50
+          focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
         "
       >
         <UserPlus size={16} aria-hidden="true" />
@@ -867,13 +867,13 @@ function InscribirAlumnos({
   }
 
   return (
-    <div className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-sm font-semibold text-slate-900">
+    <div className="mt-4 space-y-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+      <p className="text-sm font-semibold text-neutral-900">
         Inscribir a un alumno
       </p>
 
       {disponibles.length === 0 ? (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-neutral-600">
           {alumnos.length === 0
             ? "No tienes alumnos activos."
             : "Todos tus alumnos ya están en la lista de este evento."}
@@ -883,7 +883,7 @@ function InscribirAlumnos({
           <div className="space-y-2">
             <label
               htmlFor={`in-alumno-${event.id}`}
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Alumno
             </label>
@@ -906,7 +906,7 @@ function InscribirAlumnos({
 
           {tieneModalidades && (
             <fieldset>
-              <legend className="text-sm font-medium text-slate-700">
+              <legend className="text-sm font-medium text-neutral-700">
                 ¿En qué modalidades entra?
               </legend>
 
@@ -915,13 +915,13 @@ function InscribirAlumnos({
                   <label
                     key={m.id}
                     className={`
-                      flex cursor-pointer items-center gap-3 rounded-xl border bg-white px-4 py-3
+                      flex cursor-pointer items-center gap-3 rounded-2xl border bg-white px-4 py-3
                       transition-colors duration-200
                       motion-reduce:transition-none
                       ${
                         elegidas.includes(m.id)
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-slate-300 hover:bg-slate-50"
+                          ? "border-violet-600 bg-violet-50"
+                          : "border-neutral-300 hover:bg-neutral-50"
                       }
                     `}
                   >
@@ -937,21 +937,21 @@ function InscribirAlumnos({
                       }
                       className="cursor-pointer"
                     />
-                    <span className="flex-1 text-sm font-medium text-slate-900">
+                    <span className="flex-1 text-sm font-medium text-neutral-900">
                       {m.name}
                     </span>
-                    <span className="text-sm font-semibold text-slate-700">
+                    <span className="text-sm font-semibold text-neutral-700">
                       {formatMoney(m.priceCents)}
                     </span>
                   </label>
                 ))}
               </div>
 
-              <p className="mt-3 flex items-center justify-between rounded-xl bg-white px-4 py-3">
-                <span className="text-sm font-medium text-slate-700">
+              <p className="mt-3 flex items-center justify-between rounded-2xl bg-white px-4 py-3">
+                <span className="text-sm font-medium text-neutral-700">
                   Tendrá que pagar
                 </span>
-                <span className="text-lg font-bold text-slate-900">
+                <span className="text-lg font-bold text-neutral-900">
                   {formatMoney(total)}
                 </span>
               </p>
@@ -961,10 +961,10 @@ function InscribirAlumnos({
           <div className="space-y-2">
             <label
               htmlFor={`in-nota-${event.id}`}
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Nota{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </label>
             <input
               id={`in-nota-${event.id}`}
@@ -982,7 +982,7 @@ function InscribirAlumnos({
             </p>
           )}
 
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-neutral-600">
             Al alumno y a sus tutores les llegará una notificación con las
             modalidades y lo que deben pagar. Quedará inscrito cuando
             confirmes el pago.
@@ -997,15 +997,15 @@ function InscribirAlumnos({
             onClick={inscribir}
             disabled={!valido || guardando}
             className="
-              cursor-pointer rounded-xl bg-blue-600 px-5 py-2.5 text-sm
+              cursor-pointer rounded-2xl bg-violet-600 px-5 py-2.5 text-sm
               font-semibold text-white transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Inscribiendo..." : "Inscribir"}
+            {guardando ? "Inscribiendo…" : "Inscribir"}
           </button>
         )}
 
@@ -1013,12 +1013,12 @@ function InscribirAlumnos({
           type="button"
           onClick={() => setAbierto(false)}
           className="
-            cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-2.5
-            text-sm font-semibold text-slate-700
+            cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-2.5
+            text-sm font-semibold text-neutral-700
             transition-colors duration-200
             motion-reduce:transition-none
-            hover:bg-slate-50
-            focus:ring-2 focus:ring-blue-600 focus:outline-none
+            hover:bg-neutral-50
+            focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
           "
         >
           Cerrar

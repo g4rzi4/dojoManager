@@ -1,19 +1,11 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import {
-  LayoutDashboard,
-  Users,
-  GraduationCap,
-  CalendarDays,
-  CalendarRange,
-  IdCard,
-  Bell,
-  Receipt,
-  LogOut,
-  X,
-} from "lucide-react";
+import { LogOut, X } from "lucide-react";
 
+import BrandMark from "./BrandMark";
+import ModuleTile from "./ModuleTile";
 import { can, clearSession, getUser } from "../services/session";
 import { ROLE_LABELS, type Permission } from "../types/user";
+import type { ModuleKey } from "../lib/modules";
 
 type Props = {
   /** En móvil el sidebar se muestra como panel deslizable. */
@@ -24,7 +16,7 @@ type Props = {
 type NavItem = {
   to: string;
   label: string;
-  icon: typeof LayoutDashboard;
+  module: ModuleKey;
   /** Permiso necesario para ver esta entrada. */
   permission: Permission;
 };
@@ -40,38 +32,38 @@ const NAV_ITEMS: NavItem[] = [
   {
     to: "/dashboard",
     label: "Inicio",
-    icon: LayoutDashboard,
+    module: "inicio",
     permission: "students:read",
   },
   {
     to: "/profesores",
     label: "Profesores",
-    icon: GraduationCap,
+    module: "profesores",
     permission: "teachers:read",
   },
   {
     to: "/alumnos",
     label: "Alumnos",
-    icon: Users,
+    module: "alumnos",
     permission: "students:read",
   },
   {
     to: "/eventos",
     label: "Eventos",
-    icon: CalendarDays,
+    module: "eventos",
     permission: "events:read",
   },
   {
     to: "/clases",
     label: "Horario",
-    icon: CalendarRange,
+    module: "horario",
     // Lo ven los cuatro roles: el horario de clases le importa a la familia.
     permission: "events:read",
   },
   {
     to: "/pagos",
     label: "Pagos",
-    icon: Receipt,
+    module: "pagos",
     // self:read lo tienen los cuatro roles: el alcance de lo que se ve lo
     // decide el backend (sus pagos, los de sus hijos, o todos).
     permission: "self:read",
@@ -79,7 +71,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     to: "/notificaciones",
     label: "Notificaciones",
-    icon: Bell,
+    module: "notificaciones",
     permission: "self:read",
   },
 ];
@@ -104,7 +96,7 @@ function Sidebar({ open, onClose }: Props) {
       {/* Fondo oscuro detrás del panel en móvil */}
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-slate-900/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-neutral-900/40 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -112,24 +104,25 @@ function Sidebar({ open, onClose }: Props) {
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-40 flex w-72 flex-col
-          border-r border-slate-200 bg-white
-          transition-transform duration-200 ease-out
+          fixed inset-y-0 left-0 z-40 flex w-72 flex-col overscroll-contain
+          rounded-r-[2rem] border-r border-neutral-200/80 bg-white shadow-float
+          transition-[transform,visibility] duration-200 ease-out
           motion-reduce:transition-none
-          lg:static lg:z-auto lg:translate-x-0
-          ${open ? "translate-x-0" : "-translate-x-full"}
+          lg:visible lg:sticky lg:top-3 lg:z-auto lg:h-[calc(100dvh-1.5rem)]
+          lg:translate-x-0 lg:rounded-[2rem] lg:border
+          ${open ? "visible translate-x-0" : "invisible -translate-x-full"}
         `}
         aria-label="Navegación principal"
       >
         {/* Encabezado */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
-              <GraduationCap size={22} aria-hidden="true" />
-            </span>
+            <BrandMark />
             <div>
-              <p className="font-bold text-slate-900">DojoManager</p>
-              <p className="text-xs text-slate-600">
+              <p className="text-lg leading-tight font-bold text-neutral-800">
+                DojoManager
+              </p>
+              <p className="text-sm text-neutral-600">
                 {esFamilia ? "Mi dojo" : "Administración"}
               </p>
             </div>
@@ -140,10 +133,10 @@ function Sidebar({ open, onClose }: Props) {
             onClick={onClose}
             aria-label="Cerrar menú"
             className="
-              flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg
-              text-slate-600 transition-colors duration-200
-              hover:bg-slate-100 hover:text-slate-900
-              focus:ring-2 focus:ring-blue-600 focus:outline-none
+              flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl
+              text-neutral-600 transition-colors duration-200
+              hover:bg-neutral-100 hover:text-neutral-900
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
               lg:hidden
             "
           >
@@ -152,17 +145,13 @@ function Sidebar({ open, onClose }: Props) {
         </div>
 
         {/* Navegación */}
-        <nav className="flex-1 overflow-y-auto px-3 py-5">
-          <p className="px-3 pb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-            {esFamilia ? "Mi cuenta" : "Administración"}
-          </p>
-
+        <nav className="flex-1 overflow-y-auto px-3 py-3">
           <ul className="space-y-1">
             {esFamilia && (
               <SidebarLink
                 to="/inicio"
                 label="Inicio"
-                icon={LayoutDashboard}
+                module="inicio"
                 onClose={onClose}
               />
             )}
@@ -171,17 +160,17 @@ function Sidebar({ open, onClose }: Props) {
               <SidebarLink
                 to="/mi-tarjeta"
                 label="Mi tarjeta"
-                icon={IdCard}
+                module="tarjeta"
                 onClose={onClose}
               />
             )}
 
-            {visibleItems.map(({ to, label, icon }) => (
+            {visibleItems.map(({ to, label, module }) => (
               <SidebarLink
                 key={to}
                 to={to}
                 label={label}
-                icon={icon}
+                module={module}
                 onClose={onClose}
               />
             ))}
@@ -189,35 +178,37 @@ function Sidebar({ open, onClose }: Props) {
         </nav>
 
         {/* Usuario y salida */}
-        <div className="border-t border-slate-200 p-3">
-          <div className="flex items-center gap-3 rounded-xl px-3 py-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700">
-              {(user?.name ?? "?").charAt(0).toUpperCase()}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-900">
-                {user?.name ?? "Invitado"}
-              </p>
-              <p className="truncate text-xs text-slate-600">
-                {user ? ROLE_LABELS[user.role] : "Sin sesión"}
-              </p>
+        <div className="p-3">
+          <div className="rounded-3xl border border-neutral-200/80 bg-neutral-50 p-2">
+            <div className="flex items-center gap-3 p-1.5">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-800">
+                {(user?.name ?? "?").charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-neutral-800">
+                  {user?.name ?? "Invitado"}
+                </p>
+                <p className="truncate text-sm text-neutral-600">
+                  {user ? ROLE_LABELS[user.role] : "Sin sesión"}
+                </p>
+              </div>
             </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="
-              mt-1 flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3
-              text-sm font-medium text-slate-700 transition-colors duration-200
-              motion-reduce:transition-none
-              hover:bg-red-50 hover:text-red-700
-              focus:ring-2 focus:ring-blue-600 focus:outline-none
-            "
-          >
-            <LogOut size={20} aria-hidden="true" className="text-slate-500" />
-            Cerrar sesión
-          </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="
+                mt-1 flex w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-2.5
+                text-sm font-medium text-neutral-700 transition-colors duration-200
+                motion-reduce:transition-none
+                hover:bg-red-50 hover:text-red-700
+                focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
+              "
+            >
+              <LogOut size={18} aria-hidden="true" />
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </aside>
     </>
@@ -227,42 +218,30 @@ function Sidebar({ open, onClose }: Props) {
 type SidebarLinkProps = {
   to: string;
   label: string;
-  icon: typeof LayoutDashboard;
+  module: ModuleKey;
   onClose: () => void;
 };
 
-function SidebarLink({ to, label, icon: Icon, onClose }: SidebarLinkProps) {
+function SidebarLink({ to, label, module, onClose }: SidebarLinkProps) {
   return (
     <li>
       <NavLink
         to={to}
         onClick={onClose}
         className={({ isActive }) => `
-          flex items-center gap-3 rounded-xl px-3 py-3
-          text-sm font-medium transition-colors duration-200
+          flex items-center gap-3 rounded-[1.1rem] p-1.5 pr-3
+          transition-colors duration-200
           motion-reduce:transition-none
-          focus:ring-2 focus:ring-blue-600 focus:outline-none
+          focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
           ${
             isActive
-              ? "bg-blue-50 text-blue-700"
-              : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+              ? "bg-neutral-100 font-bold text-neutral-900"
+              : "font-medium text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
           }
         `}
       >
-        {({ isActive }) => (
-          <>
-            <Icon
-              size={20}
-              aria-hidden="true"
-              className={isActive ? "text-blue-700" : "text-slate-500"}
-            />
-            {label}
-            {/* Marca el activo sin depender solo del color */}
-            {isActive && (
-              <span className="ml-auto h-6 w-1 rounded-full bg-blue-600" />
-            )}
-          </>
-        )}
+        <ModuleTile module={module} size="sm" />
+        {label}
       </NavLink>
     </li>
   );

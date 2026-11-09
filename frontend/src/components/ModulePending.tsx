@@ -1,6 +1,7 @@
 import { Construction } from "lucide-react";
 
 import Card from "./Card";
+import PageHeading from "./PageHeading";
 
 type Props = {
   title: string;
@@ -18,24 +19,24 @@ function ModulePending({ title, description, branch }: Props) {
   return (
     <>
       <header>
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+        <PageHeading module="inicio"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
           {title}
         </h1>
-        <p className="mt-2 text-slate-600">{description}</p>
+        <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">{description}</p></PageHeading>
       </header>
 
       <Card className="mt-8 p-8 text-center">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-neutral-100 text-neutral-500">
           <Construction size={26} aria-hidden="true" />
         </span>
 
-        <h2 className="mt-4 font-bold text-slate-900">
+        <h2 className="mt-4 font-bold text-neutral-900">
           Módulo en construcción
         </h2>
 
-        <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
+        <p className="mx-auto mt-2 max-w-md text-sm text-neutral-600">
           Esta sección se desarrolla en la rama{" "}
-          <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-800">
+          <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-xs text-neutral-800">
             {branch}
           </code>
           . Consulta el reparto de módulos en CONTRIBUTING.md.

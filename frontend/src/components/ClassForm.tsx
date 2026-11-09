@@ -67,15 +67,15 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
   }
 
   const inputClase = `
-    w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-    outline-none transition-all
-    focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    outline-none transition-[border-color,box-shadow,background-color]
+    focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-slate-900">Agregar una clase</h2>
-      <p className="mt-1 text-sm text-slate-600">
+      <h2 className="font-bold text-neutral-900">Agregar una clase</h2>
+      <p className="mt-1 text-sm text-neutral-600">
         Se repite cada semana en el día y horario que indiques.
       </p>
 
@@ -84,7 +84,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="cl-titulo"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Nombre de la clase
             </label>
@@ -101,7 +101,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="cl-disciplina"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Disciplina
             </label>
@@ -122,7 +122,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="cl-dia"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Día
             </label>
@@ -143,7 +143,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="cl-instructor"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Instructor
             </label>
@@ -160,7 +160,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="cl-inicio"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Hora de inicio
             </label>
@@ -176,7 +176,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="cl-fin"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Hora de fin
             </label>
@@ -192,7 +192,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="cl-lugar"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Lugar
             </label>
@@ -209,7 +209,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="cl-nivel"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Nivel
             </label>
@@ -230,7 +230,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="cl-capacidad"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Capacidad
             </label>
@@ -257,11 +257,11 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
             type="submit"
             disabled={!valido}
             className="
-              cursor-pointer rounded-xl bg-blue-600 px-5 py-3 font-semibold
+              cursor-pointer rounded-2xl bg-violet-600 px-5 py-3 font-semibold
               text-white transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
@@ -272,11 +272,11 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-3
-              font-semibold text-slate-700 transition-colors duration-200
+              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-slate-50
-              focus:ring-2 focus:ring-blue-600 focus:outline-none
+              hover:bg-neutral-50
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
             Cancelar

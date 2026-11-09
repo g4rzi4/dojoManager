@@ -99,15 +99,15 @@ function EventForm({ onCreado, onCancelar }: Props) {
   }
 
   const inputClase = `
-    w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-    outline-none transition-all
-    focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    outline-none transition-[border-color,box-shadow,background-color]
+    focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-slate-900">Agregar un evento</h2>
-      <p className="mt-1 text-sm text-slate-600">
+      <h2 className="font-bold text-neutral-900">Agregar un evento</h2>
+      <p className="mt-1 text-sm text-neutral-600">
         Aparece en el calendario de todos y les llega una notificación a
         alumnos y tutores.
       </p>
@@ -116,7 +116,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
         <div className="space-y-2">
           <label
             htmlFor="ev-titulo"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-neutral-700"
           >
             Título
           </label>
@@ -134,7 +134,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="ev-fecha"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Fecha
             </label>
@@ -150,10 +150,10 @@ function EventForm({ onCreado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="ev-hora"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Hora{" "}
-              <span className="font-normal text-slate-500">(opcional)</span>
+              <span className="font-normal text-neutral-500">(opcional)</span>
             </label>
             <input
               id="ev-hora"
@@ -163,7 +163,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
               aria-describedby="ev-hora-ayuda"
               className={inputClase}
             />
-            <p id="ev-hora-ayuda" className="text-xs text-slate-500">
+            <p id="ev-hora-ayuda" className="text-xs text-neutral-500">
               Sin hora, dura todo el día.
             </p>
           </div>
@@ -171,7 +171,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
           <div className="space-y-2">
             <label
               htmlFor="ev-categoria"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-neutral-700"
             >
               Categoría
             </label>
@@ -191,7 +191,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
         </div>
 
         {/* Pago: para torneos y exámenes que cuestan */}
-        <fieldset className="border-t border-slate-200 pt-5">
+        <fieldset className="border-t border-neutral-200 pt-5">
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
@@ -200,10 +200,10 @@ function EventForm({ onCreado, onCancelar }: Props) {
               className="mt-1 cursor-pointer"
             />
             <span>
-              <span className="block text-sm font-medium text-slate-700">
+              <span className="block text-sm font-medium text-neutral-700">
                 Requiere pago para participar
               </span>
-              <span className="mt-0.5 block text-xs text-slate-600">
+              <span className="mt-0.5 block text-xs text-neutral-600">
                 Los alumnos reportarán el pago con la clave de su profesor, y
                 quedan inscritos cuando él lo confirme.
               </span>
@@ -220,10 +220,10 @@ function EventForm({ onCreado, onCancelar }: Props) {
                   className="mt-1 cursor-pointer"
                 />
                 <span>
-                  <span className="block text-sm font-medium text-slate-700">
+                  <span className="block text-sm font-medium text-neutral-700">
                     Cobrar por modalidad
                   </span>
-                  <span className="mt-0.5 block text-xs text-slate-600">
+                  <span className="mt-0.5 block text-xs text-neutral-600">
                     Para torneos: cada modalidad tiene su costo y el alumno
                     paga la suma de las que elija. Hay quien entra a kata y
                     kumite.
@@ -238,7 +238,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
                       <div className="min-w-40 flex-1 space-y-2">
                         <label
                           htmlFor={`mod-nombre-${i}`}
-                          className="block text-sm font-medium text-slate-700"
+                          className="block text-sm font-medium text-neutral-700"
                         >
                           Modalidad {i + 1}
                         </label>
@@ -261,7 +261,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
                       <div className="w-36 space-y-2">
                         <label
                           htmlFor={`mod-precio-${i}`}
-                          className="block text-sm font-medium text-slate-700"
+                          className="block text-sm font-medium text-neutral-700"
                         >
                           Costo
                         </label>
@@ -294,11 +294,11 @@ function EventForm({ onCreado, onCancelar }: Props) {
                           aria-label={`Quitar la modalidad ${i + 1}`}
                           className="
                             flex h-11 w-11 shrink-0 cursor-pointer items-center
-                            justify-center rounded-lg text-slate-500
+                            justify-center rounded-xl text-neutral-500
                             transition-colors duration-200
                             motion-reduce:transition-none
                             hover:bg-red-50 hover:text-red-700
-                            focus:ring-2 focus:ring-blue-600 focus:outline-none
+                            focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                           "
                         >
                           <Trash2 size={17} aria-hidden="true" />
@@ -313,12 +313,12 @@ function EventForm({ onCreado, onCancelar }: Props) {
                       setModalidades((prev) => [...prev, { name: "", precio: "" }])
                     }
                     className="
-                      flex cursor-pointer items-center gap-2 rounded-xl border
-                      border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold
-                      text-slate-700 transition-colors duration-200
+                      flex cursor-pointer items-center gap-2 rounded-2xl border
+                      border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+                      text-neutral-700 transition-colors duration-200
                       motion-reduce:transition-none
-                      hover:bg-slate-50
-                      focus:ring-2 focus:ring-blue-600 focus:outline-none
+                      hover:bg-neutral-50
+                      focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                     "
                   >
                     <Plus size={16} aria-hidden="true" />
@@ -329,7 +329,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
                 <div className="mt-4 max-w-xs space-y-2">
                   <label
                     htmlFor="ev-precio"
-                    className="block text-sm font-medium text-slate-700"
+                    className="block text-sm font-medium text-neutral-700"
                   >
                     Costo en pesos
                   </label>
@@ -360,26 +360,26 @@ function EventForm({ onCreado, onCancelar }: Props) {
             type="submit"
             disabled={!valido || guardando}
             className="
-              cursor-pointer rounded-xl bg-blue-600 px-5 py-3 font-semibold
+              cursor-pointer rounded-2xl bg-violet-600 px-5 py-3 font-semibold
               text-white transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Guardando..." : "Agregar evento"}
+            {guardando ? "Guardando…" : "Agregar evento"}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-3
-              font-semibold text-slate-700 transition-colors duration-200
+              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-slate-50
-              focus:ring-2 focus:ring-blue-600 focus:outline-none
+              hover:bg-neutral-50
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
             Cancelar

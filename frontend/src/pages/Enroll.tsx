@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { CircleCheck, GraduationCap, Plus, Trash2, TriangleAlert } from "lucide-react";
+import { CircleCheck, Plus, Trash2, TriangleAlert } from "lucide-react";
 
+import BrandMark from "../components/BrandMark";
 import Card from "../components/Card";
 import {
   ApiError,
@@ -171,22 +172,20 @@ function Enroll() {
   }
 
   const inputClase = `
-    w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-    outline-none transition-all
-    focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    outline-none transition-[border-color,box-shadow,background-color]
+    focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-8 sm:px-6">
+    <div className="min-h-screen px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-2xl">
         {/* Encabezado */}
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white">
-            <GraduationCap size={22} aria-hidden="true" />
-          </span>
+          <BrandMark className="h-11 w-11" />
           <div>
-            <p className="font-bold text-slate-900">DojoManager</p>
-            <p className="text-xs text-slate-600">Inscripción</p>
+            <p className="font-bold text-neutral-900">DojoManager</p>
+            <p className="text-xs text-neutral-600">Inscripción</p>
           </div>
         </div>
 
@@ -197,13 +196,13 @@ function Enroll() {
 
           {estadoFinal.status === "invalida" && (
             <Card className="p-8 text-center">
-              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
+              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-amber-50 text-amber-700">
                 <TriangleAlert size={26} aria-hidden="true" />
               </span>
-              <h1 className="mt-4 text-xl font-bold text-slate-900">
+              <h1 className="mt-4 text-xl font-bold text-neutral-900">
                 Este enlace no se puede usar
               </h1>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-slate-600">
+              <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-600">
                 {estadoFinal.message}
               </p>
             </Card>
@@ -211,23 +210,23 @@ function Enroll() {
 
           {estadoFinal.status === "enviada" && (
             <Card className="p-8 text-center">
-              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-700">
                 <CircleCheck size={26} aria-hidden="true" />
               </span>
-              <h1 className="mt-4 text-xl font-bold text-slate-900">
+              <h1 className="mt-4 text-xl font-bold text-neutral-900">
                 ¡Registro completo!
               </h1>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-slate-600">
+              <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-600">
                 {estadoFinal.message}
               </p>
               <Link
                 to="/"
                 className="
-                  mt-6 inline-block cursor-pointer rounded-xl bg-blue-600 px-5 py-3
+                  mt-6 inline-block cursor-pointer rounded-2xl bg-violet-600 px-5 py-3
                   font-semibold text-white transition-colors duration-200
                   motion-reduce:transition-none
-                  hover:bg-blue-700
-                  focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+                  hover:bg-violet-700
+                  focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
                 "
               >
                 Iniciar sesión
@@ -237,12 +236,12 @@ function Enroll() {
 
           {estadoFinal.status === "lista" && (
             <Card className="p-5 sm:p-6">
-              <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
+              <h1 className="text-xl font-bold text-neutral-900 sm:text-2xl">
                 {estadoFinal.invitation.kind === "ALUMNO"
                   ? "Completa tus datos"
                   : "Datos del tutor y de sus hijos"}
               </h1>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-neutral-600">
                 Te invitó <strong>{estadoFinal.invitation.invitadoPor}</strong>.
                 {estadoFinal.invitation.alumnoLigado &&
                   ` Quedarás ligado al expediente de ${estadoFinal.invitation.alumnoLigado}.`}
@@ -255,7 +254,7 @@ function Enroll() {
                     <div className="space-y-2">
                       <label
                         htmlFor="e-nombre"
-                        className="block text-sm font-medium text-slate-700"
+                        className="block text-sm font-medium text-neutral-700"
                       >
                         Nombre
                       </label>
@@ -272,7 +271,7 @@ function Enroll() {
                     <div className="space-y-2">
                       <label
                         htmlFor="e-apellido"
-                        className="block text-sm font-medium text-slate-700"
+                        className="block text-sm font-medium text-neutral-700"
                       >
                         Apellido
                       </label>
@@ -289,7 +288,7 @@ function Enroll() {
                     <div className="space-y-2">
                       <label
                         htmlFor="e-nacimiento"
-                        className="block text-sm font-medium text-slate-700"
+                        className="block text-sm font-medium text-neutral-700"
                       >
                         Fecha de nacimiento
                       </label>
@@ -305,7 +304,7 @@ function Enroll() {
                     <div className="space-y-2">
                       <label
                         htmlFor="e-celular"
-                        className="block text-sm font-medium text-slate-700"
+                        className="block text-sm font-medium text-neutral-700"
                       >
                         Celular
                       </label>
@@ -322,10 +321,10 @@ function Enroll() {
                     <div className="space-y-2">
                       <label
                         htmlFor="e-tutor"
-                        className="block text-sm font-medium text-slate-700"
+                        className="block text-sm font-medium text-neutral-700"
                       >
                         Nombre de tu tutor{" "}
-                        <span className="font-normal text-slate-500">
+                        <span className="font-normal text-neutral-500">
                           (si eres menor de edad)
                         </span>
                       </label>
@@ -341,7 +340,7 @@ function Enroll() {
                     <div className="space-y-2">
                       <label
                         htmlFor="e-tutor-tel"
-                        className="block text-sm font-medium text-slate-700"
+                        className="block text-sm font-medium text-neutral-700"
                       >
                         Celular de tu tutor
                       </label>
@@ -357,10 +356,10 @@ function Enroll() {
                     <div className="space-y-2 sm:col-span-2">
                       <label
                         htmlFor="e-medico"
-                        className="block text-sm font-medium text-slate-700"
+                        className="block text-sm font-medium text-neutral-700"
                       >
                         Información médica{" "}
-                        <span className="font-normal text-slate-500">
+                        <span className="font-normal text-neutral-500">
                           (opcional)
                         </span>
                       </label>
@@ -383,7 +382,7 @@ function Enroll() {
                       <div className="space-y-2 sm:col-span-2">
                         <label
                           htmlFor="e-tu-nombre"
-                          className="block text-sm font-medium text-slate-700"
+                          className="block text-sm font-medium text-neutral-700"
                         >
                           Tu nombre completo
                         </label>
@@ -400,7 +399,7 @@ function Enroll() {
                       <div className="space-y-2">
                         <label
                           htmlFor="e-parentesco"
-                          className="block text-sm font-medium text-slate-700"
+                          className="block text-sm font-medium text-neutral-700"
                         >
                           Parentesco
                         </label>
@@ -423,7 +422,7 @@ function Enroll() {
                       <div className="space-y-2">
                         <label
                           htmlFor="e-tu-celular"
-                          className="block text-sm font-medium text-slate-700"
+                          className="block text-sm font-medium text-neutral-700"
                         >
                           Tu celular
                         </label>
@@ -439,8 +438,8 @@ function Enroll() {
                     </div>
 
                     {/* Hijos */}
-                    <fieldset className="border-t border-slate-200 pt-5">
-                      <legend className="text-sm font-semibold text-slate-900">
+                    <fieldset className="border-t border-neutral-200 pt-5">
+                      <legend className="text-sm font-semibold text-neutral-900">
                         Tus hijos en el dojo
                       </legend>
 
@@ -448,10 +447,10 @@ function Enroll() {
                         {children.map((hijo, i) => (
                           <div
                             key={i}
-                            className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                            className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4"
                           >
                             <div className="flex items-center justify-between">
-                              <p className="text-sm font-semibold text-slate-900">
+                              <p className="text-sm font-semibold text-neutral-900">
                                 Hijo o hija {i + 1}
                               </p>
 
@@ -466,11 +465,11 @@ function Enroll() {
                                   aria-label={`Quitar al hijo ${i + 1}`}
                                   className="
                                     flex h-11 w-11 cursor-pointer items-center
-                                    justify-center rounded-lg text-slate-500
+                                    justify-center rounded-xl text-neutral-500
                                     transition-colors duration-200
                                     motion-reduce:transition-none
                                     hover:bg-red-50 hover:text-red-700
-                                    focus:ring-2 focus:ring-blue-600 focus:outline-none
+                                    focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                                   "
                                 >
                                   <Trash2 size={17} aria-hidden="true" />
@@ -482,7 +481,7 @@ function Enroll() {
                               <div className="space-y-2">
                                 <label
                                   htmlFor={`h-nombre-${i}`}
-                                  className="block text-sm font-medium text-slate-700"
+                                  className="block text-sm font-medium text-neutral-700"
                                 >
                                   Nombre
                                 </label>
@@ -501,7 +500,7 @@ function Enroll() {
                               <div className="space-y-2">
                                 <label
                                   htmlFor={`h-apellido-${i}`}
-                                  className="block text-sm font-medium text-slate-700"
+                                  className="block text-sm font-medium text-neutral-700"
                                 >
                                   Apellido
                                 </label>
@@ -520,7 +519,7 @@ function Enroll() {
                               <div className="space-y-2">
                                 <label
                                   htmlFor={`h-nacimiento-${i}`}
-                                  className="block text-sm font-medium text-slate-700"
+                                  className="block text-sm font-medium text-neutral-700"
                                 >
                                   Fecha de nacimiento
                                 </label>
@@ -538,7 +537,7 @@ function Enroll() {
                               <div className="space-y-2">
                                 <label
                                   htmlFor={`h-medico-${i}`}
-                                  className="block text-sm font-medium text-slate-700"
+                                  className="block text-sm font-medium text-neutral-700"
                                 >
                                   Información médica
                                 </label>
@@ -568,13 +567,13 @@ function Enroll() {
                             ])
                           }
                           className="
-                            mt-4 flex cursor-pointer items-center gap-2 rounded-xl
-                            border border-slate-300 bg-white px-4 py-2.5 text-sm
-                            font-semibold text-slate-700
+                            mt-4 flex cursor-pointer items-center gap-2 rounded-2xl
+                            border border-neutral-300 bg-white px-4 py-2.5 text-sm
+                            font-semibold text-neutral-700
                             transition-colors duration-200
                             motion-reduce:transition-none
-                            hover:bg-slate-50
-                            focus:ring-2 focus:ring-blue-600 focus:outline-none
+                            hover:bg-neutral-50
+                            focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                           "
                         >
                           <Plus size={16} aria-hidden="true" />
@@ -586,11 +585,11 @@ function Enroll() {
                 )}
 
                 {/* Acceso */}
-                <fieldset className="border-t border-slate-200 pt-5">
-                  <legend className="text-sm font-semibold text-slate-900">
+                <fieldset className="border-t border-neutral-200 pt-5">
+                  <legend className="text-sm font-semibold text-neutral-900">
                     Tu acceso al sistema
                   </legend>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-sm text-neutral-600">
                     Con esto podrás entrar a consultar{" "}
                     {estadoFinal.invitation.kind === "ALUMNO"
                       ? "tu expediente"
@@ -602,7 +601,7 @@ function Enroll() {
                     <div className="space-y-2">
                       <label
                         htmlFor="e-correo"
-                        className="block text-sm font-medium text-slate-700"
+                        className="block text-sm font-medium text-neutral-700"
                       >
                         Correo electrónico
                       </label>
@@ -620,7 +619,7 @@ function Enroll() {
                     <div className="space-y-2">
                       <label
                         htmlFor="e-password"
-                        className="block text-sm font-medium text-slate-700"
+                        className="block text-sm font-medium text-neutral-700"
                       >
                         Contraseña
                       </label>
@@ -635,7 +634,7 @@ function Enroll() {
                         aria-describedby="e-password-ayuda"
                         className={inputClase}
                       />
-                      <p id="e-password-ayuda" className="text-xs text-slate-500">
+                      <p id="e-password-ayuda" className="text-xs text-neutral-500">
                         Al menos {MIN_PASSWORD} caracteres.
                       </p>
                     </div>
@@ -655,15 +654,15 @@ function Enroll() {
                   type="submit"
                   disabled={enviando}
                   className="
-                    w-full cursor-pointer rounded-xl bg-blue-600 px-5 py-3
+                    w-full cursor-pointer rounded-2xl bg-violet-600 px-5 py-3
                     font-semibold text-white transition-colors duration-200
                     motion-reduce:transition-none
-                    hover:bg-blue-700
-                    focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+                    hover:bg-violet-700
+                    focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
                     disabled:cursor-not-allowed disabled:opacity-50
                   "
                 >
-                  {enviando ? "Enviando..." : "Completar inscripción"}
+                  {enviando ? "Enviando…" : "Completar inscripción"}
                 </button>
               </form>
             </Card>

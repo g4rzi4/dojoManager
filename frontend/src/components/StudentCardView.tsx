@@ -69,13 +69,13 @@ function StudentCardView({ student }: Props) {
       {/* Cabecera */}
       <Card className="p-5 sm:p-6">
         <div className="flex flex-wrap items-start gap-5">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-violet-600 text-2xl font-bold text-white">
             {student.firstName.charAt(0).toUpperCase()}
             {student.lastName.charAt(0).toUpperCase()}
           </span>
 
           <div className="min-w-0 flex-1">
-            <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+            <h2 className="text-xl font-bold text-neutral-900 sm:text-2xl">
               {student.firstName} {student.lastName}
             </h2>
 
@@ -92,22 +92,22 @@ function StudentCardView({ student }: Props) {
                 className={`rounded-full border px-3 py-1 text-xs font-semibold ${
                   student.active
                     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : "border-slate-300 bg-slate-100 text-slate-700"
+                    : "border-neutral-300 bg-neutral-100 text-neutral-700"
                 }`}
               >
                 {student.active ? "Activo" : "Inactivo"}
               </span>
 
               {student.hasLogin && (
-                <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
+                <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-800">
                   Con acceso al sistema
                 </span>
               )}
             </div>
 
-            <p className="mt-3 text-sm text-slate-600">
+            <p className="mt-3 text-sm text-neutral-600">
               Inscrito el{" "}
-              <span className="font-medium text-slate-900">
+              <span className="font-medium text-neutral-900">
                 {formatLongDate(fromDateKey(student.enrolledAt))}
               </span>
             </p>
@@ -115,7 +115,7 @@ function StudentCardView({ student }: Props) {
         </div>
 
         {/* Datos personales */}
-        <dl className="mt-6 grid gap-5 border-t border-slate-200 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-6 grid gap-5 border-t border-neutral-200 pt-5 sm:grid-cols-2 lg:grid-cols-4">
           <DataField
             icon={UserRound}
             label="Edad"
@@ -149,30 +149,30 @@ function StudentCardView({ student }: Props) {
         {/* Tutores con cuenta. Separado de guardianName, que es texto suelto
             para alumnos cuyo tutor no está registrado en el sistema. */}
         {student.tutores.length > 0 && (
-          <div className="mt-5 border-t border-slate-200 pt-5">
-            <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+          <div className="mt-5 border-t border-neutral-200 pt-5">
+            <p className="text-sm font-semibold text-neutral-600">
               Tutores con acceso
             </p>
             <ul className="mt-3 flex flex-wrap gap-2">
               {student.tutores.map((t) => (
                 <li
                   key={t.id}
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                  className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-2"
                 >
                   <ShieldUser
                     size={16}
                     aria-hidden="true"
-                    className="shrink-0 text-slate-500"
+                    className="shrink-0 text-neutral-500"
                   />
-                  <span className="text-sm text-slate-900">
+                  <span className="text-sm text-neutral-900">
                     {t.name}
-                    <span className="text-slate-600">
+                    <span className="text-neutral-600">
                       {" "}
                       · {RELATIONSHIP_LABELS[t.relationship]}
                     </span>
                   </span>
                   {t.isPrimary && (
-                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-800">
+                    <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800">
                       Contacto principal
                     </span>
                   )}
@@ -184,7 +184,7 @@ function StudentCardView({ student }: Props) {
 
         {/* Notas médicas: resaltadas porque el profesor las necesita a la vista */}
         {student.medicalNotes && (
-          <div className="mt-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="mt-5 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <CircleAlert
               size={20}
               aria-hidden="true"
@@ -232,7 +232,7 @@ function StudentCardView({ student }: Props) {
         <div
           role="tablist"
           aria-label="Historial del alumno"
-          className="flex overflow-x-auto border-b border-slate-200"
+          className="flex overflow-x-auto border-b border-neutral-200"
         >
           {TABS.map(({ id, label, icon: Icon }, index) => {
             const selected = activeTab === id;
@@ -255,11 +255,11 @@ function StudentCardView({ student }: Props) {
                   flex shrink-0 cursor-pointer items-center gap-2 border-b-2 px-4 py-4
                   text-sm font-semibold transition-colors duration-200
                   motion-reduce:transition-none
-                  focus:ring-2 focus:ring-blue-600 focus:ring-inset focus:outline-none
+                  focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-inset focus-visible:outline-none
                   ${
                     selected
-                      ? "border-blue-600 text-blue-700"
-                      : "border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      ? "border-violet-600 text-violet-700"
+                      : "border-transparent text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
                   }
                 `}
               >
@@ -285,16 +285,16 @@ function StudentCardView({ student }: Props) {
                       }`}
                       aria-hidden="true"
                     />
-                    <div className="min-w-0 border-b border-slate-100 pb-4">
-                      <p className="font-semibold text-slate-900">
+                    <div className="min-w-0 border-b border-neutral-100 pb-4">
+                      <p className="font-semibold text-neutral-900">
                         Cinta {BELT_LABELS[g.belt].toLowerCase()}
                       </p>
-                      <p className="mt-0.5 text-sm text-slate-600 first-letter:uppercase">
+                      <p className="mt-0.5 text-sm text-neutral-600 first-letter:uppercase">
                         {formatLongDate(fromDateKey(g.promotedAt))}
                         {g.evaluatedBy && ` · Evaluó ${g.evaluatedBy}`}
                       </p>
                       {g.notes && (
-                        <p className="mt-1 text-sm text-slate-700">{g.notes}</p>
+                        <p className="mt-1 text-sm text-neutral-700">{g.notes}</p>
                       )}
                     </div>
                   </li>
@@ -309,9 +309,9 @@ function StudentCardView({ student }: Props) {
               <Empty text="No hay asistencias registradas." />
             ) : (
               <>
-                <p className="mb-4 text-sm text-slate-600">
+                <p className="mb-4 text-sm text-neutral-600">
                   Últimos {historial.asistencia.length} registros.{" "}
-                  <span className="font-semibold text-slate-900">
+                  <span className="font-semibold text-neutral-900">
                     {porcentaje}% de asistencia.
                   </span>
                 </p>
@@ -319,7 +319,7 @@ function StudentCardView({ student }: Props) {
                   {historial.asistencia.map((a) => (
                     <li
                       key={a.id}
-                      className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm ${
+                      className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm ${
                         a.present
                           ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                           : "border-red-200 bg-red-50 text-red-900"
@@ -343,10 +343,10 @@ function StudentCardView({ student }: Props) {
             {historial.pagos.length === 0 ? (
               <Empty text="No hay pagos registrados." />
             ) : (
-              <div className="overflow-x-auto">
+              <div className="relative overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 text-left text-slate-600">
+                    <tr className="border-b border-neutral-200 text-left text-neutral-600">
                       <th scope="col" className="pb-3 pr-4 font-semibold">
                         Mes
                       </th>
@@ -363,11 +363,11 @@ function StudentCardView({ student }: Props) {
                   </thead>
                   <tbody>
                     {historial.pagos.map((p) => (
-                      <tr key={p.id} className="border-b border-slate-100">
-                        <td className="py-3 pr-4 font-medium text-slate-900 first-letter:uppercase">
+                      <tr key={p.id} className="border-b border-neutral-100">
+                        <td className="py-3 pr-4 font-medium text-neutral-900 first-letter:uppercase">
                           {formatPeriod(p.periodYear, p.periodMonth)}
                         </td>
-                        <td className="py-3 pr-4 text-slate-900">
+                        <td className="py-3 pr-4 text-neutral-900">
                           {formatMoney(p.amountCents)}
                         </td>
                         <td className="py-3 pr-4">
@@ -379,7 +379,7 @@ function StudentCardView({ student }: Props) {
                             {PAYMENT_STATUS_LABELS[p.status]}
                           </span>
                         </td>
-                        <td className="py-3 text-slate-600 first-letter:uppercase">
+                        <td className="py-3 text-neutral-600 first-letter:uppercase">
                           {p.paidAt
                             ? formatLongDate(fromDateKey(p.paidAt))
                             : "—"}
@@ -401,10 +401,10 @@ function StudentCardView({ student }: Props) {
                 {historial.observaciones.map((n) => (
                   <li
                     key={n.id}
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4"
                   >
-                    <p className="text-sm text-slate-900">{n.body}</p>
-                    <p className="mt-2 text-xs text-slate-600">
+                    <p className="text-sm text-neutral-900">{n.body}</p>
+                    <p className="mt-2 text-xs text-neutral-600">
                       {n.author ?? "Autor dado de baja"} ·{" "}
                       {new Date(n.createdAt).toLocaleDateString("es-MX", {
                         day: "numeric",
@@ -435,13 +435,13 @@ function DataField({ icon: Icon, label, value }: DataFieldProps) {
       <Icon
         size={18}
         aria-hidden="true"
-        className="mt-0.5 shrink-0 text-slate-400"
+        className="mt-0.5 shrink-0 text-neutral-400"
       />
       <div className="min-w-0">
-        <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        <dt className="text-sm font-semibold text-neutral-600">
           {label}
         </dt>
-        <dd className="mt-1 text-sm text-slate-900">{value}</dd>
+        <dd className="mt-1 text-sm text-neutral-900">{value}</dd>
       </div>
     </div>
   );
@@ -457,17 +457,17 @@ type StatTileProps = {
 function StatTile({ label, value, hint, alert = false }: StatTileProps) {
   return (
     <Card className="p-4">
-      <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+      <p className="text-sm font-semibold text-neutral-600">
         {label}
       </p>
       <p
         className={`mt-2 text-2xl font-bold ${
-          alert ? "text-amber-700" : "text-slate-900"
+          alert ? "text-amber-700" : "text-neutral-900"
         }`}
       >
         {value}
       </p>
-      <p className="mt-1 text-xs text-slate-600">{hint}</p>
+      <p className="mt-1 text-xs text-neutral-600">{hint}</p>
     </Card>
   );
 }
@@ -491,7 +491,7 @@ function TabPanel({
 }
 
 function Empty({ text }: { text: string }) {
-  return <p className="py-6 text-center text-sm text-slate-600">{text}</p>;
+  return <p className="py-6 text-center text-sm text-neutral-600">{text}</p>;
 }
 
 export default StudentCardView;

@@ -8,6 +8,18 @@ import {
   getPayPalConfig,
 } from "../services/api";
 
+let configPendiente: ReturnType<typeof getPayPalConfig> | null = null;
+
+/** Una sola consulta aunque haya un botón por cada mensualidad. */
+function cargarConfig() {
+  configPendiente ??= getPayPalConfig().catch((e: unknown) => {
+    configPendiente = null;
+    throw e;
+  });
+
+  return configPendiente;
+}
+
 type Props = {
   tipo: "MENSUALIDAD" | "EVENTO";
   id: number;
@@ -31,7 +43,7 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
   useEffect(() => {
     let activo = true;
 
-    getPayPalConfig()
+    cargarConfig()
       .then((c) => {
         if (activo && c.enabled && c.clientId) {
           setPaypal({ clientId: c.clientId, currency: c.currency });
@@ -52,11 +64,11 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
         type="button"
         onClick={() => setAbierto(true)}
         className="
-          cursor-pointer rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold
+          cursor-pointer rounded-xl bg-violet-600 px-3 py-2 text-xs font-semibold
           whitespace-nowrap text-white transition-colors duration-200
           motion-reduce:transition-none
-          hover:bg-blue-700
-          focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+          hover:bg-violet-700
+          focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
         "
       >
         Pagar con PayPal

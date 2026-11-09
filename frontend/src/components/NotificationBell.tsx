@@ -41,11 +41,11 @@ function NotificationBell() {
       to="/notificaciones"
       aria-label={etiqueta}
       className="
-        relative flex h-11 w-11 items-center justify-center rounded-lg
-        text-slate-600 transition-colors duration-200
+        relative flex h-11 w-11 items-center justify-center rounded-xl
+        text-neutral-600 transition-colors duration-200
         motion-reduce:transition-none
-        hover:bg-slate-100 hover:text-slate-900
-        focus:ring-2 focus:ring-blue-600 focus:outline-none
+        hover:bg-neutral-100 hover:text-neutral-900
+        focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
       "
     >
       <Bell size={21} aria-hidden="true" />

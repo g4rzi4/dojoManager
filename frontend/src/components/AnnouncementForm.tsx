@@ -58,8 +58,8 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-slate-900">Nuevo aviso del dojo</h2>
-      <p className="mt-1 text-sm text-slate-600">
+      <h2 className="font-bold text-neutral-900">Nuevo aviso del dojo</h2>
+      <p className="mt-1 text-sm text-neutral-600">
         Llega como notificación a cada persona del grupo que elijas.
       </p>
 
@@ -67,7 +67,7 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
         <div className="space-y-2">
           <label
             htmlFor="aviso-titulo"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-neutral-700"
           >
             Título
           </label>
@@ -79,12 +79,12 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Suspensión de clases el sábado"
             className="
-              w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-              outline-none transition-all
-              focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+              w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+              outline-none transition-[border-color,box-shadow,background-color]
+              focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
           />
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-neutral-500">
             {title.length} de {MAX_TITULO} caracteres
           </p>
         </div>
@@ -92,7 +92,7 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
         <div className="space-y-2">
           <label
             htmlFor="aviso-mensaje"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-neutral-700"
           >
             Mensaje
           </label>
@@ -103,9 +103,9 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
             onChange={(e) => setBody(e.target.value)}
             placeholder="Explica el motivo y, si aplica, cuándo se repone la clase."
             className="
-              w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-              outline-none transition-all
-              focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+              w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+              outline-none transition-[border-color,box-shadow,background-color]
+              focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
           />
         </div>
@@ -113,7 +113,7 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
         <div className="space-y-2">
           <label
             htmlFor="aviso-destinatarios"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-neutral-700"
           >
             Destinatarios
           </label>
@@ -122,9 +122,9 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
             value={audience}
             onChange={(e) => setAudience(e.target.value as Audience)}
             className="
-              w-full cursor-pointer rounded-xl border border-slate-300 bg-white
-              px-4 py-3 outline-none transition-all
-              focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+              w-full cursor-pointer rounded-2xl border border-neutral-300 bg-white
+              px-4 py-3 outline-none transition-[border-color,box-shadow,background-color]
+              focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
           >
             {AUDIENCES.map((a) => (
@@ -152,26 +152,26 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
             type="submit"
             disabled={!valido || enviando}
             className="
-              cursor-pointer rounded-xl bg-blue-600 px-5 py-3 font-semibold
+              cursor-pointer rounded-2xl bg-violet-600 px-5 py-3 font-semibold
               text-white transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {enviando ? "Enviando..." : "Enviar aviso"}
+            {enviando ? "Enviando…" : "Enviar aviso"}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-3
-              font-semibold text-slate-700 transition-colors duration-200
+              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-slate-50
-              focus:ring-2 focus:ring-blue-600 focus:outline-none
+              hover:bg-neutral-50
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
             Cancelar

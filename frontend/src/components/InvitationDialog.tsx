@@ -101,9 +101,9 @@ function InvitationDialog({
   }
 
   const inputClase = `
-    w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-    outline-none transition-all
-    focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    outline-none transition-[border-color,box-shadow,background-color]
+    focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   // -------------------------------------------------------------------------
@@ -118,10 +118,10 @@ function InvitationDialog({
 
     return (
       <Card className="p-5 sm:p-6">
-        <h2 className="font-bold text-slate-900">
+        <h2 className="font-bold text-neutral-900">
           Invitación para {INVITATION_KIND_LABELS[invitacion.kind].toLowerCase()}
         </h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-neutral-600">
           Comparte el QR o el enlace. Al llenar el formulario queda registrado
           en tu grupo.
         </p>
@@ -131,21 +131,21 @@ function InvitationDialog({
             <img
               src={qr}
               alt={`Código QR del enlace de inscripción para ${INVITATION_KIND_LABELS[invitacion.kind].toLowerCase()}`}
-              className="h-44 w-44 shrink-0 rounded-xl border border-slate-200"
+              className="h-44 w-44 shrink-0 rounded-2xl border border-neutral-200"
             />
           ) : (
-            <div className="flex h-44 w-44 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400">
+            <div className="flex h-44 w-44 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-neutral-50 text-neutral-400">
               <QrCode size={32} aria-hidden="true" />
             </div>
           )}
 
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+            <p className="text-sm font-semibold text-neutral-600">
               Enlace
             </p>
 
             {/* break-all para que una URL larga no desborde en móvil */}
-            <p className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-xs break-all text-slate-800">
+            <p className="mt-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-3 font-mono text-xs break-all text-neutral-800">
               {invitacion.url}
             </p>
 
@@ -153,12 +153,12 @@ function InvitationDialog({
               type="button"
               onClick={copiar}
               className="
-                mt-3 flex cursor-pointer items-center gap-2 rounded-xl border
-                border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold
-                text-slate-700 transition-colors duration-200
+                mt-3 flex cursor-pointer items-center gap-2 rounded-2xl border
+                border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+                text-neutral-700 transition-colors duration-200
                 motion-reduce:transition-none
-                hover:bg-slate-50
-                focus:ring-2 focus:ring-blue-600 focus:outline-none
+                hover:bg-neutral-50
+                focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
               "
             >
               {copiado ? (
@@ -176,7 +176,7 @@ function InvitationDialog({
           </div>
         </div>
 
-        <div className="mt-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mt-5 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <TriangleAlert
             size={18}
             aria-hidden="true"
@@ -196,11 +196,11 @@ function InvitationDialog({
           type="button"
           onClick={onCerrar}
           className="
-            mt-5 cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-3
-            font-semibold text-slate-700 transition-colors duration-200
+            mt-5 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+            font-semibold text-neutral-700 transition-colors duration-200
             motion-reduce:transition-none
-            hover:bg-slate-50
-            focus:ring-2 focus:ring-blue-600 focus:outline-none
+            hover:bg-neutral-50
+            focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
           "
         >
           Listo
@@ -214,10 +214,10 @@ function InvitationDialog({
   // -------------------------------------------------------------------------
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-slate-900">
+      <h2 className="font-bold text-neutral-900">
         Generar invitación de inscripción
       </h2>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-neutral-600">
         {studentName
           ? `Para sumar un tutor al expediente de ${studentName}.`
           : "La persona llena sus datos y queda registrada en tu grupo, sin que tú captures nada."}
@@ -226,7 +226,7 @@ function InvitationDialog({
       <div className="mt-5 space-y-5">
         {!soloTipo && (
           <fieldset>
-            <legend className="text-sm font-medium text-slate-700">
+            <legend className="text-sm font-medium text-neutral-700">
               ¿Para quién es?
             </legend>
 
@@ -235,13 +235,13 @@ function InvitationDialog({
                 <label
                   key={k}
                   className={`
-                    flex cursor-pointer gap-3 rounded-xl border p-4
+                    flex cursor-pointer gap-3 rounded-2xl border p-4
                     transition-colors duration-200
                     motion-reduce:transition-none
                     ${
                       kind === k
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-slate-300 bg-white hover:bg-slate-50"
+                        ? "border-violet-600 bg-violet-50"
+                        : "border-neutral-300 bg-white hover:bg-neutral-50"
                     }
                   `}
                 >
@@ -254,10 +254,10 @@ function InvitationDialog({
                     className="mt-0.5 cursor-pointer"
                   />
                   <span>
-                    <span className="block text-sm font-semibold text-slate-900">
+                    <span className="block text-sm font-semibold text-neutral-900">
                       {INVITATION_KIND_LABELS[k]}
                     </span>
-                    <span className="mt-0.5 block text-xs text-slate-600">
+                    <span className="mt-0.5 block text-xs text-neutral-600">
                       {k === "ALUMNO"
                         ? "Llena sus propios datos: nombre, fecha de nacimiento, correo y celular."
                         : "Llena sus datos y los de sus hijos."}
@@ -272,10 +272,10 @@ function InvitationDialog({
         <div className="space-y-2">
           <label
             htmlFor="inv-nota"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-neutral-700"
           >
             Nota para ti{" "}
-            <span className="font-normal text-slate-500">(opcional)</span>
+            <span className="font-normal text-neutral-500">(opcional)</span>
           </label>
           <input
             id="inv-nota"
@@ -286,7 +286,7 @@ function InvitationDialog({
             aria-describedby="inv-nota-ayuda"
             className={inputClase}
           />
-          <p id="inv-nota-ayuda" className="text-xs text-slate-500">
+          <p id="inv-nota-ayuda" className="text-xs text-neutral-500">
             Solo tú la ves. Sirve para recordar a quién le mandaste cada
             enlace.
           </p>
@@ -304,27 +304,27 @@ function InvitationDialog({
             onClick={generar}
             disabled={generando}
             className="
-              flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-5 py-3
+              flex cursor-pointer items-center gap-2 rounded-2xl bg-violet-600 px-5 py-3
               font-semibold text-white transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
             <QrCode size={17} aria-hidden="true" />
-            {generando ? "Generando..." : "Generar QR y enlace"}
+            {generando ? "Generando…" : "Generar QR y enlace"}
           </button>
 
           <button
             type="button"
             onClick={onCerrar}
             className="
-              cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-3
-              font-semibold text-slate-700 transition-colors duration-200
+              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-slate-50
-              focus:ring-2 focus:ring-blue-600 focus:outline-none
+              hover:bg-neutral-50
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
             Cancelar

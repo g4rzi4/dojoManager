@@ -85,19 +85,19 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
   }
 
   const inputClase = `
-    w-full rounded-xl border border-slate-300 bg-white px-4 py-3
-    outline-none transition-all
-    focus:border-blue-600 focus:ring-4 focus:ring-blue-100
+    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    outline-none transition-[border-color,box-shadow,background-color]
+    focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-slate-900">Editar ficha</h2>
+      <h2 className="font-bold text-neutral-900">Editar ficha</h2>
 
       <div className="mt-5 space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
-            <label htmlFor="se-nombre" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="se-nombre" className="block text-sm font-medium text-neutral-700">
               Nombre
             </label>
             <input
@@ -110,7 +110,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="se-apellido" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="se-apellido" className="block text-sm font-medium text-neutral-700">
               Apellido
             </label>
             <input
@@ -123,7 +123,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="se-nacimiento" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="se-nacimiento" className="block text-sm font-medium text-neutral-700">
               Fecha de nacimiento
             </label>
             <input
@@ -136,7 +136,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="se-cinta" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="se-cinta" className="block text-sm font-medium text-neutral-700">
               Cinta actual
             </label>
             <select
@@ -152,14 +152,14 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
                 </option>
               ))}
             </select>
-            <p id="se-cinta-ayuda" className="text-xs text-slate-500">
+            <p id="se-cinta-ayuda" className="text-xs text-neutral-500">
               Cambia la cinta vigente, pero <strong>no</strong> agrega una
               graduación al historial.
             </p>
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="se-telefono" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="se-telefono" className="block text-sm font-medium text-neutral-700">
               Teléfono
             </label>
             <input
@@ -172,7 +172,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="se-tutor" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="se-tutor" className="block text-sm font-medium text-neutral-700">
               Nombre del tutor
             </label>
             <input
@@ -185,7 +185,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="se-tutor-tel" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="se-tutor-tel" className="block text-sm font-medium text-neutral-700">
               Teléfono del tutor
             </label>
             <input
@@ -199,7 +199,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="se-medico" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="se-medico" className="block text-sm font-medium text-neutral-700">
             Información médica
           </label>
           <textarea
@@ -213,7 +213,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
         </div>
 
         {/* Dar de baja es lógico: conserva pagos y graduaciones */}
-        <label className="flex cursor-pointer items-start gap-3 border-t border-slate-200 pt-5">
+        <label className="flex cursor-pointer items-start gap-3 border-t border-neutral-200 pt-5">
           <input
             type="checkbox"
             checked={active}
@@ -221,10 +221,10 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
             className="mt-1 cursor-pointer"
           />
           <span>
-            <span className="block text-sm font-medium text-slate-700">
+            <span className="block text-sm font-medium text-neutral-700">
               Alumno activo
             </span>
-            <span className="mt-0.5 block text-xs text-slate-600">
+            <span className="mt-0.5 block text-xs text-neutral-600">
               Desactivarlo lo saca de las listas pero conserva su historial de
               pagos y graduaciones.
             </span>
@@ -232,7 +232,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
         </label>
 
         {!esAdmin && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-neutral-500">
             Para pasar este alumno a otro profesor, pídeselo al administrador.
           </p>
         )}
@@ -249,26 +249,26 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
             onClick={guardar}
             disabled={!valido || guardando}
             className="
-              cursor-pointer rounded-xl bg-blue-600 px-5 py-3 font-semibold
+              cursor-pointer rounded-2xl bg-violet-600 px-5 py-3 font-semibold
               text-white transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-blue-700
-              focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:outline-none
+              hover:bg-violet-700
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Guardando..." : "Guardar ficha"}
+            {guardando ? "Guardando…" : "Guardar ficha"}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-xl border border-slate-300 bg-white px-5 py-3
-              font-semibold text-slate-700 transition-colors duration-200
+              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
-              hover:bg-slate-50
-              focus:ring-2 focus:ring-blue-600 focus:outline-none
+              hover:bg-neutral-50
+              focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
             Cancelar
