@@ -2,7 +2,11 @@ import { Router, type Request } from "express";
 
 import { config } from "../config";
 import { familyStudentIds } from "../lib/access";
-import { notifyEventPaidOnline } from "../lib/notifications";
+import {
+  notifyEquipmentPaidOnline,
+  notifyEquipmentUpdated,
+  notifyEventPaidOnline,
+} from "../lib/notifications";
 import {
   captureOrder,
   createOrder,
@@ -15,6 +19,7 @@ import {
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 import {
+  EquipmentRequestStatus,
   EventPaymentStatus,
   PaymentMethod,
   PaymentStatus,
@@ -44,12 +49,34 @@ async function cobroDeOrden(orderId: string) {
     },
   });
 
-  return enrollment ? { tipo: "EVENTO" as const, ...enrollment } : null;
+  if (enrollment) return { tipo: "EVENTO" as const, ...enrollment };
+
+  const equipo = await prisma.equipmentRequest.findUnique({
+    where: { externalReference: orderId },
+    select: {
+      id: true,
+      studentId: true,
+      amountCents: true,
+      status: true,
+      teacherId: true,
+    },
+  });
+
+  return equipo && equipo.amountCents !== null
+    ? { tipo: "EQUIPO" as const, ...equipo, amountCents: equipo.amountCents }
+    : null;
 }
 
 type Cobro = NonNullable<Awaited<ReturnType<typeof cobroDeOrden>>>;
 
 function yaLiquidado(cobro: Cobro): boolean {
+  if (cobro.tipo === "EQUIPO") {
+    return (
+      cobro.status === EquipmentRequestStatus.PAGADO ||
+      cobro.status === EquipmentRequestStatus.ENTREGADO
+    );
+  }
+
   return cobro.tipo === "MENSUALIDAD"
     ? cobro.status === PaymentStatus.PAGADO
     : cobro.status === EventPaymentStatus.CONFIRMADO;
@@ -90,8 +117,53 @@ async function liquidar(cobro: Cobro, capturado: CapturedOrder): Promise<boolean
     return true;
   }
 
+  if (cobro.tipo === "EQUIPO") {
+    const { count } = await prisma.equipmentRequest.updateMany({
+      // También si se había reportado: el dinero ya se capturó en PayPal.
+      where: {
+        id: cobro.id,
+        status: {
+          in: [
+            EquipmentRequestStatus.CONFIRMADO,
+            EquipmentRequestStatus.REPORTADO,
+          ],
+        },
+      },
+      data: {
+        status: EquipmentRequestStatus.PAGADO,
+        method: PaymentMethod.PAYPAL,
+        paidAt: new Date(),
+      },
+    });
+
+    if (count === 1) {
+      try {
+        await notifyEquipmentUpdated(
+          cobro.id,
+          cobro.studentId,
+          "PAGADO",
+          cobro.amountCents
+        );
+        await notifyEquipmentPaidOnline(
+          cobro.id,
+          cobro.teacherId,
+          cobro.amountCents
+        );
+      } catch (error) {
+        console.error("[paypal] no se pudo notificar el pago de equipo", error);
+      }
+    }
+
+    return true;
+  }
+
   const { count } = await prisma.eventEnrollment.updateMany({
-    where: { id: cobro.id, status: EventPaymentStatus.PENDIENTE_PAGO },
+    where: {
+      id: cobro.id,
+      status: {
+        in: [EventPaymentStatus.PENDIENTE_PAGO, EventPaymentStatus.REPORTADO],
+      },
+    },
     data: {
       status: EventPaymentStatus.CONFIRMADO,
       enrolled: true,
@@ -129,7 +201,7 @@ router.get("/config", requireAuth, (_req, res) => {
 });
 
 /**
- * POST /paypal/orders  { tipo: "MENSUALIDAD" | "EVENTO", id }
+ * POST /paypal/orders  { tipo: "MENSUALIDAD" | "EVENTO" | "EQUIPO", id }
  *
  * El cliente solo dice QUÉ cobro quiere pagar. El monto sale siempre de la
  * base de datos, y el cobro tiene que ser de un alumno de su familia.
@@ -146,7 +218,7 @@ router.post("/orders", requireAuth, async (req, res) => {
   const cobroId = Number(id);
 
   if (
-    (tipo !== "MENSUALIDAD" && tipo !== "EVENTO") ||
+    !["MENSUALIDAD", "EVENTO", "EQUIPO"].includes(tipo) ||
     !Number.isInteger(cobroId) ||
     cobroId < 1
   ) {
@@ -179,8 +251,36 @@ router.post("/orders", requireAuth, async (req, res) => {
       });
     }
 
+    if (payment.reportedAt) {
+      return res.status(409).json({
+        success: false,
+        message: "Ya reportaste ese pago. Espera a que lo confirmen.",
+      });
+    }
+
     amountCents = payment.amountCents;
     description = `Mensualidad ${payment.periodMonth}/${payment.periodYear}`;
+  } else if (tipo === "EQUIPO") {
+    const solicitud = await prisma.equipmentRequest.findUnique({
+      where: { id: cobroId },
+    });
+
+    if (!solicitud || !propios.includes(solicitud.studentId)) {
+      return res.status(404).json(noEncontrado);
+    }
+
+    if (
+      solicitud.status !== EquipmentRequestStatus.CONFIRMADO ||
+      solicitud.amountCents === null
+    ) {
+      return res.status(409).json({
+        success: false,
+        message: "Esa solicitud no está lista para pagarse.",
+      });
+    }
+
+    amountCents = solicitud.amountCents;
+    description = "Uniformes y protecciones";
   } else {
     const enrollment = await prisma.eventEnrollment.findUnique({
       where: { id: cobroId },
@@ -212,6 +312,11 @@ router.post("/orders", requireAuth, async (req, res) => {
   // así que una orden anterior abandonada ya no puede liquidar este cobro.
   if (tipo === "MENSUALIDAD") {
     await prisma.payment.update({
+      where: { id: cobroId },
+      data: { externalReference: orderId },
+    });
+  } else if (tipo === "EQUIPO") {
+    await prisma.equipmentRequest.update({
       where: { id: cobroId },
       data: { externalReference: orderId },
     });

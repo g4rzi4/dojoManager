@@ -44,7 +44,7 @@ function EstadoScript() {
 }
 
 type Props = {
-  tipo: "MENSUALIDAD" | "EVENTO";
+  tipo: "MENSUALIDAD" | "EVENTO" | "EQUIPO";
   id: number;
   onPagado: () => void | Promise<void>;
 };

@@ -330,6 +330,154 @@ export async function notifyEventPaidOnline(
   ]);
 }
 
+/** Destinatarios de una solicitud: su profesor o, si no tiene, los administradores. */
+async function responsablesDeEquipo(teacherId: number | null): Promise<number[]> {
+  if (teacherId !== null) return [teacherId];
+
+  const admins = await prisma.user.findMany({
+    where: { role: "ADMIN", active: true },
+    select: { id: true },
+  });
+
+  return admins.map((a) => a.id);
+}
+
+/** Llamar cuando una familia solicita equipo. */
+export async function notifyEquipmentRequested(
+  requestId: number,
+  teacherId: number | null,
+  studentName: string,
+  piezas: number
+) {
+  const responsables = await responsablesDeEquipo(teacherId);
+
+  return createAutomatic(
+    responsables.map((userId) => ({
+      userId,
+      topic: NotificationTopic.GENERAL,
+      title: "Nueva solicitud de equipo",
+      body: `Se solicitaron ${piezas} ${piezas === 1 ? "pieza" : "piezas"} para ${studentName}. Confirma disponibilidad y precio.`,
+      link: "/uniformes",
+      dedupeKey: `equipo-solicitado-${requestId}-${userId}`,
+    }))
+  );
+}
+
+/** Llamar cuando cambia el estado de una solicitud. Avisa a la familia. */
+export async function notifyEquipmentUpdated(
+  requestId: number,
+  studentId: number,
+  estado: "CONFIRMADO" | "RECHAZADO" | "PAGADO" | "ENTREGADO",
+  amountCents: number | null
+) {
+  const familia = await audienceForStudent(studentId);
+
+  const monto =
+    amountCents === null
+      ? ""
+      : (amountCents / 100).toLocaleString("es-MX", {
+          style: "currency",
+          currency: "MXN",
+        });
+
+  const texto = {
+    CONFIRMADO: ["Tu equipo está listo para pagarse", `Tu profesor confirmó la solicitud por ${monto}. Ya puedes pagarla.`],
+    RECHAZADO: ["No se pudo surtir tu solicitud", "Tu profesor no pudo surtir la solicitud de equipo. Acércate con él."],
+    PAGADO: ["Recibimos tu pago de equipo", `Tu pago de ${monto} quedó registrado. Te avisaremos cuando se entregue.`],
+    ENTREGADO: ["Tu equipo fue entregado", "Tu profesor marcó la solicitud como entregada."],
+  }[estado];
+
+  return createAutomatic(
+    familia.map((userId) => ({
+      userId,
+      topic: estado === "PAGADO" ? NotificationTopic.PAGO : NotificationTopic.GENERAL,
+      title: texto[0],
+      body: texto[1],
+      link: "/uniformes",
+      dedupeKey: `equipo-${estado.toLowerCase()}-${requestId}-${userId}`,
+    }))
+  );
+}
+
+/** Llamar cuando el equipo se paga con PayPal. Avisa a quien debe entregarlo. */
+export async function notifyEquipmentPaidOnline(
+  requestId: number,
+  teacherId: number | null,
+  amountCents: number
+) {
+  const responsables = await responsablesDeEquipo(teacherId);
+
+  const monto = (amountCents / 100).toLocaleString("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  });
+
+  return createAutomatic(
+    responsables.map((userId) => ({
+      userId,
+      topic: NotificationTopic.PAGO,
+      title: "Equipo pagado con PayPal",
+      body: `Se pagó una solicitud de equipo por ${monto}. Ya puedes entregarla.`,
+      link: "/uniformes",
+      dedupeKey: `equipo-paypal-${requestId}-${userId}`,
+    }))
+  );
+}
+
+/** Llamar cuando una familia reporta un pago en efectivo o transferencia. */
+export async function notifyChargeReported(
+  clave: string,
+  responsableId: number | null,
+  concepto: string,
+  amountCents: number | null,
+  metodo: string
+) {
+  const responsables = await responsablesDeEquipo(responsableId);
+
+  const monto =
+    amountCents === null
+      ? ""
+      : ` de ${(amountCents / 100).toLocaleString("es-MX", {
+          style: "currency",
+          currency: "MXN",
+        })}`;
+
+  return createAutomatic(
+    responsables.map((userId) => ({
+      userId,
+      topic: NotificationTopic.PAGO,
+      title: "Pago por confirmar",
+      body: `Una familia reportó un pago${monto} por ${metodo} de "${concepto}". Confírmalo cuando lo recibas.`,
+      link: "/pagos",
+      // Con la hora: si se rechaza, la familia puede volver a reportarlo.
+      dedupeKey: `cobro-reportado-${clave}-${userId}-${Date.now()}`,
+    }))
+  );
+}
+
+/** Llamar al confirmar o rechazar un pago reportado. Avisa a la familia. */
+export async function notifyChargeResolved(
+  clave: string,
+  studentId: number,
+  concepto: string,
+  confirmado: boolean
+) {
+  const familia = await audienceForStudent(studentId);
+
+  return createAutomatic(
+    familia.map((userId) => ({
+      userId,
+      topic: NotificationTopic.PAGO,
+      title: confirmado ? "Pago confirmado" : "Pago no confirmado",
+      body: confirmado
+        ? `Se confirmó tu pago de "${concepto}".`
+        : `No se pudo confirmar tu pago de "${concepto}". Acércate con tu profesor.`,
+      link: "/pagos",
+      dedupeKey: `cobro-resuelto-${clave}-${userId}-${Date.now()}`,
+    }))
+  );
+}
+
 /**
  * Manda un aviso redactado por el dojo.
  *
