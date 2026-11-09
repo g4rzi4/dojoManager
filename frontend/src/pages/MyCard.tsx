@@ -6,6 +6,7 @@ import PageHeading from "../components/PageHeading";
 import StudentCardView from "../components/StudentCardView";
 import { ApiError, getStudentCard } from "../services/api";
 import { getUser } from "../services/session";
+import { t } from "../i18n";
 import type { StudentCard } from "../types/student";
 
 /**
@@ -34,7 +35,7 @@ function MyCard() {
           setError(
             e instanceof ApiError
               ? e.message
-              : "No fue posible cargar tu expediente."
+              : t("No fue posible cargar tu expediente.")
           );
         }
       })
@@ -51,11 +52,12 @@ function MyCard() {
     <DashboardLayout>
       <header>
         <PageHeading module="tarjeta"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-          Hola, {user?.name ?? "alumno"}
+          {t("Hola, {nombre}", { nombre: user?.name ?? t("alumno") })}
         </h1>
         <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
-          Esta es tu tarjeta de información: tus cintas, asistencia, pagos
-          y las observaciones de tus profesores.
+          {t(
+            "Esta es tu tarjeta de información: tus cintas, asistencia, pagos y las observaciones de tus profesores."
+          )}
         </p></PageHeading>
       </header>
 
@@ -68,7 +70,7 @@ function MyCard() {
         ) : error ? (
           <Card className="border-red-200 p-6">
             <p className="font-semibold text-red-800">
-              No se pudo mostrar tu expediente
+              {t("No se pudo mostrar tu expediente")}
             </p>
             <p className="mt-1 text-sm text-red-700">{error}</p>
           </Card>

@@ -8,6 +8,7 @@ import EventCalendar from "../components/EventCalendar";
 import FamilyStudentCards from "../components/FamilyStudentCards";
 import { ApiError, getEvents, getMyStudents, getNotifications, getPayments } from "../services/api";
 import { getUser } from "../services/session";
+import { t } from "../i18n";
 import type { DojoEvent } from "../types/event";
 import type { MyStudent, PaymentsResponse } from "../types/payment";
 import type { AppNotification } from "../types/notification";
@@ -55,7 +56,7 @@ function FamilyHome() {
           setError(
             e instanceof ApiError
               ? e.message
-              : "No fue posible cargar tu información."
+              : t("No fue posible cargar tu información.")
           );
         }
       })
@@ -75,19 +76,23 @@ function FamilyHome() {
     <DashboardLayout>
       <header>
         <PageHeading module="inicio"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-          Hola, {user?.name ?? "bienvenido"}
+          {t("Hola, {nombre}", { nombre: user?.name ?? t("bienvenido") })}
         </h1>
         <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
           {esTutor
-            ? "Aquí puedes consultar el expediente de tus hijos, el calendario del dojo y sus pagos."
-            : "Aquí puedes consultar tu expediente, el calendario del dojo y tus pagos."}
+            ? t(
+              "Aquí puedes consultar el expediente de tus hijos, el calendario del dojo y sus pagos."
+            )
+            : t(
+              "Aquí puedes consultar tu expediente, el calendario del dojo y tus pagos."
+            )}
         </p></PageHeading>
       </header>
 
       {error && (
         <Card className="mt-6 border-red-200 p-6">
           <p className="font-semibold text-red-800">
-            No se pudo cargar la información
+            {t("No se pudo cargar la información")}
           </p>
           <p className="mt-1 text-sm text-red-700">{error}</p>
         </Card>
@@ -105,25 +110,27 @@ function FamilyHome() {
             <ShortcutCard
               to="/pagos"
               module="pagos"
-              label="Por cubrir"
+              label={t("Por cubrir")}
               value={formatMoney(totalPendiente)}
-              hint={`${payments?.resumen.pendientes ?? 0} mensualidades`}
+              hint={t("{n} mensualidades", {
+                n: payments?.resumen.pendientes ?? 0,
+              })}
               alert={totalPendiente > 0}
             />
             <ShortcutCard
               to="/notificaciones"
               module="notificaciones"
-              label="Notificaciones"
+              label={t("Notificaciones")}
               value={String(sinLeer)}
-              hint="sin leer"
+              hint={t("sin leer")}
               alert={sinLeer > 0}
             />
             <ShortcutCard
               to="/eventos"
               module="alumnos"
-              label={esTutor ? "Hijos inscritos" : "Mi expediente"}
+              label={esTutor ? t("Hijos inscritos") : t("Mi expediente")}
               value={String(students.length)}
-              hint={esTutor ? "en el dojo" : "activo"}
+              hint={esTutor ? t("en el dojo") : t("activo")}
             />
           </div>
 
@@ -135,9 +142,9 @@ function FamilyHome() {
             >
               {esTutor
                 ? students.length > 1
-                  ? "Tarjetas de mis hijos"
-                  : "Tarjeta de mi hijo"
-                : "Mi tarjeta"}
+                  ? t("Tarjetas de mis hijos")
+                  : t("Tarjeta de mi hijo")
+                : t("Mi tarjeta")}
             </h2>
 
             <FamilyStudentCards students={students} />
@@ -149,7 +156,7 @@ function FamilyHome() {
               id="titulo-calendario"
               className="mb-4 text-lg font-bold text-neutral-800"
             >
-              Calendario del dojo
+              {t("Calendario del dojo")}
             </h2>
             <EventCalendar events={events} />
           </section>

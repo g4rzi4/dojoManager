@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, KeyRound, Receipt, UserPlus, X } from "lucide-react";
 
+import { getLocale, t } from "../i18n";
 import Card from "./Card";
 import PagarConPayPal from "./PagarConPayPal";
 import {
@@ -162,7 +163,7 @@ function ReportarPago({
         note: nota.trim() || undefined,
       });
 
-      setExito(res.message);
+      setExito(t(res.message));
       setTeacherCode("");
       setElegidas([]);
       setNota("");
@@ -171,7 +172,7 @@ function ReportarPago({
       setError(
         err instanceof ApiError
           ? err.message
-          : "No fue posible reportar el pago."
+          : t("No fue posible reportar el pago.")
       );
     } finally {
       setEnviando(false);
@@ -179,7 +180,7 @@ function ReportarPago({
   }
 
   const inputClase = `
-    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
     outline-none transition-[border-color,box-shadow,background-color]
     focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
@@ -188,12 +189,17 @@ function ReportarPago({
     <Card className="p-5">
       <h3 className="flex items-center gap-2 font-bold text-neutral-900">
         <Receipt size={18} aria-hidden="true" className="text-neutral-400" />
-        Pago del evento
+        {t("Pago del evento")}
       </h3>
       <p className="mt-1 text-sm text-neutral-600">
         {tieneModalidades
-          ? "Cada modalidad tiene su costo. Paga con tu profesor y luego repórtalo aquí con su clave."
-          : `Cuesta ${formatMoney(event.priceCents ?? 0)}. Paga con tu profesor y luego repórtalo aquí con su clave.`}
+          ? t(
+              "Cada modalidad tiene su costo. Paga con tu profesor y luego repórtalo aquí con su clave."
+            )
+          : t(
+              "Cuesta {precio}. Paga con tu profesor y luego repórtalo aquí con su clave.",
+              { precio: formatMoney(event.priceCents ?? 0) }
+            )}
       </p>
 
       {/* Estado de los que ya reportaron */}
@@ -212,11 +218,11 @@ function ReportarPago({
                 <span className="font-medium">
                   {alumno
                     ? `${alumno.firstName} ${alumno.lastName}`
-                    : "Alumno"}
+                    : t("Alumno")}
                 </span>
                 <span className="font-semibold">
-                  {EVENT_PAYMENT_LABELS[r.status]}
-                  {r.enrolled && " · inscrito"}
+                  {t(EVENT_PAYMENT_LABELS[r.status])}
+                  {r.enrolled && ` · ${t("inscrito")}`}
                 </span>
 
                 {r.status === "PENDIENTE_PAGO" && (
@@ -235,8 +241,8 @@ function ReportarPago({
       {pendientes.length === 0 ? (
         <p className="mt-4 text-sm text-neutral-600">
           {yaReportados.some((r) => r.status === "PENDIENTE_PAGO")
-            ? "Completa el pago para quedar inscrito."
-            : "Ya reportaste el pago de todos tus alumnos para este evento."}
+            ? t("Completa el pago para quedar inscrito.")
+            : t("Ya reportaste el pago de todos tus alumnos para este evento.")}
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -246,7 +252,7 @@ function ReportarPago({
                 htmlFor={`ep-alumno-${event.id}`}
                 className="block text-sm font-medium text-neutral-700"
               >
-                ¿De quién es el pago?
+                {t("¿De quién es el pago?")}
               </label>
               <select
                 id={`ep-alumno-${event.id}`}
@@ -256,7 +262,7 @@ function ReportarPago({
                 }
                 className={`${inputClase} cursor-pointer`}
               >
-                <option value="">Elige un alumno</option>
+                <option value="">{t("Elige un alumno")}</option>
                 {pendientes.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.firstName} {a.lastName}
@@ -270,7 +276,7 @@ function ReportarPago({
           {tieneModalidades && (
             <fieldset>
               <legend className="text-sm font-medium text-neutral-700">
-                ¿A qué modalidades entra?
+                {t("¿A qué modalidades entra?")}
               </legend>
 
               <div className="mt-2 space-y-2">
@@ -284,7 +290,7 @@ function ReportarPago({
                       ${
                         elegidas.includes(m.id)
                           ? "border-violet-600 bg-violet-50"
-                          : "border-neutral-300 bg-white hover:bg-neutral-50"
+                          : "border-neutral-300 bg-surface hover:bg-neutral-50"
                       }
                     `}
                   >
@@ -313,7 +319,7 @@ function ReportarPago({
               {/* El total, para que no haya sorpresas al pagar */}
               <p className="mt-3 flex items-center justify-between rounded-2xl bg-neutral-100 px-4 py-3">
                 <span className="text-sm font-medium text-neutral-700">
-                  Total a pagar
+                  {t("Total a pagar")}
                 </span>
                 <span className="text-lg font-bold text-neutral-900">
                   {formatMoney(total)}
@@ -326,8 +332,10 @@ function ReportarPago({
               Los rangos de edad NO son los mismos en color y en negras. */}
           <fieldset className="space-y-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
             <legend className="px-1 text-sm font-medium text-neutral-700">
-              Categoría de competencia{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Categoría de competencia")}{" "}
+              <span className="font-normal text-neutral-500">
+                {t("(opcional)")}
+              </span>
             </legend>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -336,7 +344,7 @@ function ReportarPago({
                   htmlFor={`ep-rama-${event.id}`}
                   className="block text-sm font-medium text-neutral-700"
                 >
-                  Rama
+                  {t("Rama")}
                 </label>
                 <select
                   id={`ep-rama-${event.id}`}
@@ -346,11 +354,11 @@ function ReportarPago({
                   }
                   className={`${inputClase} cursor-pointer`}
                 >
-                  <option value="">Sin especificar</option>
+                  <option value="">{t("Sin especificar")}</option>
                   {(Object.keys(GENDER_LABELS) as CompetitionGender[]).map(
                     (g) => (
                       <option key={g} value={g}>
-                        {GENDER_LABELS[g]}
+                        {t(GENDER_LABELS[g])}
                       </option>
                     )
                   )}
@@ -362,7 +370,7 @@ function ReportarPago({
                   htmlFor={`ep-cinta-${event.id}`}
                   className="block text-sm font-medium text-neutral-700"
                 >
-                  Tipo de cinta
+                  {t("Tipo de cinta")}
                 </label>
                 <select
                   id={`ep-cinta-${event.id}`}
@@ -375,10 +383,10 @@ function ReportarPago({
                   }}
                   className={`${inputClase} cursor-pointer`}
                 >
-                  <option value="">Sin especificar</option>
+                  <option value="">{t("Sin especificar")}</option>
                   {(Object.keys(BELT_CLASS_LABELS) as BeltClass[]).map((b) => (
                     <option key={b} value={b}>
-                      {BELT_CLASS_LABELS[b]}
+                      {t(BELT_CLASS_LABELS[b])}
                     </option>
                   ))}
                 </select>
@@ -391,7 +399,7 @@ function ReportarPago({
                   htmlFor={`ep-categoria-${event.id}`}
                   className="block text-sm font-medium text-neutral-700"
                 >
-                  Categoría de edad
+                  {t("Categoría de edad")}
                 </label>
                 <select
                   id={`ep-categoria-${event.id}`}
@@ -400,12 +408,12 @@ function ReportarPago({
                   aria-describedby={`ep-categoria-ayuda-${event.id}`}
                   className={`${inputClase} cursor-pointer`}
                 >
-                  <option value="">Sin especificar</option>
+                  <option value="">{t("Sin especificar")}</option>
                   {catalogo
                     .filter((c) => c.beltClasses.includes(beltClass))
                     .map((c) => (
                       <option key={c.value} value={c.value}>
-                        {c.label} — {c.rango}
+                        {t(c.label)} — {t(c.rango)}
                       </option>
                     ))}
                 </select>
@@ -413,8 +421,9 @@ function ReportarPago({
                   id={`ep-categoria-ayuda-${event.id}`}
                   className="text-xs text-neutral-500"
                 >
-                  Puede no coincidir con su edad: hay alumnos a los que se
-                  foguea en una categoría mayor.
+                  {t(
+                    "Puede no coincidir con su edad: hay alumnos a los que se foguea en una categoría mayor."
+                  )}
                 </p>
               </div>
             )}
@@ -425,8 +434,10 @@ function ReportarPago({
               htmlFor={`ep-metodo-${event.id}`}
               className="block text-sm font-medium text-neutral-700"
             >
-              ¿Cómo pagaste?{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("¿Cómo pagaste?")}{" "}
+              <span className="font-normal text-neutral-500">
+                {t("(opcional)")}
+              </span>
             </label>
             <select
               id={`ep-metodo-${event.id}`}
@@ -434,16 +445,16 @@ function ReportarPago({
               onChange={(e) => setMetodo(e.target.value as PaymentMethod | "")}
               className={`${inputClase} cursor-pointer`}
             >
-              <option value="">Sin especificar</option>
+              <option value="">{t("Sin especificar")}</option>
               <option value="EFECTIVO">
-                {PAYMENT_METHOD_LABELS.EFECTIVO}
+                {t(PAYMENT_METHOD_LABELS.EFECTIVO)}
               </option>
               <option value="TRANSFERENCIA">
-                {PAYMENT_METHOD_LABELS.TRANSFERENCIA}
+                {t(PAYMENT_METHOD_LABELS.TRANSFERENCIA)}
               </option>
               {paypalDisponible && (
                 <option value="PAYPAL">
-                  {PAYMENT_METHOD_LABELS.PAYPAL} (pagar en línea ahora)
+                  {t(PAYMENT_METHOD_LABELS.PAYPAL)} {t("(pagar en línea ahora)")}
                 </option>
               )}
             </select>
@@ -454,15 +465,17 @@ function ReportarPago({
               htmlFor={`ep-nota-${event.id}`}
               className="block text-sm font-medium text-neutral-700"
             >
-              Nota para el profesor{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Nota para el profesor")}{" "}
+              <span className="font-normal text-neutral-500">
+                {t("(opcional)")}
+              </span>
             </label>
             <input
               id={`ep-nota-${event.id}`}
               type="text"
               value={nota}
               onChange={(e) => setNota(e.target.value)}
-              placeholder="Pagué en efectivo el martes"
+              placeholder={t("Pagué en efectivo el martes")}
               className={inputClase}
             />
           </div>
@@ -472,7 +485,7 @@ function ReportarPago({
               htmlFor={`ep-clave-${event.id}`}
               className="block text-sm font-medium text-neutral-700"
             >
-              Clave de tu profesor
+              {t("Clave de tu profesor")}
             </label>
             <input
               id={`ep-clave-${event.id}`}
@@ -488,8 +501,9 @@ function ReportarPago({
               className="flex items-center gap-1.5 text-xs text-neutral-500"
             >
               <KeyRound size={12} aria-hidden="true" />
-              Tu profesor te la comparte. Con ella el cobro queda registrado a
-              su nombre.
+              {t(
+                "Tu profesor te la comparte. Con ella el cobro queda registrado a su nombre."
+              )}
             </p>
           </div>
 
@@ -518,10 +532,10 @@ function ReportarPago({
             "
           >
             {enviando
-              ? "Enviando…"
+              ? t("Enviando…")
               : metodo === "PAYPAL"
-                ? "Continuar a PayPal"
-                : "Ya pagué"}
+                ? t("Continuar a PayPal")
+                : t("Ya pagué")}
           </button>
         </form>
       )}
@@ -557,7 +571,7 @@ function GestionCobros({
         setError(
           e instanceof ApiError
             ? e.message
-            : "No fue posible cargar los pagos."
+            : t("No fue posible cargar los pagos.")
         );
       })
       .finally(() => setCargado(true));
@@ -578,7 +592,7 @@ function GestionCobros({
           setError(
             e instanceof ApiError
               ? e.message
-              : "No fue posible cargar los pagos."
+              : t("No fue posible cargar los pagos.")
           );
         }
       })
@@ -602,7 +616,7 @@ function GestionCobros({
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible registrar la decisión."
+          : t("No fue posible registrar la decisión.")
       );
     } finally {
       setResolviendo(null);
@@ -619,16 +633,21 @@ function GestionCobros({
     <Card className="p-5">
       <h3 className="flex items-center gap-2 font-bold text-neutral-900">
         <Receipt size={18} aria-hidden="true" className="text-neutral-400" />
-        Pagos e inscritos
+        {t("Pagos e inscritos")}
       </h3>
       <p className="mt-1 text-sm text-neutral-600">
-        Cuesta{" "}
+        {t("Cuesta")}{" "}
         <strong className="text-neutral-900">
           {formatMoney(event.priceCents ?? 0)}
         </strong>
-        . {inscritos} inscrito{inscritos === 1 ? "" : "s"}
-        {porConfirmar > 0 && `, ${porConfirmar} por confirmar`}.
-        {alcance === "mi-clave" && " Solo los de tu clave."}
+        .{" "}
+        {inscritos === 1
+          ? t("{n} inscrito", { n: inscritos })
+          : t("{n} inscritos", { n: inscritos })}
+        {porConfirmar > 0 &&
+          `, ${t("{n} por confirmar", { n: porConfirmar })}`}
+        .
+        {alcance === "mi-clave" && ` ${t("Solo los de tu clave.")}`}
       </p>
 
       {error && (
@@ -651,8 +670,9 @@ function GestionCobros({
         <div className="mt-4 h-20 animate-pulse rounded-2xl bg-neutral-100 motion-reduce:animate-none" />
       ) : enrollments.length === 0 ? (
         <p className="mt-4 text-sm text-neutral-600">
-          Nadie ha reportado pago todavía. Comparte tu clave con tus alumnos
-          para que lo reporten.
+          {t(
+            "Nadie ha reportado pago todavía. Comparte tu clave con tus alumnos para que lo reporten."
+          )}
         </p>
       ) : (
         <ul className="mt-4 space-y-2">
@@ -682,15 +702,16 @@ function GestionCobros({
 
                 <p className="mt-0.5 text-xs text-neutral-600">
                   {formatMoney(e.amountCents)}
-                  {e.method && ` · ${PAYMENT_METHOD_LABELS[e.method].toLowerCase()}`}
-                  {" · reportado el "}
-                  {new Date(e.reportedAt).toLocaleDateString("es-MX", {
+                  {e.method &&
+                    ` · ${t(PAYMENT_METHOD_LABELS[e.method]).toLowerCase()}`}
+                  {` · ${t("reportado el")} `}
+                  {new Date(e.reportedAt).toLocaleDateString(getLocale(), {
                     day: "numeric",
                     month: "long",
                   })}
                   {alcance === "todos" &&
                     e.acreditadoA &&
-                    ` · a ${e.acreditadoA}`}
+                    ` · ${t("a {nombre}", { nombre: e.acreditadoA })}`}
                 </p>
 
                 {e.note && (
@@ -705,12 +726,12 @@ function GestionCobros({
                   EVENT_PAYMENT_STYLES[e.status]
                 }`}
               >
-                {EVENT_PAYMENT_LABELS[e.status]}
+                {t(EVENT_PAYMENT_LABELS[e.status])}
               </span>
 
               {e.enrolled && (
                 <span className="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-800">
-                  Inscrito
+                  {t("Inscrito")}
                 </span>
               )}
 
@@ -731,7 +752,7 @@ function GestionCobros({
                     "
                   >
                     <Check size={14} aria-hidden="true" />
-                    Confirmar
+                    {t("Confirmar")}
                   </button>
 
                   <button
@@ -740,7 +761,7 @@ function GestionCobros({
                     disabled={resolviendo === e.id}
                     className="
                       flex cursor-pointer items-center gap-1.5 rounded-xl border
-                      border-neutral-300 bg-white px-3 py-2 text-xs font-semibold
+                      border-neutral-300 bg-surface px-3 py-2 text-xs font-semibold
                       text-neutral-700 transition-colors duration-200
                       motion-reduce:transition-none
                       hover:bg-red-50 hover:text-red-700
@@ -749,7 +770,7 @@ function GestionCobros({
                     "
                   >
                     <X size={14} aria-hidden="true" />
-                    Rechazar
+                    {t("Rechazar")}
                   </button>
                 </div>
               )}
@@ -833,7 +854,7 @@ function InscribirAlumnos({
       await onInscrito();
     } catch (e: unknown) {
       setError(
-        e instanceof ApiError ? e.message : "No fue posible inscribirlo."
+        e instanceof ApiError ? e.message : t("No fue posible inscribirlo.")
       );
     } finally {
       setGuardando(false);
@@ -841,7 +862,7 @@ function InscribirAlumnos({
   }
 
   const inputClase = `
-    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
     outline-none transition-[border-color,box-shadow,background-color]
     focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
@@ -853,7 +874,7 @@ function InscribirAlumnos({
         onClick={() => setAbierto(true)}
         className="
           mt-4 flex cursor-pointer items-center gap-2 rounded-2xl border
-          border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+          border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold
           text-neutral-700 transition-colors duration-200
           motion-reduce:transition-none
           hover:bg-neutral-50
@@ -861,7 +882,7 @@ function InscribirAlumnos({
         "
       >
         <UserPlus size={16} aria-hidden="true" />
-        Inscribir a un alumno
+        {t("Inscribir a un alumno")}
       </button>
     );
   }
@@ -869,14 +890,14 @@ function InscribirAlumnos({
   return (
     <div className="mt-4 space-y-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
       <p className="text-sm font-semibold text-neutral-900">
-        Inscribir a un alumno
+        {t("Inscribir a un alumno")}
       </p>
 
       {disponibles.length === 0 ? (
         <p className="text-sm text-neutral-600">
           {alumnos.length === 0
-            ? "No tienes alumnos activos."
-            : "Todos tus alumnos ya están en la lista de este evento."}
+            ? t("No tienes alumnos activos.")
+            : t("Todos tus alumnos ya están en la lista de este evento.")}
         </p>
       ) : (
         <>
@@ -885,7 +906,7 @@ function InscribirAlumnos({
               htmlFor={`in-alumno-${event.id}`}
               className="block text-sm font-medium text-neutral-700"
             >
-              Alumno
+              {t("Alumno")}
             </label>
             <select
               id={`in-alumno-${event.id}`}
@@ -895,7 +916,7 @@ function InscribirAlumnos({
               }
               className={`${inputClase} cursor-pointer`}
             >
-              <option value="">Elige un alumno</option>
+              <option value="">{t("Elige un alumno")}</option>
               {disponibles.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.firstName} {a.lastName}
@@ -907,7 +928,7 @@ function InscribirAlumnos({
           {tieneModalidades && (
             <fieldset>
               <legend className="text-sm font-medium text-neutral-700">
-                ¿En qué modalidades entra?
+                {t("¿En qué modalidades entra?")}
               </legend>
 
               <div className="mt-2 space-y-2">
@@ -915,7 +936,7 @@ function InscribirAlumnos({
                   <label
                     key={m.id}
                     className={`
-                      flex cursor-pointer items-center gap-3 rounded-2xl border bg-white px-4 py-3
+                      flex cursor-pointer items-center gap-3 rounded-2xl border bg-surface px-4 py-3
                       transition-colors duration-200
                       motion-reduce:transition-none
                       ${
@@ -947,9 +968,9 @@ function InscribirAlumnos({
                 ))}
               </div>
 
-              <p className="mt-3 flex items-center justify-between rounded-2xl bg-white px-4 py-3">
+              <p className="mt-3 flex items-center justify-between rounded-2xl bg-surface px-4 py-3">
                 <span className="text-sm font-medium text-neutral-700">
-                  Tendrá que pagar
+                  {t("Tendrá que pagar")}
                 </span>
                 <span className="text-lg font-bold text-neutral-900">
                   {formatMoney(total)}
@@ -963,15 +984,17 @@ function InscribirAlumnos({
               htmlFor={`in-nota-${event.id}`}
               className="block text-sm font-medium text-neutral-700"
             >
-              Nota{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Nota")}{" "}
+              <span className="font-normal text-neutral-500">
+                {t("(opcional)")}
+              </span>
             </label>
             <input
               id={`in-nota-${event.id}`}
               type="text"
               value={nota}
               onChange={(e) => setNota(e.target.value)}
-              placeholder="Se foguea con adultos"
+              placeholder={t("Se foguea con adultos")}
               className={inputClase}
             />
           </div>
@@ -983,9 +1006,9 @@ function InscribirAlumnos({
           )}
 
           <p className="text-xs text-neutral-600">
-            Al alumno y a sus tutores les llegará una notificación con las
-            modalidades y lo que deben pagar. Quedará inscrito cuando
-            confirmes el pago.
+            {t(
+              "Al alumno y a sus tutores les llegará una notificación con las modalidades y lo que deben pagar. Quedará inscrito cuando confirmes el pago."
+            )}
           </p>
         </>
       )}
@@ -1005,7 +1028,7 @@ function InscribirAlumnos({
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Inscribiendo…" : "Inscribir"}
+            {guardando ? t("Inscribiendo…") : t("Inscribir")}
           </button>
         )}
 
@@ -1013,7 +1036,7 @@ function InscribirAlumnos({
           type="button"
           onClick={() => setAbierto(false)}
           className="
-            cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-2.5
+            cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-2.5
             text-sm font-semibold text-neutral-700
             transition-colors duration-200
             motion-reduce:transition-none
@@ -1021,7 +1044,7 @@ function InscribirAlumnos({
             focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
           "
         >
-          Cerrar
+          {t("Cerrar")}
         </button>
       </div>
     </div>

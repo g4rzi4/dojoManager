@@ -26,6 +26,25 @@ enum Role {
   ALUMNO
 }
 
+/// Idioma de la interfaz.
+enum Language {
+  ES
+  EN
+}
+
+/// Vista de la interfaz.
+enum Theme {
+  LIGHT
+  DARK
+}
+
+/// Tamaño de letra de la interfaz.
+enum FontSize {
+  SMALL
+  NORMAL
+  LARGE
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -69,6 +88,14 @@ model User {
 
   /// Notas del administrador sobre el profesor. Solo las ve el admin.
   adminNotes String?
+
+  // --- Preferencias ---
+  //
+  // Van en la cuenta y no solo en el navegador para que sigan a la persona
+  // de la computadora al celular.
+  language Language @default(ES)
+  theme    Theme    @default(LIGHT)
+  fontSize FontSize @default(NORMAL)
 
   /// Expediente, solo si este usuario es un alumno.
   student Student?

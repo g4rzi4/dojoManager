@@ -1,3 +1,4 @@
+import { applyPreferences } from "./preferences";
 import type { Permission, SessionUser } from "../types/user";
 
 const TOKEN_KEY = "token";
@@ -6,6 +7,7 @@ const USER_KEY = "user";
 export function saveSession(token: string, user: SessionUser) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  applyPreferences(user.preferences);
 }
 
 export function getToken(): string | null {

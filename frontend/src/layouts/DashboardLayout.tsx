@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 import BrandMark from "../components/BrandMark";
 import Sidebar from "../components/Sidebar";
 import NotificationBell from "../components/NotificationBell";
+import { t } from "../i18n";
 
 type Props = {
   children: ReactNode;
@@ -24,18 +25,18 @@ function DashboardLayout({ children }: Props) {
           focus:font-semibold focus:text-white
         "
       >
-        Saltar al contenido
+        {t("Saltar al contenido")}
       </a>
 
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Barra flotante: el menú y la marca solo en móvil, la campana siempre */}
-        <div className="sticky top-3 z-20 mx-3 mt-3 flex items-center gap-2 rounded-[1.4rem] border border-neutral-200/80 bg-white p-1.5 shadow-surface lg:mx-0 lg:mt-0 lg:ml-auto lg:w-fit">
+        <div className="sticky top-3 z-20 mx-3 mt-3 flex items-center gap-2 rounded-[1.4rem] border border-neutral-200/80 bg-surface p-1.5 shadow-surface lg:mx-0 lg:mt-0 lg:ml-auto lg:w-fit">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            aria-label="Abrir menú"
+            aria-label={t("Abrir menú")}
             aria-expanded={sidebarOpen}
             className="
               flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl

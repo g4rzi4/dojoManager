@@ -3,6 +3,7 @@ import { useState } from "react";
 import Card from "./Card";
 import { ApiError, sendAnnouncement } from "../services/api";
 import { AUDIENCES, type Audience } from "../types/notification";
+import { t } from "../i18n";
 
 type Props = {
   onEnviado: () => void | Promise<void>;
@@ -39,9 +40,9 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
       });
 
       setExito(
-        `Aviso enviado a ${res.enviadas} ${
-          res.enviadas === 1 ? "persona" : "personas"
-        }.`
+        res.enviadas === 1
+          ? t("Aviso enviado a {n} persona.", { n: res.enviadas })
+          : t("Aviso enviado a {n} personas.", { n: res.enviadas })
       );
       setTitle("");
       setBody("");
@@ -49,7 +50,7 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
       await onEnviado();
     } catch (e: unknown) {
       setError(
-        e instanceof ApiError ? e.message : "No fue posible enviar el aviso."
+        e instanceof ApiError ? e.message : t("No fue posible enviar el aviso.")
       );
     } finally {
       setEnviando(false);
@@ -58,9 +59,9 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-neutral-900">Nuevo aviso del dojo</h2>
+      <h2 className="font-bold text-neutral-900">{t("Nuevo aviso del dojo")}</h2>
       <p className="mt-1 text-sm text-neutral-600">
-        Llega como notificación a cada persona del grupo que elijas.
+        {t("Llega como notificación a cada persona del grupo que elijas.")}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
@@ -69,7 +70,7 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
             htmlFor="aviso-titulo"
             className="block text-sm font-medium text-neutral-700"
           >
-            Título
+            {t("Título")}
           </label>
           <input
             id="aviso-titulo"
@@ -77,15 +78,15 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
             value={title}
             maxLength={MAX_TITULO}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Suspensión de clases el sábado"
+            placeholder={t("Suspensión de clases el sábado")}
             className="
-              w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+              w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
               outline-none transition-[border-color,box-shadow,background-color]
               focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
           />
           <p className="text-xs text-neutral-500">
-            {title.length} de {MAX_TITULO} caracteres
+            {t("{n} de {max} caracteres", { n: title.length, max: MAX_TITULO })}
           </p>
         </div>
 
@@ -94,16 +95,16 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
             htmlFor="aviso-mensaje"
             className="block text-sm font-medium text-neutral-700"
           >
-            Mensaje
+            {t("Mensaje")}
           </label>
           <textarea
             id="aviso-mensaje"
             value={body}
             rows={4}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Explica el motivo y, si aplica, cuándo se repone la clase."
+            placeholder={t("Explica el motivo y, si aplica, cuándo se repone la clase.")}
             className="
-              w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+              w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
               outline-none transition-[border-color,box-shadow,background-color]
               focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
@@ -115,21 +116,21 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
             htmlFor="aviso-destinatarios"
             className="block text-sm font-medium text-neutral-700"
           >
-            Destinatarios
+            {t("Destinatarios")}
           </label>
           <select
             id="aviso-destinatarios"
             value={audience}
             onChange={(e) => setAudience(e.target.value as Audience)}
             className="
-              w-full cursor-pointer rounded-2xl border border-neutral-300 bg-white
+              w-full cursor-pointer rounded-2xl border border-neutral-300 bg-surface
               px-4 py-3 outline-none transition-[border-color,box-shadow,background-color]
               focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
           >
             {AUDIENCES.map((a) => (
               <option key={a.value} value={a.value}>
-                {a.label}
+                {t(a.label)}
               </option>
             ))}
           </select>
@@ -160,21 +161,21 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {enviando ? "Enviando…" : "Enviar aviso"}
+            {enviando ? t("Enviando…") : t("Enviar aviso")}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-3
               font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
               hover:bg-neutral-50
               focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
-            Cancelar
+            {t("Cancelar")}
           </button>
         </div>
       </form>

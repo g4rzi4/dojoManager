@@ -4,6 +4,7 @@ import { ArrowLeft, Pencil, QrCode } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import { t } from "../i18n";
 import PageHeading from "../components/PageHeading";
 import StudentCardView from "../components/StudentCardView";
 import InvitationDialog from "../components/InvitationDialog";
@@ -36,8 +37,8 @@ function StudentDetail() {
   const user = getUser();
   const volverA = can(user, "students:read") ? "/alumnos" : "/inicio";
   const volverTexto = can(user, "students:read")
-    ? "Volver a alumnos"
-    : "Volver a mi panel";
+    ? t("Volver a alumnos")
+    : t("Volver a mi panel");
 
   // La validez del id se deriva del render, no de un efecto.
   const studentId = Number(id);
@@ -73,7 +74,7 @@ function StudentDetail() {
             message:
               e instanceof ApiError
                 ? e.message
-                : "No fue posible cargar el expediente.",
+                : t("No fue posible cargar el expediente."),
           });
         }
       });
@@ -85,7 +86,7 @@ function StudentDetail() {
 
   const estadoFinal: Estado = idValido
     ? estado
-    : { status: "error", message: "El identificador del alumno no es válido." };
+    : { status: "error", message: t("El identificador del alumno no es válido.") };
 
   return (
     <DashboardLayout>
@@ -105,7 +106,7 @@ function StudentDetail() {
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <PageHeading module="alumnos"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-          Tarjeta del alumno
+          {t("Tarjeta del alumno")}
         </h1></PageHeading>
 
         {puedeInvitar && estadoFinal.status === "ok" && (
@@ -116,7 +117,7 @@ function StudentDetail() {
             aria-expanded={editando}
             className="
               flex cursor-pointer items-center gap-2 rounded-2xl border
-              border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+              border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold
               text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
               hover:bg-neutral-50
@@ -124,7 +125,7 @@ function StudentDetail() {
             "
           >
             <Pencil size={17} aria-hidden="true" />
-            Editar ficha
+            {t("Editar ficha")}
           </button>
 
           <button
@@ -133,7 +134,7 @@ function StudentDetail() {
             aria-expanded={invitandoTutor}
             className="
               flex cursor-pointer items-center gap-2 rounded-2xl border
-              border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+              border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold
               text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
               hover:bg-neutral-50
@@ -141,7 +142,7 @@ function StudentDetail() {
             "
           >
             <QrCode size={17} aria-hidden="true" />
-            Invitar a un tutor
+            {t("Invitar a un tutor")}
           </button>
           </div>
         )}
@@ -182,7 +183,7 @@ function StudentDetail() {
         {estadoFinal.status === "error" && (
           <Card className="border-red-200 p-6">
             <p className="font-semibold text-red-800">
-              No se pudo mostrar el expediente
+              {t("No se pudo mostrar el expediente")}
             </p>
             <p className="mt-1 text-sm text-red-700">{estadoFinal.message}</p>
           </Card>

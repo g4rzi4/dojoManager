@@ -6,6 +6,7 @@ import {
   IdCard,
   LayoutDashboard,
   Receipt,
+  SlidersHorizontal,
   Users,
 } from "lucide-react";
 
@@ -48,6 +49,10 @@ export const MODULES = {
   tarjeta: {
     icon: IdCard,
     tile: "border-lime-300 bg-lime-50 text-lime-700 [--tile-shadow:var(--color-lime-400)]",
+  },
+  preferencias: {
+    icon: SlidersHorizontal,
+    tile: "border-indigo-200 bg-indigo-50 text-indigo-700 [--tile-shadow:var(--color-indigo-400)]",
   },
 } as const;
 

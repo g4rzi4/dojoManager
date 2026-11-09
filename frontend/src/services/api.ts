@@ -13,7 +13,9 @@ import type {
   NewInvitation,
   PublicInvitation,
 } from "../types/invitation";
+import type { Preferences } from "./preferences";
 import { clearSession, getToken } from "./session";
+import { t } from "../i18n";
 
 /**
  * Dirección del backend.
@@ -65,7 +67,7 @@ async function request<T>(
     });
   } catch {
     // fetch solo rechaza por fallo de red, no por códigos 4xx/5xx.
-    throw new ApiError(0, "No fue posible conectar con el servidor.");
+    throw new ApiError(0, t("No fue posible conectar con el servidor."));
   }
 
   const data = await response.json().catch(() => null);
@@ -79,7 +81,8 @@ async function request<T>(
 
     throw new ApiError(
       response.status,
-      data?.message ?? "Ocurrió un error inesperado."
+      // Los mensajes del backend vienen en español y comparten diccionario.
+      t(data?.message ?? "Ocurrió un error inesperado.")
     );
   }
 
@@ -104,6 +107,12 @@ export async function login(
     body: { email, password, teacherCode },
     auth: false,
   });
+}
+
+export async function updatePreferences(
+  patch: Partial<Preferences>
+): Promise<{ preferences: Preferences }> {
+  return request("/auth/me/preferences", { method: "PATCH", body: patch });
 }
 
 export async function getMe(): Promise<{ user: SessionUser }> {

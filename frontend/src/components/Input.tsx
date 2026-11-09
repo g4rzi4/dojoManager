@@ -21,7 +21,7 @@ function Input({ label, className = "", id, ...props }: Props) {
         {...props}
         id={inputId}
         className={`
-          w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+          w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
           text-neutral-800 outline-none placeholder:text-neutral-500
           transition-[border-color,box-shadow]
           motion-reduce:transition-none

@@ -7,6 +7,7 @@ import Card from "../components/Card";
 import ShortcutCard from "../components/ShortcutCard";
 import PageHeading from "../components/PageHeading";
 import { getUser } from "../services/session";
+import { t } from "../i18n";
 import { getEvents, getPayments } from "../services/api";
 import type { DojoEvent } from "../types/event";
 import type { PaymentsResponse } from "../types/payment";
@@ -54,10 +55,10 @@ function Dashboard() {
       {/* Saludo */}
       <header className="flex flex-wrap items-center justify-between gap-4">
         <PageHeading module="inicio"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-          Hola, {user?.name ?? "Administrador"}
+          {t("Hola, {nombre}", { nombre: user?.name ?? t("Administrador") })}
         </h1>
         <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
-          Este es el panel de administración de tu dojo.
+          {t("Este es el panel de administración de tu dojo.")}
         </p></PageHeading>
 
         <Link
@@ -69,7 +70,7 @@ function Dashboard() {
             focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
           "
         >
-          Ver pagos
+          {t("Ver pagos")}
         </Link>
       </header>
 
@@ -77,20 +78,24 @@ function Dashboard() {
         <ShortcutCard
           to="/pagos"
           module="pagos"
-          label="Por cubrir"
+          label={t("Por cubrir")}
           value={payments ? formatMoney(payments.resumen.totalPendienteCents) : "—"}
-          hint={`${pendientes} ${pendientes === 1 ? "mensualidad" : "mensualidades"}`}
+          hint={
+            pendientes === 1
+              ? t("{n} mensualidad", { n: pendientes })
+              : t("{n} mensualidades", { n: pendientes })
+          }
           alert={pendientes > 0}
         />
         <ShortcutCard
           to="/eventos"
           module="eventos"
-          label="Próximo evento"
-          value={proximo ? proximo.title : "Sin eventos"}
+          label={t("Próximo evento")}
+          value={proximo ? proximo.title : t("Sin eventos")}
           hint={
             proximo
               ? formatLongDate(fromDateKey(proximo.date))
-              : "No hay eventos próximos"
+              : t("No hay eventos próximos")
           }
         />
       </div>
@@ -101,7 +106,7 @@ function Dashboard() {
           id="titulo-calendario"
           className="mb-4 text-lg font-bold text-neutral-800"
         >
-          Calendario de eventos
+          {t("Calendario de eventos")}
         </h2>
 
         {loading ? (

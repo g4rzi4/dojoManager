@@ -1,3 +1,5 @@
+import type { Preferences } from "../services/preferences";
+
 export type Role = "ADMIN" | "PROFESOR" | "TUTOR" | "ALUMNO";
 
 export type Permission =
@@ -32,6 +34,8 @@ export type SessionUser = {
    * servidor en cada petición.
    */
   permissions: Permission[];
+  /** Idioma, vista y tamaño de letra guardados en la cuenta. */
+  preferences: Preferences;
 };
 
 export const ROLE_LABELS: Record<Role, string> = {

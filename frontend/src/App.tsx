@@ -18,6 +18,7 @@ const Events = lazy(() => import("./pages/Events"));
 const Classes = lazy(() => import("./pages/Classes"));
 const Payments = lazy(() => import("./pages/Payments"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const Preferences = lazy(() => import("./pages/Preferences"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 /**
@@ -142,6 +143,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/preferencias"
+          element={
+            <ProtectedRoute>
+              <Preferences />
             </ProtectedRoute>
           }
         />

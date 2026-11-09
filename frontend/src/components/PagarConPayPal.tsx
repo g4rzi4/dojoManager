@@ -11,6 +11,7 @@ import {
   createPayPalOrder,
   getPayPalConfig,
 } from "../services/api";
+import { getLocale, t } from "../i18n";
 
 let configPendiente: ReturnType<typeof getPayPalConfig> | null = null;
 
@@ -31,14 +32,14 @@ function EstadoScript() {
   if (isRejected) {
     return (
       <p className="text-xs font-medium text-red-700" role="alert">
-        No se pudo cargar PayPal. Recarga la página e inténtalo de nuevo.
+        {t("No se pudo cargar PayPal. Recarga la página e inténtalo de nuevo.")}
       </p>
     );
   }
 
   return isPending ? (
     <p className="py-2 text-sm text-neutral-600" role="status">
-      Cargando PayPal…
+      {t("Cargando PayPal…")}
     </p>
   ) : null;
 }
@@ -94,7 +95,7 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
           focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
         "
       >
-        Pagar con PayPal
+        {t("Pagar con PayPal")}
       </button>
     );
   }
@@ -106,7 +107,7 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
           clientId: paypal.clientId,
           currency: paypal.currency,
           intent: "capture",
-          locale: "es_MX",
+          locale: getLocale().replace("-", "_"),
         }}
       >
         <EstadoScript />
@@ -122,7 +123,7 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
               setError(
                 e instanceof ApiError
                   ? e.message
-                  : "No fue posible iniciar el pago."
+                  : t("No fue posible iniciar el pago.")
               );
               throw e;
             }
@@ -142,12 +143,14 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
               setError(
                 e instanceof ApiError
                   ? e.message
-                  : "No pudimos confirmar tu pago. Revisa tu historial antes de intentar otra vez."
+                  : t(
+                      "No pudimos confirmar tu pago. Revisa tu historial antes de intentar otra vez."
+                    )
               );
             }
           }}
           onError={() =>
-            setError((actual) => actual || "PayPal no pudo procesar el pago.")
+            setError((actual) => actual || t("PayPal no pudo procesar el pago."))
           }
         />
       </PayPalScriptProvider>

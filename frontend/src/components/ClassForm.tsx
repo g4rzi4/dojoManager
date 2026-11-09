@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import Card from "./Card";
+import { t } from "../i18n";
 import {
   DAY_NAMES,
   DISCIPLINE_LABELS,
@@ -42,12 +43,12 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
     // funciona porque "HH:MM" con ceros a la izquierda ordena igual que
     // cronológicamente.
     if (endTime <= startTime) {
-      setError("La hora de fin debe ser posterior a la de inicio.");
+      setError(t("La hora de fin debe ser posterior a la de inicio."));
       return;
     }
 
     if (capacity < 1) {
-      setError("La capacidad debe ser al menos 1.");
+      setError(t("La capacidad debe ser al menos 1."));
       return;
     }
 
@@ -67,16 +68,16 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
   }
 
   const inputClase = `
-    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
     outline-none transition-[border-color,box-shadow,background-color]
     focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-neutral-900">Agregar una clase</h2>
+      <h2 className="font-bold text-neutral-900">{t("Agregar una clase")}</h2>
       <p className="mt-1 text-sm text-neutral-600">
-        Se repite cada semana en el día y horario que indiques.
+        {t("Se repite cada semana en el día y horario que indiques.")}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
@@ -86,14 +87,14 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
               htmlFor="cl-titulo"
               className="block text-sm font-medium text-neutral-700"
             >
-              Nombre de la clase
+              {t("Nombre de la clase")}
             </label>
             <input
               id="cl-titulo"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Karate infantil"
+              placeholder={t("Karate infantil")}
               className={inputClase}
             />
           </div>
@@ -103,7 +104,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
               htmlFor="cl-disciplina"
               className="block text-sm font-medium text-neutral-700"
             >
-              Disciplina
+              {t("Disciplina")}
             </label>
             <select
               id="cl-disciplina"
@@ -113,7 +114,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
             >
               {DISCIPLINAS.map((d) => (
                 <option key={d} value={d}>
-                  {DISCIPLINE_LABELS[d]}
+                  {t(DISCIPLINE_LABELS[d])}
                 </option>
               ))}
             </select>
@@ -124,7 +125,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
               htmlFor="cl-dia"
               className="block text-sm font-medium text-neutral-700"
             >
-              Día
+              {t("Día")}
             </label>
             <select
               id="cl-dia"
@@ -134,7 +135,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
             >
               {DAY_NAMES.map((d, i) => (
                 <option key={d} value={i}>
-                  {d}
+                  {t(d)}
                 </option>
               ))}
             </select>
@@ -145,7 +146,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
               htmlFor="cl-instructor"
               className="block text-sm font-medium text-neutral-700"
             >
-              Instructor
+              {t("Instructor")}
             </label>
             <input
               id="cl-instructor"
@@ -162,7 +163,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
               htmlFor="cl-inicio"
               className="block text-sm font-medium text-neutral-700"
             >
-              Hora de inicio
+              {t("Hora de inicio")}
             </label>
             <input
               id="cl-inicio"
@@ -178,7 +179,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
               htmlFor="cl-fin"
               className="block text-sm font-medium text-neutral-700"
             >
-              Hora de fin
+              {t("Hora de fin")}
             </label>
             <input
               id="cl-fin"
@@ -194,7 +195,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
               htmlFor="cl-lugar"
               className="block text-sm font-medium text-neutral-700"
             >
-              Lugar
+              {t("Lugar")}
             </label>
             <input
               id="cl-lugar"
@@ -211,7 +212,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
               htmlFor="cl-nivel"
               className="block text-sm font-medium text-neutral-700"
             >
-              Nivel
+              {t("Nivel")}
             </label>
             <select
               id="cl-nivel"
@@ -221,7 +222,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
             >
               {NIVELES.map((n) => (
                 <option key={n} value={n}>
-                  {LEVEL_LABELS[n]}
+                  {t(LEVEL_LABELS[n])}
                 </option>
               ))}
             </select>
@@ -232,7 +233,7 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
               htmlFor="cl-capacidad"
               className="block text-sm font-medium text-neutral-700"
             >
-              Capacidad
+              {t("Capacidad")}
             </label>
             <input
               id="cl-capacidad"
@@ -265,21 +266,21 @@ function ClassForm({ onGuardar, onCancelar }: Props) {
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            Agregar clase
+            {t("Agregar clase")}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-3
               font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
               hover:bg-neutral-50
               focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
-            Cancelar
+            {t("Cancelar")}
           </button>
         </div>
       </form>

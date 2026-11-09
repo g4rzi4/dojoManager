@@ -4,6 +4,7 @@ import { Check, ChevronRight, Copy, GraduationCap, UserPlus } from "lucide-react
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import { t } from "../i18n";
 import ModuleTile from "../components/ModuleTile";
 import PageHeading from "../components/PageHeading";
 import TeacherForm from "../components/TeacherForm";
@@ -28,7 +29,7 @@ function Teachers() {
         setError(
           e instanceof ApiError
             ? e.message
-            : "No fue posible cargar los profesores."
+            : t("No fue posible cargar los profesores.")
         );
       });
   }
@@ -45,7 +46,7 @@ function Teachers() {
           setError(
             e instanceof ApiError
               ? e.message
-              : "No fue posible cargar los profesores."
+              : t("No fue posible cargar los profesores.")
           );
         }
       })
@@ -78,7 +79,7 @@ function Teachers() {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible cambiar el estado del profesor."
+          : t("No fue posible cambiar el estado del profesor.")
       );
     }
   }
@@ -88,11 +89,12 @@ function Teachers() {
       <header className="flex flex-wrap items-center justify-between gap-4">
         <PageHeading module="profesores">
           <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-            Profesores
+            {t("Profesores")}
           </h1>
           <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
-            Cada profesor tiene una clave única. Se escribe al registrar un
-            alumno para asignarlo a su grupo.
+            {t(
+              "Cada profesor tiene una clave única. Se escribe al registrar un alumno para asignarlo a su grupo."
+            )}
           </p>
         </PageHeading>
 
@@ -110,7 +112,7 @@ function Teachers() {
           "
         >
           <UserPlus size={17} aria-hidden="true" />
-          Registrar profesor
+          {t("Registrar profesor")}
         </button>
       </header>
 
@@ -128,7 +130,9 @@ function Teachers() {
 
       {error && (
         <Card className="mt-6 border-red-200 p-6">
-          <p className="font-semibold text-red-800">Ocurrió un problema</p>
+          <p className="font-semibold text-red-800">
+            {t("Ocurrió un problema")}
+          </p>
           <p className="mt-1 text-sm text-red-700">{error}</p>
         </Card>
       )}
@@ -145,33 +149,33 @@ function Teachers() {
               <GraduationCap size={26} aria-hidden="true" />
             </span>
             <h2 className="mt-4 font-bold text-neutral-900">
-              Todavía no hay profesores
+              {t("Todavía no hay profesores")}
             </h2>
             <p className="mt-2 text-sm text-neutral-600">
-              Registra el primero para poder asignarle alumnos.
+              {t("Registra el primero para poder asignarle alumnos.")}
             </p>
           </Card>
         ) : (
           <ul className="space-y-3">
-            {teachers.map((t) => (
-              <li key={t.id}>
+            {teachers.map((prof) => (
+              <li key={prof.id}>
                 <Card className="p-4">
                   <div className="flex flex-wrap items-center gap-4">
                     <ModuleTile module="profesores" />
 
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-neutral-900">{t.name}</p>
+                      <p className="font-semibold text-neutral-900">{prof.name}</p>
                       <p className="truncate text-sm text-neutral-600">
-                        {t.email}
+                        {prof.email}
                       </p>
                     </div>
 
                     {/* Clave: en monoespaciada porque se dicta y se copia */}
-                    {t.teacherCode && (
+                    {prof.teacherCode && (
                       <button
                         type="button"
-                        onClick={() => copiarClave(t.teacherCode!)}
-                        aria-label={`Copiar la clave ${t.teacherCode}`}
+                        onClick={() => copiarClave(prof.teacherCode!)}
+                        aria-label={t("Copiar la clave {clave}", { clave: prof.teacherCode })}
                         className="
                           flex shrink-0 cursor-pointer items-center gap-2 rounded-xl
                           border border-neutral-300 bg-neutral-50 px-3 py-2
@@ -182,8 +186,8 @@ function Teachers() {
                           focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                         "
                       >
-                        {t.teacherCode}
-                        {copiada === t.teacherCode ? (
+                        {prof.teacherCode}
+                        {copiada === prof.teacherCode ? (
                           <Check
                             size={15}
                             aria-hidden="true"
@@ -199,22 +203,23 @@ function Teachers() {
                       </button>
                     )}
 
-                    <span className="shrink-0 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-semibold text-neutral-700">
-                      {t.alumnos} {t.alumnos === 1 ? "alumno" : "alumnos"}
+                    <span className="shrink-0 rounded-full border border-neutral-300 bg-surface px-3 py-1 text-xs font-semibold text-neutral-700">
+                      {prof.alumnos}{" "}
+                      {prof.alumnos === 1 ? t("alumno") : t("alumnos")}
                     </span>
 
                     <span
                       className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${
-                        t.active
+                        prof.active
                           ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                           : "border-neutral-300 bg-neutral-100 text-neutral-700"
                       }`}
                     >
-                      {t.active ? "Activo" : "Inactivo"}
+                      {prof.active ? t("Activo") : t("Inactivo")}
                     </span>
 
                     <Link
-                      to={`/profesores/${t.id}`}
+                      to={`/profesores/${prof.id}`}
                       className="
                         flex shrink-0 cursor-pointer items-center gap-1 rounded-xl
                         px-3 py-2 text-sm font-semibold text-violet-700
@@ -224,13 +229,13 @@ function Teachers() {
                         focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                       "
                     >
-                      Ver ficha
+                      {t("Ver ficha")}
                       <ChevronRight size={15} aria-hidden="true" />
                     </Link>
 
                     <button
                       type="button"
-                      onClick={() => cambiarEstado(t)}
+                      onClick={() => cambiarEstado(prof)}
                       className="
                         shrink-0 cursor-pointer rounded-xl px-3 py-2 text-sm
                         font-semibold text-neutral-700 transition-colors duration-200
@@ -239,15 +244,16 @@ function Teachers() {
                         focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                       "
                     >
-                      {t.active ? "Dar de baja" : "Reactivar"}
+                      {prof.active ? t("Dar de baja") : t("Reactivar")}
                     </button>
                   </div>
 
-                  {!t.active && t.alumnos > 0 && (
+                  {!prof.active && prof.alumnos > 0 && (
                     <p className="mt-3 border-t border-neutral-100 pt-3 text-xs text-amber-800">
-                      Tiene {t.alumnos} alumnos asignados. Al estar inactivo no
-                      puede entrar al sistema, pero sus alumnos siguen ligados a
-                      él. Reasígnalos a otro profesor si hace falta.
+                      {t(
+                        "Tiene {n} alumnos asignados. Al estar inactivo no puede entrar al sistema, pero sus alumnos siguen ligados a él. Reasígnalos a otro profesor si hace falta.",
+                        { n: prof.alumnos }
+                      )}
                     </p>
                   )}
                 </Card>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
+import { t } from "../i18n";
 import Card from "./Card";
 import type { DojoEvent } from "../types/event";
 import { CATEGORY_LABELS, CATEGORY_STYLES } from "../types/event";
@@ -69,7 +70,7 @@ function EventCalendar({ events }: Props) {
       <Card className="p-4 sm:p-6">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold text-neutral-900">
-            <span className="capitalize">{MONTH_NAMES[month]}</span> {year}
+            <span className="capitalize">{t(MONTH_NAMES[month])}</span> {year}
           </h2>
 
           <div className="flex items-center gap-1">
@@ -84,13 +85,13 @@ function EventCalendar({ events }: Props) {
                 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
               "
             >
-              Hoy
+              {t("Hoy")}
             </button>
 
             <button
               type="button"
               onClick={() => changeMonth(-1)}
-              aria-label="Mes anterior"
+              aria-label={t("Mes anterior")}
               className="
                 flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl
                 text-neutral-600 transition-colors duration-200
@@ -105,7 +106,7 @@ function EventCalendar({ events }: Props) {
             <button
               type="button"
               onClick={() => changeMonth(1)}
-              aria-label="Mes siguiente"
+              aria-label={t("Mes siguiente")}
               className="
                 flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl
                 text-neutral-600 transition-colors duration-200
@@ -127,7 +128,7 @@ function EventCalendar({ events }: Props) {
               className="pb-2 text-center text-xs font-semibold text-neutral-600"
               aria-hidden="true"
             >
-              {label}
+              {t(label)}
             </div>
           ))}
         </div>
@@ -148,10 +149,12 @@ function EventCalendar({ events }: Props) {
                 aria-current={isToday ? "date" : undefined}
                 aria-label={`${formatLongDate(day)}${
                   dayEvents.length > 0
-                    ? `, ${dayEvents.length} ${
-                        dayEvents.length === 1 ? "evento" : "eventos"
+                    ? `, ${
+                        dayEvents.length === 1
+                          ? t("{n} evento", { n: dayEvents.length })
+                          : t("{n} eventos", { n: dayEvents.length })
                       }`
-                    : ", sin eventos"
+                    : `, ${t("sin eventos")}`
                 }`}
                 className={`
                   flex min-h-16 cursor-pointer flex-col items-center gap-1 rounded-2xl
@@ -190,14 +193,14 @@ function EventCalendar({ events }: Props) {
                         key={event.id}
                         className={`h-1.5 w-1.5 rounded-full ${
                           isSelected
-                            ? "bg-white"
+                            ? "bg-surface"
                             : CATEGORY_STYLES[event.category].dot
                         }`}
                       />
                     ))}
                     {dayEvents.length > 3 && (
                       <span
-                        className={`text-[10px] font-semibold ${
+                        className={`text-[0.625rem] font-semibold ${
                           isSelected ? "text-white" : "text-neutral-600"
                         }`}
                       >
@@ -223,7 +226,7 @@ function EventCalendar({ events }: Props) {
               <span
                 className={`h-2 w-2 rounded-full ${CATEGORY_STYLES[category].dot}`}
               />
-              {CATEGORY_LABELS[category]}
+              {t(CATEGORY_LABELS[category])}
             </span>
           ))}
         </div>
@@ -232,7 +235,7 @@ function EventCalendar({ events }: Props) {
       {/* Detalle del día seleccionado */}
       <Card className="p-4 sm:p-6">
         <h3 className="text-lg font-bold text-neutral-800">
-          {isSameDay(selected, today) ? "Hoy" : "Día seleccionado"}
+          {isSameDay(selected, today) ? t("Hoy") : t("Día seleccionado")}
         </h3>
 
         <p className="mt-1 font-bold text-neutral-900 first-letter:uppercase">
@@ -241,7 +244,7 @@ function EventCalendar({ events }: Props) {
 
         {selectedEvents.length === 0 ? (
           <p className="mt-6 text-sm text-neutral-600">
-            No hay eventos programados para este día.
+            {t("No hay eventos programados para este día.")}
           </p>
         ) : (
           <ul className="mt-5 space-y-3">
@@ -262,7 +265,7 @@ function EventCalendar({ events }: Props) {
                       <span aria-hidden="true">·</span>
                     </>
                   ) : null}
-                  {CATEGORY_LABELS[event.category]}
+                  {t(CATEGORY_LABELS[event.category])}
                 </p>
               </li>
             ))}

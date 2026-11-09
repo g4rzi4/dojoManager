@@ -6,6 +6,7 @@ import { ApiError, updateEvent } from "../services/api";
 import { getUser } from "../services/session";
 import type { DojoEvent } from "../types/event";
 import { formatMoney } from "../utils/format";
+import { t } from "../i18n";
 
 type Props = {
   event: DojoEvent;
@@ -121,7 +122,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible guardar los cambios."
+          : t("No fue posible guardar los cambios.")
       );
     } finally {
       setGuardando(false);
@@ -129,7 +130,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
   }
 
   const inputClase = `
-    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
     outline-none transition-[border-color,box-shadow,background-color]
     focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
@@ -137,12 +138,12 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
   return (
     <Card className="p-5">
       <h3 className="font-bold text-neutral-900">
-        {esAdmin ? "Editar evento" : "Mis costos para este evento"}
+        {esAdmin ? t("Editar evento") : t("Mis costos para este evento")}
       </h3>
       <p className="mt-1 text-sm text-neutral-600">
         {esAdmin
-          ? "Cambiar un precio no altera los cobros ya hechos."
-          : "Estos precios aplican solo a TUS alumnos. Los demás grupos siguen con el costo base."}
+          ? t("Cambiar un precio no altera los cobros ya hechos.")
+          : t("Estos precios aplican solo a TUS alumnos. Los demás grupos siguen con el costo base.")}
       </p>
 
       <div className="mt-5 space-y-5">
@@ -152,7 +153,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
             htmlFor={`ed-titulo-${event.id}`}
             className="block text-sm font-medium text-neutral-700"
           >
-            Título
+            {t("Título")}
           </label>
           <input
             id={`ed-titulo-${event.id}`}
@@ -171,7 +172,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
               htmlFor={`ed-fecha-${event.id}`}
               className="block text-sm font-medium text-neutral-700"
             >
-              Fecha
+              {t("Fecha")}
             </label>
             <input
               id={`ed-fecha-${event.id}`}
@@ -187,8 +188,8 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
               htmlFor={`ed-hora-${event.id}`}
               className="block text-sm font-medium text-neutral-700"
             >
-              Hora{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Hora")}{" "}
+              <span className="font-normal text-neutral-500">{t("(opcional)")}</span>
             </label>
             <input
               id={`ed-hora-${event.id}`}
@@ -212,10 +213,10 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
             />
             <span>
               <span className="block text-sm font-medium text-neutral-700">
-                Requiere pago para participar
+                {t("Requiere pago para participar")}
               </span>
               <span className="mt-0.5 block text-xs text-neutral-600">
-                Actívalo para poder definir el costo o las modalidades.
+                {t("Actívalo para poder definir el costo o las modalidades.")}
               </span>
             </span>
           </label>
@@ -232,14 +233,13 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
             />
             <div className="text-sm text-amber-900">
               <p className="font-semibold">
-                Este evento todavía no tiene costos que ajustar
+                {t("Este evento todavía no tiene costos que ajustar")}
               </p>
               <p className="mt-1">
                 {event.requiresPayment
-                  ? "No tiene modalidades definidas."
-                  : "No está marcado como evento con pago."}{" "}
-                Pídele al administrador que lo configure; después podrás poner
-                tus propios precios para tus alumnos.
+                  ? t("No tiene modalidades definidas.")
+                  : t("No está marcado como evento con pago.")}{" "}
+                {t("Pídele al administrador que lo configure; después podrás poner tus propios precios para tus alumnos.")}
               </p>
             </div>
           </div>
@@ -248,7 +248,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
         {((esAdmin && conPago) || (!esAdmin && profesorPuedeEditar)) && (
           <fieldset className="border-t border-neutral-200 pt-5">
             <legend className="text-sm font-semibold text-neutral-900">
-              {tieneModalidades ? "Costos por modalidad" : "Costo"}
+              {tieneModalidades ? t("Costos por modalidad") : t("Costo")}
             </legend>
 
             {tieneModalidades ? (
@@ -261,7 +261,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                           htmlFor={`ed-mod-${event.id}-${i}`}
                           className="block text-sm font-medium text-neutral-700"
                         >
-                          Modalidad
+                          {t("Modalidad")}
                         </label>
                         <input
                           id={`ed-mod-${event.id}-${i}`}
@@ -283,7 +283,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                           htmlFor={`ed-precio-${event.id}-${i}`}
                           className="block text-sm font-medium text-neutral-700"
                         >
-                          Costo
+                          {t("Costo")}
                         </label>
                         <input
                           id={`ed-precio-${event.id}-${i}`}
@@ -304,7 +304,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
 
                       {!esAdmin && m.id !== undefined && (
                         <p className="w-full text-xs text-neutral-500 sm:w-auto sm:pb-3">
-                          base{" "}
+                          {t("base")}{" "}
                           {formatMoney(
                             event.modalities?.find((x) => x.id === m.id)
                               ?.basePriceCents ?? 0
@@ -320,7 +320,11 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                             prev.filter((_, idx) => idx !== i)
                           )
                         }
-                        aria-label={`Quitar ${m.name || "la modalidad"}`}
+                        aria-label={
+                          m.name
+                            ? t("Quitar {nombre}", { nombre: m.name })
+                            : t("Quitar la modalidad")
+                        }
                         className="
                           flex h-11 w-11 shrink-0 cursor-pointer items-center
                           justify-center rounded-xl text-neutral-500
@@ -345,7 +349,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                   }
                   className="
                     mt-3 flex cursor-pointer items-center gap-2 rounded-2xl border
-                    border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+                    border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold
                     text-neutral-700 transition-colors duration-200
                     motion-reduce:transition-none
                     hover:bg-neutral-50
@@ -353,7 +357,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                   "
                 >
                   <Plus size={16} aria-hidden="true" />
-                  Agregar modalidad
+                  {t("Agregar modalidad")}
                 </button>
                 )}
 
@@ -365,9 +369,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                     className="mt-0.5 shrink-0 text-amber-700"
                   />
                   <p className="text-xs text-amber-900">
-                    Si quitas una modalidad que ya tiene alumnos inscritos, el
-                    cambio se rechaza: perderías el desglose de sus cobros.
-                    Puedes cambiarle el precio sin problema.
+                    {t("Si quitas una modalidad que ya tiene alumnos inscritos, el cambio se rechaza: perderías el desglose de sus cobros. Puedes cambiarle el precio sin problema.")}
                   </p>
                 </div>
                 )}
@@ -378,7 +380,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
                   htmlFor={`ed-costo-${event.id}`}
                   className="block text-sm font-medium text-neutral-700"
                 >
-                  Costo en pesos
+                  {t("Costo en pesos")}
                 </label>
                 <input
                   id={`ed-costo-${event.id}`}
@@ -415,7 +417,7 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Guardando…" : "Guardar cambios"}
+            {guardando ? t("Guardando…") : t("Guardar cambios")}
           </button>
           )}
 
@@ -423,14 +425,14 @@ function EventEditForm({ event, onGuardado, onCancelar }: Props) {
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-3
               font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
               hover:bg-neutral-50
               focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
-            {esAdmin || profesorPuedeEditar ? "Cancelar" : "Cerrar"}
+            {esAdmin || profesorPuedeEditar ? t("Cancelar") : t("Cerrar")}
           </button>
         </div>
       </div>

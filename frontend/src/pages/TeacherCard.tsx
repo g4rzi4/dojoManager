@@ -14,6 +14,7 @@ import {
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import { getLocale, t } from "../i18n";
 import PageHeading from "../components/PageHeading";
 import { ApiError, getTeacherCard } from "../services/api";
 import { can, getUser } from "../services/session";
@@ -59,7 +60,7 @@ function TeacherCard() {
             message:
               e instanceof ApiError
                 ? e.message
-                : "No fue posible cargar la ficha.",
+                : t("No fue posible cargar la ficha."),
           });
         }
       });
@@ -71,7 +72,7 @@ function TeacherCard() {
 
   const estadoFinal: Estado = idValido
     ? estado
-    : { status: "error", message: "El identificador no es válido." };
+    : { status: "error", message: t("El identificador no es válido.") };
 
   // El admin vuelve a la lista; un profesor viendo su ficha, a su panel.
   const esAdmin = can(user, "teachers:read");
@@ -89,11 +90,11 @@ function TeacherCard() {
         "
       >
         <ArrowLeft size={17} aria-hidden="true" />
-        {esAdmin ? "Volver a profesores" : "Volver al panel"}
+        {esAdmin ? t("Volver a profesores") : t("Volver al panel")}
       </Link>
 
       <PageHeading module="profesores"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-        Ficha del profesor
+        {t("Ficha del profesor")}
       </h1></PageHeading>
 
       <div className="mt-6">
@@ -107,7 +108,7 @@ function TeacherCard() {
         {estadoFinal.status === "error" && (
           <Card className="border-red-200 p-6">
             <p className="font-semibold text-red-800">
-              No se pudo mostrar la ficha
+              {t("No se pudo mostrar la ficha")}
             </p>
             <p className="mt-1 text-sm text-red-700">{estadoFinal.message}</p>
           </Card>
@@ -145,7 +146,9 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
                     BELT_STYLES[teacher.belt]
                   }`}
                 >
-                  Cinta {BELT_LABELS[teacher.belt].toLowerCase()}
+                  {t("Cinta {color}", {
+                    color: t(BELT_LABELS[teacher.belt]).toLowerCase(),
+                  })}
                 </span>
               )}
 
@@ -156,7 +159,7 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
                     : "border-neutral-300 bg-neutral-100 text-neutral-700"
                 }`}
               >
-                {teacher.active ? "Activo" : "Dado de baja"}
+                {teacher.active ? t("Activo") : t("Dado de baja")}
               </span>
             </div>
 
@@ -172,7 +175,7 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
             <div className="shrink-0 rounded-2xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-center">
               <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-600">
                 <KeyRound size={13} aria-hidden="true" />
-                Su clave
+                {t("Su clave")}
               </p>
               <p className="mt-1 font-mono text-lg font-bold text-neutral-900">
                 {teacher.teacherCode}
@@ -182,19 +185,19 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
         </div>
 
         <dl className="mt-6 grid gap-5 border-t border-neutral-200 pt-5 sm:grid-cols-2 lg:grid-cols-3">
-          <Dato icon={Mail} label="Correo" valor={teacher.email} />
+          <Dato icon={Mail} label={t("Correo")} valor={teacher.email} />
           <Dato
             icon={Phone}
-            label="Teléfono"
-            valor={teacher.phone ?? "No registrado"}
+            label={t("Teléfono")}
+            valor={teacher.phone ?? t("No registrado")}
           />
           <Dato
             icon={CalendarDays}
-            label="En el dojo desde"
+            label={t("En el dojo desde")}
             valor={
               teacher.hiredAt
                 ? formatLongDate(fromDateKey(teacher.hiredAt))
-                : "No registrado"
+                : t("No registrado")
             }
           />
         </dl>
@@ -209,13 +212,13 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
             />
             <div>
               <p className="text-sm font-semibold text-neutral-900">
-                Notas del administrador
+                {t("Notas del administrador")}
               </p>
               <p className="mt-1 text-sm text-neutral-700">
                 {teacher.adminNotes}
               </p>
               <p className="mt-2 text-xs text-neutral-500">
-                El profesor no las ve.
+                {t("El profesor no las ve.")}
               </p>
             </div>
           </div>
@@ -225,24 +228,24 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
       {/* Resumen */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tile
-          label="Alumnos"
+          label={t("Alumnos")}
           valor={String(resumen.alumnos)}
-          pista={`${resumen.alumnosActivos} activos`}
+          pista={t("{n} activos", { n: resumen.alumnosActivos })}
         />
         <Tile
-          label="Recaudado"
+          label={t("Recaudado")}
           valor={formatMoney(resumen.totalRecaudadoCents)}
-          pista="eventos y mensualidades"
+          pista={t("eventos y mensualidades")}
         />
         <Tile
-          label="Cobros de evento"
+          label={t("Cobros de evento")}
           valor={formatMoney(resumen.totalEventosCents)}
-          pista={`${resumen.cobrosEvento} confirmados`}
+          pista={t("{n} confirmados", { n: resumen.cobrosEvento })}
         />
         <Tile
-          label="Mensualidades"
+          label={t("Mensualidades")}
           valor={formatMoney(resumen.totalMensualidadesCents)}
-          pista={`${resumen.mensualidadesCobradas} cobradas`}
+          pista={t("{n} cobradas", { n: resumen.mensualidadesCobradas })}
         />
       </div>
 
@@ -250,13 +253,14 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
       <Card className="p-5 sm:p-6">
         <h3 className="flex items-center gap-2 font-bold text-neutral-900">
           <Users size={18} aria-hidden="true" className="text-neutral-400" />
-          Sus alumnos
+          {t("Sus alumnos")}
         </h3>
 
         {teacher.alumnos.length === 0 ? (
           <p className="mt-4 text-sm text-neutral-600">
-            Todavía no tiene alumnos asignados. Se le asignan al registrarlos
-            con su clave.
+            {t(
+              "Todavía no tiene alumnos asignados. Se le asignan al registrarlos con su clave."
+            )}
           </p>
         ) : (
           <ul className="mt-4 flex flex-wrap gap-2">
@@ -281,10 +285,12 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
                       BELT_STYLES[a.currentBelt]
                     }`}
                   >
-                    {BELT_LABELS[a.currentBelt]}
+                    {t(BELT_LABELS[a.currentBelt])}
                   </span>
                   {!a.active && (
-                    <span className="text-xs text-neutral-500">(inactivo)</span>
+                    <span className="text-xs text-neutral-500">
+                      {t("(inactivo)")}
+                    </span>
                   )}
                 </Link>
               </li>
@@ -297,29 +303,30 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
       <Card className="p-5 sm:p-6">
         <h3 className="flex items-center gap-2 font-bold text-neutral-900">
           <Receipt size={18} aria-hidden="true" className="text-neutral-400" />
-          Historial de cobros
+          {t("Historial de cobros")}
         </h3>
 
         {/* Eventos */}
         <h4 className="mt-5 flex items-center gap-2 text-sm font-semibold text-neutral-900">
           <Award size={15} aria-hidden="true" className="text-neutral-400" />
-          Eventos acreditados a su clave
+          {t("Eventos acreditados a su clave")}
         </h4>
 
         {historialCobros.eventos.length === 0 ? (
           <p className="mt-2 text-sm text-neutral-600">
-            Sin cobros de eventos. Aparecen cuando un alumno reporta un pago
-            con su clave y él lo confirma.
+            {t(
+              "Sin cobros de eventos. Aparecen cuando un alumno reporta un pago con su clave y él lo confirma."
+            )}
           </p>
         ) : (
           <div className="relative mt-3 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-neutral-600">
-                  <th scope="col" className="pb-2 pr-4 font-semibold">Alumno</th>
-                  <th scope="col" className="pb-2 pr-4 font-semibold">Evento</th>
-                  <th scope="col" className="pb-2 pr-4 font-semibold">Monto</th>
-                  <th scope="col" className="pb-2 font-semibold">Confirmado</th>
+                  <th scope="col" className="pb-2 pr-4 font-semibold">{t("Alumno")}</th>
+                  <th scope="col" className="pb-2 pr-4 font-semibold">{t("Evento")}</th>
+                  <th scope="col" className="pb-2 pr-4 font-semibold">{t("Monto")}</th>
+                  <th scope="col" className="pb-2 font-semibold">{t("Confirmado")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -334,7 +341,7 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
                     </td>
                     <td className="py-2 text-neutral-600">
                       {c.confirmadoEn
-                        ? new Date(c.confirmadoEn).toLocaleDateString("es-MX", {
+                        ? new Date(c.confirmadoEn).toLocaleDateString(getLocale(), {
                             day: "numeric",
                             month: "long",
                           })
@@ -350,21 +357,21 @@ function Ficha({ teacher }: { teacher: TeacherCardData }) {
         {/* Mensualidades */}
         <h4 className="mt-6 flex items-center gap-2 text-sm font-semibold text-neutral-900">
           <Receipt size={15} aria-hidden="true" className="text-neutral-400" />
-          Mensualidades de sus alumnos
+          {t("Mensualidades de sus alumnos")}
         </h4>
 
         {historialCobros.mensualidades.length === 0 ? (
           <p className="mt-2 text-sm text-neutral-600">
-            Sin mensualidades pagadas todavía.
+            {t("Sin mensualidades pagadas todavía.")}
           </p>
         ) : (
           <div className="relative mt-3 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-neutral-600">
-                  <th scope="col" className="pb-2 pr-4 font-semibold">Alumno</th>
-                  <th scope="col" className="pb-2 pr-4 font-semibold">Mes</th>
-                  <th scope="col" className="pb-2 font-semibold">Monto</th>
+                  <th scope="col" className="pb-2 pr-4 font-semibold">{t("Alumno")}</th>
+                  <th scope="col" className="pb-2 pr-4 font-semibold">{t("Mes")}</th>
+                  <th scope="col" className="pb-2 font-semibold">{t("Monto")}</th>
                 </tr>
               </thead>
               <tbody>

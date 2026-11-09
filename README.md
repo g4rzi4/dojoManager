@@ -262,6 +262,35 @@ con correo, contraseña **y su clave**.
 
 ---
 
+# Preferencias de usuario
+
+Cada persona elige en **Preferencias** su idioma (español o inglés), la vista (clara
+u oscura) y el tamaño de letra. Se guardan en su cuenta, en las columnas `language`,
+`theme` y `fontSize` de `User`, así que la siguen entre dispositivos. También se
+recuerdan en el navegador para aplicarlas desde el primer instante y en las pantallas
+sin sesión.
+
+**Al agregar textos a la interfaz**, envuélvelos en `t()` y agrega su inglés en
+[frontend/src/i18n/en/](frontend/src/i18n/en/). La llave es el propio texto en español;
+si falta la traducción, se muestra en español:
+
+```tsx
+{t("Hola, {nombre}", { nombre: user.name })}
+```
+
+`t()` va dentro del render. Las constantes a nivel de módulo se quedan en español y se
+traducen donde se muestran: `t(ROLE_LABELS[role])`.
+
+Lo que **no** se traduce: lo que escribe el dojo (avisos, nombres, títulos de eventos)
+y lo que ya está guardado en español en la base, como las notificaciones automáticas.
+Tampoco los mensajes del backend que llevan un valor variable dentro.
+
+**La vista oscura** invierte la escala de colores en
+[index.css](frontend/src/index.css), así que las clases normales de Tailwind funcionan
+sin `dark:`. Para fondos de tarjeta usa `bg-surface`, no `bg-white`.
+
+---
+
 # Roles y permisos
 
 Hay cuatro roles. El profesor es **subadministrador**: puede todo menos administrar

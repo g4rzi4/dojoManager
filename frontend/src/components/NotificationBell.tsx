@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Bell } from "lucide-react";
 
 import { getNotifications } from "../services/api";
+import { t } from "../i18n";
 
 /**
  * Campana con el número de notificaciones sin leer.
@@ -33,8 +34,8 @@ function NotificationBell() {
 
   const etiqueta =
     unread === 0
-      ? "Notificaciones"
-      : `Notificaciones, ${unread} sin leer`;
+      ? t("Notificaciones")
+      : t("Notificaciones, {n} sin leer", { n: unread });
 
   return (
     <Link
@@ -55,7 +56,7 @@ function NotificationBell() {
           aria-hidden="true"
           className="
             absolute top-1.5 right-1 flex min-w-5 items-center justify-center
-            rounded-full bg-red-600 px-1 text-[11px] font-bold text-white
+            rounded-full bg-red-600 px-1 text-[0.6875rem] font-bold text-white
           "
         >
           {unread > 9 ? "9+" : unread}
