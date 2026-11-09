@@ -185,38 +185,17 @@ http://localhost:5173
 
 # Probar que todo funciona
 
-Con el backend y el frontend corriendo, abre `http://localhost:5173` y entra con
-cualquiera de las cinco cuentas que crea el seed. Cada una lleva a una pantalla
-distinta, según su rol:
-
-| Rol | Correo | Contraseña | Clave | Qué ve al entrar |
-| --- | --- | --- | --- | --- |
-| Administrador | `admin@dojo.com` | `123456` | — | Todo el dojo, incluyendo Profesores |
-| Profesor | `profesor@dojo.com` | `123456` | `PROF-7K2M` | **Solo** Ana y Diego |
-| Profesor | `profesora@dojo.com` | `123456` | `PROF-3XQ8` | **Solo** Luis |
+Con el backend y el frontend corriendo, abre `http://localhost:5173` y entra con las
+cuentas del [Dojo de demostración](#dojo-de-demostración). Cada rol lleva a una
+pantalla distinta.
 
 > Los profesores necesitan **los tres datos**: correo, contraseña y clave. En el login
 > hay que elegir "Profesor" para que aparezca el campo de la clave.
-| Tutor | `tutor@dojo.com` | `123456` | — | Panel familiar con **sus dos hijos** |
-| Alumno | `alumno@dojo.com` | `123456` | — | Panel familiar con su propio expediente |
 
-Entra con los dos profesores para comprobar que **cada uno ve solo a su grupo**.
+Entra con dos profesores para comprobar que **cada uno ve solo a su grupo**.
 
 Las contraseñas se guardan con hash de **bcrypt** y la sesión viaja en un **JWT**
-firmado con tu `JWT_SECRET`. Son cuentas de **desarrollo local**: no las subas a un
-servidor público.
-
-Datos que crea el seed:
-
-- **Ana López** — alumna con cuenta propia e historial completo: 4 graduaciones de
-  cinta, 13 registros de asistencia, 4 mensualidades y 3 observaciones.
-- **Diego López** — hermano menor de Ana, sin cuenta propia. Sirve para ver cómo un
-  alumno existe en el sistema sin poder iniciar sesión.
-- **Marta López** (`tutor@dojo.com`) — madre de los dos. Al entrar ve ambos
-  expedientes, el calendario, los pagos de los dos y sus notificaciones.
-- **Luis Hernández** — alumno adulto, sin tutor ni cuenta. Comprueba que el tutor
-  **no** puede abrir su expediente.
-- 9 eventos del mes en curso y un aviso del dojo en la bandeja.
+firmado con tu `JWT_SECRET`.
 
 Para comprobar solo el backend:
 
@@ -224,6 +203,62 @@ Para comprobar solo el backend:
 curl http://localhost:3000
 # {"message":"Backend funcionando 🚀"}
 ```
+
+---
+
+# Dojo de demostración
+
+Un segundo juego de cuentas, en una **base de datos aparte**: la app no separa los
+datos por dojo y un admin ve todo lo que hay en la base, así que esta es la forma de
+tener un dojo nuevo sin los registros del seed normal. Trae solo cuentas y alumnos;
+todavía no tiene mensualidades ni eventos.
+
+Para crearla, desde `backend/` (ajusta usuario y contraseña a tu `DATABASE_URL`):
+
+```bash
+createdb dojomanager_demo
+export DATABASE_URL="postgresql://TU_USUARIO@localhost:5432/dojomanager_demo"
+npx prisma db push
+npx tsx prisma/seed-demo.ts
+unset DATABASE_URL
+```
+
+> Se usa `db push` porque hoy `prisma migrate deploy` falla en una base vacía: por el
+> nombre de las carpetas, una migración corre antes que otra de la que depende.
+
+Para usarla, cambia en `backend/.env` el final de `DATABASE_URL` a `/dojomanager_demo`
+y reinicia el backend. Para volver a tus datos, deshaz el cambio.
+
+La contraseña de todas las cuentas es **`Dojo2026!`**. Son datos ficticios: no guardes
+información real en esta base.
+
+**Administrador:** `admin@dojodemo.test` (Valeria Campos)
+
+| Profesor | Correo | Clave | Alumnos |
+| --- | --- | --- | :-: |
+| Tomás Herrera | `t.herrera@dojodemo.test` | `PROF-A3KM` | 4 |
+| Paula Ibarra | `p.ibarra@dojodemo.test` | `PROF-B7TR` | 3 |
+| Andrés Rojas | `a.rojas@dojodemo.test` | `PROF-C4WX` | 4 |
+| Lucía Ferrer | `l.ferrer@dojodemo.test` | `PROF-D9HN` | 2 |
+| Rubén Salas | `r.salas@dojodemo.test` | `PROF-E5QZ` | 2 |
+
+| Tutor | Correo | Hijos | Profesor |
+| --- | --- | --- | --- |
+| Carolina Morales | `c.morales@dojodemo.test` | Mateo | Herrera |
+| Javier Núñez | `j.nunez@dojodemo.test` | Sofía, Emilio | Ibarra |
+| Daniela Ortega | `d.ortega@dojodemo.test` | Regina, Santiago, Camila | Rojas |
+| Héctor Vargas | `h.vargas@dojodemo.test` | Valentina | Ferrer |
+| Mónica Aguilar | `m.aguilar@dojodemo.test` | Diego, Renata | Salas |
+| Ricardo Silva | `r.silva@dojodemo.test` | Ximena, Leonardo, Julieta | Herrera |
+
+| Alumno con cuenta propia | Correo | Profesor |
+| --- | --- | --- |
+| Fernanda Cruz | `f.cruz@dojodemo.test` | Ibarra |
+| Alejandro Mejía | `a.mejia@dojodemo.test` | Rojas |
+| Natalia Reyes | `n.reyes@dojodemo.test` | Ferrer |
+
+Los hijos de una misma familia entrenan con el mismo profesor. Los profesores entran
+con correo, contraseña **y su clave**.
 
 ---
 
@@ -538,7 +573,8 @@ pública, así que en local no llega y `PAYPAL_WEBHOOK_ID` se puede dejar vacío
 
 1. En [Sandbox Accounts](https://developer.paypal.com/dashboard/accounts), copia el
    correo y la contraseña de la cuenta **Personal**.
-2. Entra a la app con `tutor@dojo.com` / `123456` y abre **Pagos**.
+2. Entra a la app con un tutor o alumno que tenga una mensualidad pendiente y abre
+   **Pagos**.
 3. Elige **Pagar con PayPal** en una mensualidad pendiente e inicia sesión con la
    cuenta Personal. El dinero es ficticio.
 
