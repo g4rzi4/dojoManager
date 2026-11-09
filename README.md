@@ -126,6 +126,21 @@ Ejecutar las migraciones:
 npx prisma migrate dev
 ```
 
+> **Si tu base ya estaba migrada** antes de corregir el orden de las migraciones,
+> `prisma migrate status` te dirá que tu historial no coincide. Se arregla una sola
+> vez, sin perder datos:
+>
+> ```bash
+> npx prisma db execute --file prisma/repair/renombrar-migraciones.sql
+> npx prisma migrate deploy
+> ```
+>
+> No uses `prisma migrate reset`: borra los datos y no hace falta.
+>
+> **Si la instalación se detuvo con el error `P3018` o `P3009`**, esa base quedó a
+> medias y sin datos. Solo en ese caso, recréala con `docker compose down -v` y
+> `docker compose up -d --wait`, y vuelve a ejecutar las migraciones.
+
 Cargar los datos iniciales (crea las cuentas de prueba y un alumno con
 historial completo):
 
@@ -219,15 +234,12 @@ Para crearla, desde `backend/` (ajusta usuario y contraseña a tu `DATABASE_URL`
 ```bash
 createdb dojomanager_demo
 export DATABASE_URL="postgresql://TU_USUARIO@localhost:5432/dojomanager_demo"
-npx prisma db push
+npx prisma migrate deploy
 npx tsx prisma/seed-demo.ts
 npx tsx prisma/seed-catalog.ts
 npx tsx prisma/seed-classes.ts
 unset DATABASE_URL
 ```
-
-> Se usa `db push` porque hoy `prisma migrate deploy` falla en una base vacía: por el
-> nombre de las carpetas, una migración corre antes que otra de la que depende.
 
 Para usarla, cambia en `backend/.env` el final de `DATABASE_URL` a `/dojomanager_demo`
 y reinicia el backend. Para volver a tus datos, deshaz el cambio.
