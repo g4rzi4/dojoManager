@@ -1,6 +1,7 @@
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 
-import { prisma } from "../lib/prisma";
+import { conDojo } from "../lib/dojoContext";
+import { prisma, prismaGlobal } from "../lib/prisma";
 import { hashPassword } from "../lib/password";
 import { canManageStudent } from "../lib/access";
 import {
@@ -217,12 +218,36 @@ router.delete(
 // ---------------------------------------------------------------------------
 
 /**
+ * Los enlaces públicos no llevan sesión: el dojo sale de la invitación.
+ */
+async function enElDojoDeLaInvitacion(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const invitacion = await prismaGlobal.invitation.findUnique({
+    where: { token: String(req.params.token) },
+    select: { createdBy: { select: { dojoId: true } } },
+  });
+
+  if (!invitacion) {
+    return res.status(404).json({
+      success: false,
+      motivo: "no-existe",
+      message: MENSAJES_INVALIDA["no-existe"],
+    });
+  }
+
+  conDojo(invitacion.createdBy.dojoId, next);
+}
+
+/**
  * GET /invitations/public/:token
  *
  * Dice qué formulario mostrar. Devuelve solo el nombre del dojo/profesor y
  * el tipo: nada de datos de otras familias.
  */
-router.get("/public/:token", limitePublico, async (req, res) => {
+router.get("/public/:token", limitePublico, enElDojoDeLaInvitacion, async (req, res) => {
   const estado = await validarInvitacion(String(req.params.token));
 
   if (!estado.ok) {
@@ -267,7 +292,7 @@ router.get("/public/:token", limitePublico, async (req, res) => {
  * hijos o un alumno sin cuenta. Y se sella la invitación dentro de la misma
  * transacción, para que no se pueda usar dos veces.
  */
-router.post("/public/:token", limitePublico, async (req, res) => {
+router.post("/public/:token", limitePublico, enElDojoDeLaInvitacion, async (req, res) => {
   const estado = await validarInvitacion(String(req.params.token));
 
   if (!estado.ok) {

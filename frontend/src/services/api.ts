@@ -116,6 +116,37 @@ export async function login(
   });
 }
 
+export type PlatformDojo = {
+  id: number;
+  name: string;
+  createdAt: string;
+  students: number;
+  admins: { id: number; name: string; email: string; active: boolean }[];
+};
+
+export type NewAdmin = {
+  adminName: string;
+  adminEmail: string;
+  adminPassword: string;
+};
+
+export async function getPlatformDojos(): Promise<{ dojos: PlatformDojo[] }> {
+  return request("/platform/dojos");
+}
+
+export async function createDojo(
+  body: NewAdmin & { dojoName: string }
+): Promise<{ dojoId: number }> {
+  return request("/platform/dojos", { method: "POST", body });
+}
+
+export async function addDojoAdmin(
+  dojoId: number,
+  body: NewAdmin
+): Promise<{ success: boolean }> {
+  return request(`/platform/dojos/${dojoId}/admins`, { method: "POST", body });
+}
+
 export async function updatePreferences(
   patch: Partial<Preferences>
 ): Promise<{ preferences: Preferences }> {

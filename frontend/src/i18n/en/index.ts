@@ -1,6 +1,7 @@
 import { attendance } from "./attendance";
 import { backend } from "./backend";
 import { constants } from "./constants";
+import { dojos } from "./dojos";
 import { forms } from "./forms";
 import { pagesA } from "./pagesA";
 import { pagesB } from "./pagesB";
@@ -13,6 +14,7 @@ export const en: Record<string, string> = {
   ...attendance,
   ...backend,
   ...constants,
+  ...dojos,
   ...forms,
   ...pagesA,
   ...pagesB,

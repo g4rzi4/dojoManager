@@ -100,7 +100,11 @@ function Sidebar({ open, onClose }: Props) {
   const navigate = useNavigate();
   const user = getUser();
 
-  const visibleItems = NAV_ITEMS.filter((item) => can(user, item.permission));
+  // El superadministrador no trabaja dentro de un dojo: solo ve su pantalla.
+  const esSuper = user?.role === "SUPERADMIN";
+  const visibleItems = esSuper
+    ? []
+    : NAV_ITEMS.filter((item) => can(user, item.permission));
 
   // Alumno y tutor no administran el dojo: entran a su propio panel.
   const esFamilia = user?.role === "ALUMNO" || user?.role === "TUTOR";
@@ -144,7 +148,11 @@ function Sidebar({ open, onClose }: Props) {
                 DojoManager
               </p>
               <p className="text-sm text-neutral-600">
-                {esFamilia ? t("Mi dojo") : t("Administración")}
+                {esSuper
+                  ? t("Plataforma")
+                  : esFamilia
+                    ? t("Mi dojo")
+                    : t("Administración")}
               </p>
             </div>
           </div>
@@ -168,6 +176,23 @@ function Sidebar({ open, onClose }: Props) {
         {/* Navegación */}
         <nav className="flex-1 overflow-y-auto px-3 py-3">
           <ul className="space-y-1">
+            {esSuper && (
+              <>
+                <SidebarLink
+                  to="/plataforma"
+                  label={t("Plataforma")}
+                  module="plataforma"
+                  onClose={onClose}
+                />
+                <SidebarLink
+                  to="/preferencias"
+                  label={t("Preferencias")}
+                  module="preferencias"
+                  onClose={onClose}
+                />
+              </>
+            )}
+
             {esFamilia && (
               <SidebarLink
                 to="/inicio"

@@ -16,6 +16,8 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 enum Role {
+  /// Dueño de la plataforma. Crea dojos y sus administradores; no ve sus datos.
+  SUPERADMIN
   /// Dueño del dojo. Único que puede administrar profesores y configuración.
   ADMIN
   /// Subadministrador: alumnos, eventos, pagos y reportes.
@@ -24,6 +26,22 @@ enum Role {
   TUTOR
   /// Solo consulta su propia tarjeta. No edita nada.
   ALUMNO
+}
+
+/// Cada escuela que usa la app. Sus datos no los ve ningún otro dojo: el filtro
+/// vive en backend/src/lib/prisma.ts.
+model Dojo {
+  id        Int      @id @default(autoincrement())
+  name      String
+  /// El dojo interno donde vive la cuenta de superadministrador.
+  isPlatform Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users    User[]
+  students Student[]
+  events   Event[]
+  classes  DojoClass[]
 }
 
 /// Idioma de la interfaz.
@@ -46,6 +64,10 @@ enum FontSize {
 }
 
 model User {
+  /// El 0 no existe: guardar una fila sin dojo lo rechaza la llave foránea.
+  dojoId Int  @default(0)
+  dojo   Dojo @relation(fields: [dojoId], references: [id])
+
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
@@ -140,6 +162,8 @@ model User {
   eventsCreated       Event[]         @relation("EventoCreadoPor")
 
   @@index([role])
+
+  @@index([dojoId])
 }
 
 // ---------------------------------------------------------------------------
@@ -174,6 +198,10 @@ enum Belt {
 
 /// Expediente del alumno: los datos de su tarjeta de información.
 model Student {
+  /// El 0 no existe: guardar una fila sin dojo lo rechaza la llave foránea.
+  dojoId Int  @default(0)
+  dojo   Dojo @relation(fields: [dojoId], references: [id])
+
   id        Int       @id @default(autoincrement())
   firstName String
   lastName  String
@@ -229,6 +257,8 @@ model Student {
   @@index([lastName, firstName])
   @@index([active])
   @@index([teacherId])
+
+  @@index([dojoId])
 }
 
 enum GuardianRelationship {
@@ -503,6 +533,10 @@ enum EventCategory {
 }
 
 model Event {
+  /// El 0 no existe: guardar una fila sin dojo lo rechaza la llave foránea.
+  dojoId Int  @default(0)
+  dojo   Dojo @relation(fields: [dojoId], references: [id])
+
   id       Int           @id @default(autoincrement())
   title    String
   date     DateTime      @db.Date
@@ -532,6 +566,8 @@ model Event {
   updatedAt DateTime @updatedAt
 
   @@index([date])
+
+  @@index([dojoId])
 }
 
 /// Una modalidad de un evento, con su costo propio.
@@ -896,6 +932,10 @@ enum Level {
 
 /// Una clase que se repite cada semana.
 model DojoClass {
+  /// El 0 no existe: guardar una fila sin dojo lo rechaza la llave foránea.
+  dojoId Int  @default(0)
+  dojo   Dojo @relation(fields: [dojoId], references: [id])
+
   id         Int        @id @default(autoincrement())
   title      String
   discipline Discipline
@@ -919,4 +959,6 @@ model DojoClass {
 
   @@index([dayOfWeek])
   @@index([teacherId])
+
+  @@index([dojoId])
 }

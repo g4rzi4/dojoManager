@@ -1,6 +1,6 @@
 import type { Preferences } from "../services/preferences";
 
-export type Role = "ADMIN" | "PROFESOR" | "TUTOR" | "ALUMNO";
+export type Role = "SUPERADMIN" | "ADMIN" | "PROFESOR" | "TUTOR" | "ALUMNO";
 
 export type Permission =
   | "students:read"
@@ -14,6 +14,7 @@ export type Permission =
   | "teachers:write"
   | "settings:write"
   | "notifications:send"
+  | "platform:manage"
   | "self:read";
 
 export type SessionUser = {
@@ -39,6 +40,7 @@ export type SessionUser = {
 };
 
 export const ROLE_LABELS: Record<Role, string> = {
+  SUPERADMIN: "Superadministrador",
   ADMIN: "Administrador",
   PROFESOR: "Profesor",
   TUTOR: "Tutor",

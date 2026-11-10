@@ -10,6 +10,7 @@ const Enroll = lazy(() => import("./pages/Enroll"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Attendance = lazy(() => import("./pages/Attendance"));
+const Platform = lazy(() => import("./pages/Platform"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const FamilyHome = lazy(() => import("./pages/FamilyHome"));
 const Teachers = lazy(() => import("./pages/Teachers"));
@@ -101,7 +102,7 @@ function App() {
         <Route
           path="/inicio"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["ALUMNO", "TUTOR"]}>
               <FamilyHome />
             </ProtectedRoute>
           }
@@ -122,7 +123,7 @@ function App() {
         <Route
           path="/mi-tarjeta"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["ALUMNO"]}>
               <MyCard />
             </ProtectedRoute>
           }
@@ -150,7 +151,7 @@ function App() {
         <Route
           path="/mis-fichas"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["TUTOR"]}>
               <MyCards />
             </ProtectedRoute>
           }
@@ -188,6 +189,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Preferences />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plataforma"
+          element={
+            <ProtectedRoute permission="platform:manage">
+              <Platform />
             </ProtectedRoute>
           }
         />

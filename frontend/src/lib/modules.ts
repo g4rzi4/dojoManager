@@ -1,5 +1,6 @@
 import {
   Bell,
+  Building2,
   CalendarCheck,
   CalendarDays,
   CalendarRange,
@@ -59,6 +60,10 @@ export const MODULES = {
   tarjeta: {
     icon: IdCard,
     tile: "border-lime-300 bg-lime-50 text-lime-700 [--tile-shadow:var(--color-lime-400)]",
+  },
+  plataforma: {
+    icon: Building2,
+    tile: "border-blue-200 bg-blue-50 text-blue-700 [--tile-shadow:var(--color-blue-400)]",
   },
   preferencias: {
     icon: SlidersHorizontal,

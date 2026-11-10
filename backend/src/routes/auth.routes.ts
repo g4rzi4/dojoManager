@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { prisma } from "../lib/prisma";
+import { prisma, prismaGlobal } from "../lib/prisma";
 import { signToken } from "../lib/jwt";
 import { verifyPassword } from "../lib/password";
 import { requireAuth } from "../middleware/auth";
@@ -56,7 +56,8 @@ router.post("/login", limiteLogin, async (req, res) => {
     });
   }
 
-  const user = await prisma.user.findUnique({
+  // Sin filtro de dojo: al iniciar sesión todavía no se sabe de cuál es.
+  const user = await prismaGlobal.user.findUnique({
     where: { email: email.trim().toLowerCase() },
     include: { student: { select: { id: true } } },
   });
@@ -109,7 +110,11 @@ router.post("/login", limiteLogin, async (req, res) => {
     });
   }
 
-  const token = signToken({ sub: user.id, role: user.role });
+  const token = signToken({
+    sub: user.id,
+    role: user.role,
+    dojoId: user.dojoId,
+  });
 
   return res.json({
     success: true,

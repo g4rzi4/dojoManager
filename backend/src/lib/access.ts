@@ -76,7 +76,11 @@ export async function canViewStudent(
 ): Promise<boolean> {
   const scope = await visibleStudentIds(user);
 
-  return scope === "todos" || scope.includes(studentId);
+  if (scope !== "todos") return scope.includes(studentId);
+
+  // "Todos" son los de su dojo. Hay que preguntarlo: este id viene de la
+  // petición y podría ser de un alumno de otro dojo.
+  return (await prisma.student.count({ where: { id: studentId } })) > 0;
 }
 
 /**

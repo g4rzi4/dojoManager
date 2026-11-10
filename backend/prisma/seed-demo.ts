@@ -11,6 +11,7 @@
  * datos son ficticios y `.test` es un dominio reservado que no recibe correo.
  */
 
+import { asegurarSuperadmin, enElPrimerDojo } from "./dojoDeSemilla";
 import { prisma } from "../src/lib/prisma";
 import { hashPassword } from "../src/lib/password";
 import { Belt, GuardianRelationship, Role } from "../src/generated/prisma/enums";
@@ -187,10 +188,16 @@ async function main() {
     });
   }
 
+  await asegurarSuperadmin(
+    "Superadministrador",
+    "superadmin@dojodemo.test",
+    PASSWORD_DEMO
+  );
+
   console.log("Dojo de demostración listo.");
 }
 
-main()
+enElPrimerDojo(main)
   .catch((error) => {
     console.error(error);
     process.exitCode = 1;

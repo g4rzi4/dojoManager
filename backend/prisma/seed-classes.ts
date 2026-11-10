@@ -10,6 +10,7 @@
  * agregado a mano. Con --regenerar borra todas y las vuelve a generar.
  */
 
+import { enElPrimerDojo } from "./dojoDeSemilla";
 import { prisma } from "../src/lib/prisma";
 import { Discipline, Level, Role } from "../src/generated/prisma/enums";
 
@@ -109,7 +110,7 @@ async function main() {
   console.log(`Horario listo: ${await prisma.dojoClass.count()} clases.`);
 }
 
-main()
+enElPrimerDojo(main)
   .catch((error) => {
     console.error(error);
     process.exitCode = 1;

@@ -62,6 +62,10 @@ export function can(
 
 /** A dónde mandar al usuario después de iniciar sesión, según su rol. */
 export function homePathFor(user: SessionUser): string {
+  if (user.role === "SUPERADMIN") {
+    return "/plataforma";
+  }
+
   // Alumno y tutor comparten el panel familiar; el backend decide cuántos
   // expedientes trae ese panel.
   if (user.role === "ALUMNO" || user.role === "TUTOR") {
