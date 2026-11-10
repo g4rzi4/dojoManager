@@ -1,6 +1,24 @@
 # 🥋 DojoManager
 
-Sistema de administración para escuelas de artes marciales.
+Sistema de administración para escuelas de artes marciales. Cada dojo lleva aquí a sus
+alumnos, profesores, cobros y calendario, y las familias pagan en línea con **PayPal**.
+
+## Qué hace
+
+| Área | Qué incluye |
+| --- | --- |
+| [Varios dojos](#varios-dojos) | Cada dojo ve solo lo suyo; un superadministrador los crea |
+| [Roles](#roles-y-permisos) | Administrador, profesor, tutor y alumno, cada uno con su alcance |
+| Alumnos y profesores | Expediente, cintas, [ficha del profesor](#ficha-del-profesor) y su clave |
+| [Asistencia y graduaciones](#asistencia-y-graduaciones) | Pase de lista y cambios de cinta, con aviso a la familia |
+| [Eventos](#eventos-con-costo) | Torneos y exámenes con costo por modalidad y categorías de competencia |
+| [Horario](#horario-de-clases) | Clases semanales por profesor |
+| [Pagos](#pagos) | Mensualidades, eventos y uniformes en un solo historial |
+| [PayPal](#pago-en-línea-con-paypal) | Pago en línea con captura en el servidor |
+| [Uniformes y protecciones](#uniformes-y-protecciones) | Solicitud de equipo por marca, modelo y talla |
+| [Inscripción por QR](#inscripción-por-qr) | Alta de alumnos y tutores desde el celular |
+| [Notificaciones](#notificaciones) | Automáticas y avisos del dojo |
+| [Preferencias](#preferencias-de-usuario) | Idioma, vista clara u oscura y tamaño de letra |
 
 ## Tecnologías
 
@@ -18,6 +36,10 @@ Sistema de administración para escuelas de artes marciales.
 
 ### Base de datos
 - PostgreSQL
+
+### Servicios
+- PayPal (Orders v2 y JavaScript SDK, en modo sandbox)
+- Correo SMTP con Nodemailer, opcional, para recuperar contraseñas
 
 ---
 
@@ -141,8 +163,8 @@ npx prisma migrate dev
 > medias y sin datos. Solo en ese caso, recréala con `docker compose down -v` y
 > `docker compose up -d --wait`, y vuelve a ejecutar las migraciones.
 
-Cargar los datos iniciales (crea las cuentas de prueba y un alumno con
-historial completo):
+Cargar los datos iniciales de desarrollo. Para probar la app con varias cuentas, usa
+mejor el [Dojo de demostración](#dojo-de-demostración):
 
 ```bash
 npx prisma db seed
@@ -192,9 +214,9 @@ http://localhost:5173
 
 *(Si el puerto está ocupado, Vite usará otro puerto, por ejemplo `5174`.)*
 
-> El frontend apunta al backend con la URL escrita a mano en
-> [frontend/src/services/api.ts](frontend/src/services/api.ts)
-> (`http://localhost:3000`). Si cambias el puerto del backend, cámbiala ahí también.
+> El frontend busca el backend en `VITE_API_URL`, y si no existe usa
+> `http://localhost:3000`. Para cambiarlo, copia `frontend/.env.example` como
+> `frontend/.env` y ajusta la dirección.
 
 ---
 
@@ -376,8 +398,10 @@ Qué protege el flujo:
 
 # Roles y permisos
 
-Hay cuatro roles. El profesor es **subadministrador**: puede todo menos administrar
-profesores y la configuración del dojo.
+Dentro de cada dojo hay cuatro roles. El profesor es **subadministrador**: puede todo
+menos administrar profesores. Por encima de los dojos está el **superadministrador**,
+que crea dojos y administradores pero no ve sus alumnos ni sus pagos (ver
+[Varios dojos](#varios-dojos)).
 
 | Acción | Administrador | Profesor | Tutor | Alumno |
 | --- | :-: | :-: | :-: | :-: |
@@ -385,11 +409,16 @@ profesores y la configuración del dojo.
 | Registrar un **alumno** | ✅ | ✅ | ❌ | ❌ |
 | Registrar un **tutor** | ✅ | ✅ | ❌ | ❌ |
 | Agregar y quitar **eventos** | ✅ | ✅ | ❌ | ❌ |
+| Agregar y quitar **clases** del horario | ✅ | las suyas | ❌ | ❌ |
+| Pasar **asistencia** y registrar **graduaciones** | ✅ | su grupo | ❌ | ❌ |
 | Ver alumnos | **todos** | **solo los suyos** | sus hijos | él mismo |
-| Ver pagos | **todos** | **solo los suyos** | sus hijos | los suyos |
+| Ver su ficha | — | — | **Ver mis fichas** | **Ver mi ficha** |
+| Ver pagos | **todos** | los que le corresponden | sus hijos | los suyos |
+| Pagar | ❌ | ❌ | ✅ | ✅ |
+| Confirmar pagos en efectivo o transferencia | ✅ | los que le corresponden | ❌ | ❌ |
+| Solicitar **uniformes y protecciones** | ❌ | ❌ | ✅ | ✅ |
 | Mandar avisos | ✅ | ✅ | ❌ | ❌ |
-| Configuración del dojo | ✅ | ❌ | ❌ | ❌ |
-| Ver el calendario | ✅ | ✅ | ✅ | ✅ |
+| Ver el calendario y el horario | ✅ | ✅ | ✅ | ✅ |
 | Ver sus notificaciones | ✅ | ✅ | ✅ | ✅ |
 
 ## Inicio de sesión de los profesores
@@ -546,8 +575,6 @@ Detalles que importan:
 - **Un profesor solo ve y resuelve los cobros de su clave.** El admin ve todos. Si un
   alumno escribe por error la clave de otro profesor, ese profesor verá el reporte y
   podrá rechazarlo.
-- **El monto se congela al reportar.** Si el dojo cambia el precio del evento después,
-  los cobros ya hechos no se alteran.
 - Un alumno no puede reportar dos veces el mismo evento.
 
 ---
@@ -586,8 +613,9 @@ Y por eso el profesor, aunque sí lo tenga, solo recibe su grupo.
 
 > ⚠️ Un detalle que parece menor y no lo es: un filtro con **lista vacía** no es lo
 > mismo que **no filtrar**. Confundirlos haría que un profesor sin alumnos viera a
-> todos. Por eso `scopeToStudentFilter` devuelve `undefined` solo para `"todos"`, y
-> las rutas cortan explícitamente cuando el alcance está vacío.
+> todos. Por eso `scopeToStudentFilter` devuelve `undefined` solo para `"todos"`; con
+> una lista vacía devuelve un filtro que no encuentra nada.
+
 La relación real vive en la tabla `StudentGuardian`, que es muchos-a-muchos: un tutor
 puede tener varios hijos inscritos, y un alumno puede tener dos tutores con acceso
 (por ejemplo, padres separados).
@@ -624,7 +652,9 @@ programada: el proyecto no tiene un cron corriendo, y así funcionan sin
 infraestructura extra. Son idempotentes por la columna `dedupeKey`, así que recargar
 la página no las duplica.
 
-Las de **graduaciones** y **faltas** se envían al registrarlas, desde
+Las demás se envían en el momento en que pasa algo: graduaciones, faltas, eventos
+nuevos, pagos reportados, confirmados o pagados con PayPal, y cada cambio en una
+solicitud de uniformes. Todas salen de
 [backend/src/lib/notifications.ts](backend/src/lib/notifications.ts).
 
 Cuando algo pasa con un alumno, la notificación llega **al alumno y a todos sus
@@ -636,10 +666,11 @@ tutores**, resuelto por `audienceForStudent`.
 
 El alcance lo decide el backend según el rol:
 
-- **Admin** — todas las mensualidades del dojo.
-- **Profesor** — las de sus alumnos.
-- **Tutor** — las de sus hijos, sumadas.
-- **Alumno** — las suyas.
+- **Admin** — todos los cobros del dojo.
+- **Profesor** — las mensualidades de sus alumnos, los cobros de evento acreditados a
+  su clave y las solicitudes de uniformes que le tocan.
+- **Tutor** — los de sus hijos, sumados.
+- **Alumno** — los suyos.
 
 Los montos se guardan en **centavos como entero** (`amountCents`). Guardar dinero en
 `float` produce errores de redondeo.
@@ -679,14 +710,12 @@ pendientes; el evento se rechaza, igual que al resolverlo desde Eventos.
 
 ## Pago en línea con PayPal
 
-Alumnos y tutores pueden pagar con PayPal:
+Alumnos y tutores pagan con PayPal cualquier cobro pendiente desde **Pagos**:
+mensualidades, eventos y uniformes ya confirmados por el profesor. También se puede
+desde **Eventos → Pagar** y desde **Uniformes y protecciones**.
 
-- **Mensualidades** — en **Pagos**, con el botón de cada mensualidad pendiente.
-- **Eventos** — en **Eventos → Pagar**, eligiendo PayPal como método. También se
-  pagan así las inscripciones que hizo el profesor y quedaron pendientes de pago.
-
-Al capturarse el pago, la mensualidad queda pagada o el alumno queda inscrito **sin
-que el profesor tenga que confirmar nada**. Al profesor le llega una notificación y
+Al capturarse el pago, el cobro queda pagado —y en un evento, el alumno queda
+inscrito— **sin que el profesor tenga que confirmar nada**. Al profesor le llega una notificación y
 el cobro sigue acreditándose a su clave. Todo el dinero entra a una sola cuenta de
 PayPal, la del dojo: el reparto a cada profesor es interno.
 
@@ -884,30 +913,45 @@ desaparece.
 dojoManager
 │
 ├── backend
-│   ├── prisma            esquema y migraciones de la base de datos
+│   ├── prisma
+│   │   ├── schema.prisma     modelo de datos
+│   │   ├── migrations        migraciones, en orden
+│   │   ├── repair            reparación para bases migradas antes del PR #9
+│   │   ├── seed.ts           datos de desarrollo
+│   │   ├── seed-demo.ts      dojo de demostración
+│   │   ├── seed-catalog.ts   catálogo de uniformes de ejemplo
+│   │   ├── seed-classes.ts   horarios aleatorios
+│   │   └── crear-superadmin.ts
 │   ├── src
-│   │   ├── routes        endpoints de la API
-│   │   ├── app.ts        configuración de Express
-│   │   └── server.ts     punto de entrada
-│   ├── .env.example      plantilla de variables de entorno
-│   └── package.json
+│   │   ├── routes            endpoints de la API, uno por módulo
+│   │   ├── lib               acceso por rol, filtro por dojo, PayPal, notificaciones
+│   │   ├── middleware        sesión, permisos y límite de peticiones
+│   │   ├── permissions.ts    matriz de permisos por rol
+│   │   ├── app.ts            configuración de Express
+│   │   └── server.ts         punto de entrada
+│   └── .env.example          plantilla de variables de entorno
 │
 ├── frontend
 │   ├── src
-│   │   ├── components    botones, inputs, navbar, sidebar
-│   │   ├── layouts       AuthLayout, DashboardLayout
-│   │   ├── pages         Login, Dashboard, Students, Teachers, Payments...
-│   │   ├── services      cliente HTTP hacia el backend
-│   │   └── styles        estilos globales
-│   └── package.json
+│   │   ├── pages             una pantalla por ruta
+│   │   ├── components        piezas compartidas: tarjetas, menú, botón de PayPal
+│   │   ├── layouts           AuthLayout, DashboardLayout
+│   │   ├── lib               colores por módulo
+│   │   ├── i18n              textos en inglés
+│   │   ├── services          cliente HTTP y sesión
+│   │   └── types             tipos compartidos
+│   └── .env.example
 │
-├── .github
-│   └── pull_request_template.md
-├── .gitignore
-├── CONTRIBUTING.md       guía de trabajo en equipo (ramas, PRs, conflictos)
-├── docker-compose.yml
+├── PRODUCT.md                contexto del producto
+├── DESIGN.md                 sistema de diseño: colores, tipografía, componentes
+├── CONTRIBUTING.md           guía de trabajo en equipo
+├── docker-compose.yml        PostgreSQL 17 para desarrollo
 └── README.md
 ```
+
+La interfaz sigue un sistema propio documentado en [DESIGN.md](DESIGN.md): fondo con
+retícula de puntos, Mona Sans, violeta para la acción principal y **un color por
+módulo**, que se repite en el menú y en el título de cada pantalla.
 
 ---
 
@@ -919,12 +963,8 @@ El proyecto usa **Git Flow**: `main` (producción) ← `develop` (integración) 
 ```
 main
  └── develop
-      ├── feature/auth        login, registro, JWT
-      ├── feature/students    alumnos y cintas
-      ├── feature/teachers    profesores y horarios
-      ├── feature/payments    mensualidades
-      ├── feature/reports     reportes
-      └── feature/settings    configuración del dojo
+      ├── feature/<tema>      una rama por funcionalidad
+      └── fix/<tema>          correcciones
 ```
 
 Ciclo diario, trabajando sobre tu rama:
@@ -952,7 +992,23 @@ conflictos y comandos de rescate— está en [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
+# Pendiente
+
+Lo que todavía no existe, para que nadie lo dé por hecho:
+
+- **Asistente de IA.** Está planeado; hoy la app no tiene ninguna función de IA.
+- **Publicación en un servidor.** La app corre en local; el webhook de PayPal necesita
+  una URL pública para funcionar.
+- **Pantalla para editar el catálogo de uniformes.** Por ahora se carga con
+  `seed-catalog.ts`, y sus modelos y precios son de ejemplo.
+- **Reportes y configuración del dojo.** Sus pantallas están vacías y no aparecen en el
+  menú.
+
+---
+
 # Autores
 
-- Zoé García
-- _(5 colaboradores — completar nombres en [CONTRIBUTING.md](CONTRIBUTING.md))_
+- Zoé García (`g4rzi4`)
+- `fernandosfn06`
+- `Warnight`
+- _(completar los nombres de los demás integrantes)_
