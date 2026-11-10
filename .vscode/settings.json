@@ -1,0 +1,19 @@
+{
+"python.terminal.useEnvFile": true,
+  "sqltools.connections": [
+    {
+      "name": "DojoManager",
+      "driver": "PostgreSQL",
+      "connectionMethod": "Server and Port",
+      "server": "localhost",
+      "port": 5432,
+      "database": "dojomanager",
+      "username": "dojo",
+      "password": "dojo",
+      "usePassword": "Save as plaintext in settings",
+      "pgOptions": {
+        "enableSsl": "Disabled"
+      }
+    }
+  ]
+}

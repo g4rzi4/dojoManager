@@ -15,6 +15,7 @@ import paypalRoutes from "./routes/paypal.routes";
 import equipmentRoutes from "./routes/equipment.routes";
 import classRoutes from "./routes/classes.routes";
 import attendanceRoutes from "./routes/attendance.routes";
+import agentRoutes from "./routes/agent.routes";
 
 const app = express();
 
@@ -56,6 +57,8 @@ app.use("/paypal", paypalRoutes);
 app.use("/equipment", equipmentRoutes);
 app.use("/classes", classRoutes);
 app.use("/attendance", attendanceRoutes);
+app.use("/api/agent", agentRoutes);
+app.use("/agent", agentRoutes);
 
 // Ruta no encontrada
 app.use((_req, res) => {

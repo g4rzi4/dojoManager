@@ -72,6 +72,12 @@ export const config = {
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || undefined,
 
   /**
+   * Llave secreta para autorizar a agentes externos (Zapier, Postman, scripts)
+   * en las rutas protegidas /api/agent/*.
+   */
+  agentApiKey: process.env.AGENT_API_KEY || undefined,
+
+  /**
    * PayPal. Opcional por la misma razón: sin credenciales, la app funciona y
    * solo el pago en línea queda deshabilitado.
    *
