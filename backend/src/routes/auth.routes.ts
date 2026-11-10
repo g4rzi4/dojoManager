@@ -5,6 +5,12 @@ import { signToken } from "../lib/jwt";
 import { verifyPassword } from "../lib/password";
 import { requireAuth } from "../middleware/auth";
 import { rateLimit } from "../middleware/rateLimit";
+import {
+  enlaceVigente,
+  MIN_PASSWORD,
+  restablecerContrasena,
+  solicitarRecuperacion,
+} from "../lib/passwordReset";
 import { ROLE_PERMISSIONS } from "../permissions";
 import { Role } from "../generated/prisma/enums";
 
@@ -138,6 +144,82 @@ router.get("/me", requireAuth, async (req, res) => {
       studentId: user.student?.id ?? null,
       permissions: ROLE_PERMISSIONS[user.role],
     },
+  });
+});
+
+/** Sin sesión, igual que el login: se limita para frenar abusos. */
+const limiteRecuperacion = rateLimit({
+  maximo: 5,
+  ventanaSegundos: 900,
+  mensaje: "Demasiadas solicitudes. Espera unos minutos y vuelve a intentarlo.",
+});
+
+const limiteRestablecer = rateLimit({
+  maximo: 20,
+  ventanaSegundos: 900,
+  mensaje: "Demasiados intentos. Espera unos minutos y vuelve a intentarlo.",
+});
+
+const ENLACE_INVALIDO =
+  "Este enlace ya no es válido. Puede haber caducado o ya se usó. Solicita uno nuevo.";
+
+/**
+ * POST /auth/forgot-password  { email }
+ *
+ * Responde lo mismo exista o no el correo, y sin esperar el envío: tanto el
+ * mensaje como el tiempo de respuesta revelarían qué correos están registrados.
+ */
+router.post("/forgot-password", limiteRecuperacion, (req, res) => {
+  const { email } = req.body ?? {};
+
+  if (typeof email !== "string" || email.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Escribe tu correo electrónico.",
+    });
+  }
+
+  void solicitarRecuperacion(email).catch((error: unknown) => {
+    console.error("[recuperacion] no se pudo enviar el enlace", error);
+  });
+
+  return res.json({
+    success: true,
+    message:
+      "Si ese correo está registrado, te enviamos un enlace para restablecer tu contraseña.",
+  });
+});
+
+/** GET /auth/reset-password/:token — para avisar antes de llenar el formulario. */
+router.get("/reset-password/:token", limiteRestablecer, async (req, res) => {
+  return res.json({
+    success: true,
+    valid: await enlaceVigente(String(req.params.token)),
+  });
+});
+
+/** POST /auth/reset-password  { token, password } */
+router.post("/reset-password", limiteRestablecer, async (req, res) => {
+  const { token, password } = req.body ?? {};
+
+  if (typeof token !== "string" || token.length === 0) {
+    return res.status(400).json({ success: false, message: ENLACE_INVALIDO });
+  }
+
+  if (typeof password !== "string" || password.length < MIN_PASSWORD) {
+    return res.status(400).json({
+      success: false,
+      message: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`,
+    });
+  }
+
+  if (!(await restablecerContrasena(token, password))) {
+    return res.status(400).json({ success: false, message: ENLACE_INVALIDO });
+  }
+
+  return res.json({
+    success: true,
+    message: "Listo. Ya puedes iniciar sesión con tu nueva contraseña.",
   });
 });
 

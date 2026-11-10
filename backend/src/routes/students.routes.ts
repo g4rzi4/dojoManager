@@ -12,6 +12,13 @@ import {
   scopeToStudentFilter,
   visibleStudentIds,
 } from "../lib/access";
+import { hoyEnElDojo, parseDateOnly } from "../lib/dates";
+import { marcarMensualidadesVencidas } from "../lib/mensualidades";
+import { notifyBeltPromotion } from "../lib/notifications";
+import {
+  crearEnlaceDeRestablecimiento,
+  HORAS_ENLACE_COMPARTIDO,
+} from "../lib/passwordReset";
 import { normalizeTeacherCode } from "../lib/teacherCode";
 import { Belt, Role } from "../generated/prisma/enums";
 import { requireAuth, requirePermission } from "../middleware/auth";
@@ -57,6 +64,7 @@ const CARD_INCLUDE = {
   guardians: {
     include: { guardian: { select: { id: true, name: true, email: true } } },
   },
+  user: { select: { id: true, email: true } },
 } satisfies StudentInclude;
 
 type StudentWithHistory = StudentGetPayload<{
@@ -80,6 +88,8 @@ function buildCard(student: StudentWithHistory) {
     enrolledAt: dateOnly(student.enrolledAt),
     active: student.active,
     hasLogin: student.userId !== null,
+    /// Cuenta propia del alumno, si la tiene.
+    cuenta: student.user,
 
     /// Tutores con cuenta que pueden consultar este expediente.
     tutores: student.guardians.map((g) => ({
@@ -400,9 +410,8 @@ router.patch(
         });
       }
 
-      // Nota: esto cambia la cinta VIGENTE, no agrega una graduación al
-      // historial. Registrar la graduación con su fecha y quién evaluó le
-      // toca al módulo feature/students.
+      // Nota: esto corrige la cinta VIGENTE sin agregar una graduación al
+      // historial. Las graduaciones van por POST /students/:id/promotions.
       datos.currentBelt = currentBelt as Belt;
     }
 
@@ -516,6 +525,8 @@ router.delete(
  * Va antes de /:id, igual que /me, para que Express no tome "mine" por un id.
  */
 router.get("/mine", requireAuth, async (req, res) => {
+  await marcarMensualidadesVencidas();
+
   const ids = await familyStudentIds(req.user!);
 
   if (ids.length === 0) {
@@ -569,6 +580,8 @@ router.get("/mine", requireAuth, async (req, res) => {
  * tomaría "me" como un id y la ruta nunca se alcanzaría.
  */
 router.get("/me", requireAuth, async (req, res) => {
+  await marcarMensualidadesVencidas();
+
   const student = await prisma.student.findUnique({
     where: { userId: req.user!.id },
     include: CARD_INCLUDE,
@@ -593,6 +606,8 @@ router.get("/me", requireAuth, async (req, res) => {
  * alumno sobre su expediente, aunque no tenga ese permiso.
  */
 router.get("/:id", requireAuth, async (req, res) => {
+  await marcarMensualidadesVencidas();
+
   const id = Number(req.params.id);
 
   if (!Number.isInteger(id) || id < 1) {
@@ -627,5 +642,258 @@ router.get("/:id", requireAuth, async (req, res) => {
 
   return res.json({ success: true, student: buildCard(student) });
 });
+
+/** Del blanco al negro, en el orden en que se declaró el enum. */
+const ORDEN_DE_CINTAS = Object.values(Belt);
+
+function rangoDeCinta(belt: Belt): number {
+  return ORDEN_DE_CINTAS.indexOf(belt);
+}
+
+/** La graduación que define la cinta vigente va primero. */
+const MAS_RECIENTE_PRIMERO = [
+  { promotedAt: "desc" as const },
+  { id: "desc" as const },
+];
+
+/**
+ * POST /students/:id/promotions  { belt, promotedAt, notes }
+ *
+ * Registra una graduación. Si es la más reciente, también cambia la cinta
+ * vigente y avisa a la familia. Una fecha anterior solo completa el historial.
+ */
+router.post(
+  "/:id/promotions",
+  requireAuth,
+  requirePermission("students:write"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "El id del alumno no es válido.",
+      });
+    }
+
+    if (!(await canManageStudent(req.user!, id))) {
+      return res.status(403).json({
+        success: false,
+        message: "Ese alumno no está en tu grupo.",
+      });
+    }
+
+    const { belt, promotedAt, notes } = req.body ?? {};
+
+    if (!Object.values(Belt).includes(belt as Belt)) {
+      return res.status(400).json({
+        success: false,
+        message: "Elige una cinta válida.",
+      });
+    }
+
+    const fecha = parseDateOnly(promotedAt);
+
+    if (!fecha || promotedAt > hoyEnElDojo()) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica una fecha válida que no sea futura.",
+      });
+    }
+
+    const cinta = belt as Belt;
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      const alumno = await tx.student.findUniqueOrThrow({
+        where: { id },
+        select: { currentBelt: true },
+      });
+
+      const ultima = await tx.beltPromotion.findFirst({
+        where: { studentId: id },
+        orderBy: MAS_RECIENTE_PRIMERO,
+        select: { promotedAt: true },
+      });
+
+      const esLaMasReciente = !ultima || fecha >= ultima.promotedAt;
+
+      if (
+        esLaMasReciente &&
+        rangoDeCinta(cinta) <= rangoDeCinta(alumno.currentBelt)
+      ) {
+        return null;
+      }
+
+      const promocion = await tx.beltPromotion.create({
+        data: {
+          studentId: id,
+          belt: cinta,
+          promotedAt: fecha,
+          notes: typeof notes === "string" ? notes.trim() || null : null,
+          evaluatedById: req.user!.id,
+          previousBelt: esLaMasReciente ? alumno.currentBelt : null,
+        },
+        select: { id: true },
+      });
+
+      if (esLaMasReciente) {
+        await tx.student.update({
+          where: { id },
+          data: { currentBelt: cinta },
+        });
+      }
+
+      return { promocionId: promocion.id, esLaMasReciente };
+    });
+
+    if (!resultado) {
+      return res.status(409).json({
+        success: false,
+        message: "La nueva cinta debe ser superior a la cinta actual del alumno.",
+      });
+    }
+
+    if (resultado.esLaMasReciente) {
+      try {
+        await notifyBeltPromotion(resultado.promocionId, id, cinta);
+      } catch (error) {
+        console.error("[graduaciones] no se pudo notificar", error);
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Graduación registrada.",
+    });
+  }
+);
+
+/**
+ * DELETE /students/:id/promotions/:promotionId
+ *
+ * Quita una graduación capturada por error. Si era la más reciente, el alumno
+ * regresa a la cinta que tenía antes.
+ */
+router.delete(
+  "/:id/promotions/:promotionId",
+  requireAuth,
+  requirePermission("students:write"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    const promotionId = Number(req.params.promotionId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(promotionId)) {
+      return res.status(400).json({
+        success: false,
+        message: "La graduación indicada no es válida.",
+      });
+    }
+
+    if (!(await canManageStudent(req.user!, id))) {
+      return res.status(403).json({
+        success: false,
+        message: "Ese alumno no está en tu grupo.",
+      });
+    }
+
+    const borrada = await prisma.$transaction(async (tx) => {
+      const historial = await tx.beltPromotion.findMany({
+        where: { studentId: id },
+        orderBy: MAS_RECIENTE_PRIMERO,
+        select: { id: true, belt: true, previousBelt: true },
+      });
+
+      const indice = historial.findIndex((p) => p.id === promotionId);
+
+      if (indice === -1) return false;
+
+      await tx.beltPromotion.delete({ where: { id: promotionId } });
+
+      if (indice === 0) {
+        const quitada = historial[0];
+
+        await tx.student.update({
+          where: { id },
+          data: {
+            // previousBelt es la cinta exacta de antes; las graduaciones
+            // anteriores a esta columna no la tienen.
+            currentBelt:
+              quitada.previousBelt ?? historial[1]?.belt ?? Belt.BLANCO,
+          },
+        });
+      }
+
+      return true;
+    });
+
+    if (!borrada) {
+      return res.status(404).json({
+        success: false,
+        message: "No existe esa graduación.",
+      });
+    }
+
+    return res.json({ success: true, message: "Graduación eliminada." });
+  }
+);
+
+/**
+ * POST /students/:id/reset-link  { userId }
+ *
+ * Genera un enlace para que el alumno o uno de sus tutores elija otra
+ * contraseña. Funciona sin servicio de correo: se comparte como un QR.
+ */
+router.post(
+  "/:id/reset-link",
+  requireAuth,
+  requirePermission("students:write"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    const userId = Number(req.body?.userId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "La cuenta indicada no es válida.",
+      });
+    }
+
+    if (!(await canManageStudent(req.user!, id))) {
+      return res.status(403).json({
+        success: false,
+        message: "Ese alumno no está en tu grupo.",
+      });
+    }
+
+    // Solo cuentas ligadas a ESTE alumno: un profesor no debe poder generar
+    // el enlace de cualquier usuario, y menos el de otro profesor.
+    const cuenta = await prisma.user.findFirst({
+      where: {
+        id: userId,
+        active: true,
+        role: { in: [Role.ALUMNO, Role.TUTOR] },
+        OR: [
+          { student: { id } },
+          { guardianOf: { some: { studentId: id } } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!cuenta) {
+      return res.status(404).json({
+        success: false,
+        message: "Esa cuenta no está ligada a este alumno.",
+      });
+    }
+
+    const enlace = await crearEnlaceDeRestablecimiento(
+      cuenta.id,
+      HORAS_ENLACE_COMPARTIDO
+    );
+
+    return res.status(201).json({ success: true, ...enlace });
+  }
+);
 
 export default router;

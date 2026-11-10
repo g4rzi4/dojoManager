@@ -78,6 +78,20 @@ export const config = {
    * El clientId es público (lo usa el botón del navegador). El clientSecret
    * nunca sale del servidor.
    */
+  /**
+   * Correo saliente, para recuperar contraseñas. Opcional: sin SMTP_HOST, el
+   * enlace se escribe en la consola del backend y el administrador o el
+   * profesor pueden generar uno para compartirlo.
+   */
+  smtp: {
+    host: process.env.SMTP_HOST || undefined,
+    port: Number(process.env.SMTP_PORT || 587),
+    user: process.env.SMTP_USER || undefined,
+    pass: process.env.SMTP_PASS || undefined,
+    from:
+      process.env.SMTP_FROM || process.env.SMTP_USER || "no-reply@dojomanager.local",
+  },
+
   paypal: {
     clientId: process.env.PAYPAL_CLIENT_ID || undefined,
     clientSecret: process.env.PAYPAL_CLIENT_SECRET || undefined,

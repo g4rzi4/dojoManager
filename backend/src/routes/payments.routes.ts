@@ -2,15 +2,19 @@ import { Router } from "express";
 
 import { prisma } from "../lib/prisma";
 import {
+  canManageStudent,
   familyStudentIds,
+  scopeToStudentFilter,
   scopeToStudentIdFilter,
   visibleStudentIds,
 } from "../lib/access";
+import { hoyEnElDojo } from "../lib/dates";
+import { marcarMensualidadesVencidas } from "../lib/mensualidades";
 import {
   notifyChargeReported,
   notifyChargeResolved,
 } from "../lib/notifications";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requirePermission } from "../middleware/auth";
 import {
   EquipmentRequestStatus,
   EventPaymentStatus,
@@ -112,6 +116,8 @@ function porCobrar(estado: Estado): boolean {
  * devuelve nada. Eso es lo correcto: no es lo mismo que no filtrar.
  */
 router.get("/", requireAuth, async (req, res) => {
+  await marcarMensualidadesVencidas();
+
   const user = req.user!;
   const scope = await visibleStudentIds(user);
   const porAlumno = scopeToStudentIdFilter(scope);
@@ -482,5 +488,315 @@ router.post("/:tipo/:id/resolve", requireAuth, async (req, res) => {
     message: confirmar ? "Pago confirmado." : "Pago no confirmado.",
   });
 });
+
+// ---------------------------------------------------------------------------
+// Administración de mensualidades
+// ---------------------------------------------------------------------------
+
+/** Un millón de pesos: lo que pase de ahí es un error de captura. */
+const MONTO_MAXIMO_CENTS = 100_000_000;
+
+function montoValido(valor: unknown): valor is number {
+  return (
+    Number.isInteger(valor) &&
+    (valor as number) > 0 &&
+    (valor as number) <= MONTO_MAXIMO_CENTS
+  );
+}
+
+function textoOpcional(valor: unknown): string | null {
+  return typeof valor === "string" ? valor.trim() || null : null;
+}
+
+/**
+ * POST /payments/monthly/generate  { year, month, amountCents, studentIds?, note? }
+ *
+ * Crea la mensualidad de un periodo para todos los alumnos activos del grupo
+ * de quien la genera, o solo para los indicados en `studentIds`.
+ *
+ * Repetirla no duplica ni altera nada: el índice único (alumno, año, mes) hace
+ * que quien ya tiene su mensualidad se omita. Tampoco se le cobra a un alumno
+ * un mes anterior a su inscripción.
+ */
+router.post(
+  "/monthly/generate",
+  requireAuth,
+  requirePermission("payments:write"),
+  async (req, res) => {
+    const { year, month, amountCents, studentIds, note } = req.body ?? {};
+    const anioActual = Number(hoyEnElDojo().slice(0, 4));
+
+    if (
+      !Number.isInteger(year) ||
+      year < anioActual - 5 ||
+      year > anioActual + 1 ||
+      !Number.isInteger(month) ||
+      month < 1 ||
+      month > 12
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "El periodo indicado no es válido.",
+      });
+    }
+
+    if (!montoValido(amountCents)) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica un monto válido, mayor a cero.",
+      });
+    }
+
+    const seleccion =
+      studentIds === undefined ? null : (studentIds as unknown[]);
+
+    if (
+      seleccion !== null &&
+      (!Array.isArray(seleccion) ||
+        seleccion.length === 0 ||
+        !seleccion.every((n) => Number.isInteger(n)))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "La lista de alumnos no es válida.",
+      });
+    }
+
+    const user = req.user!;
+    const scope = await visibleStudentIds(user);
+
+    if (
+      seleccion !== null &&
+      scope !== "todos" &&
+      !seleccion.every((n) => scope.includes(n as number))
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "La selección incluye alumnos que no están en tu grupo.",
+      });
+    }
+
+    const alumnos = await prisma.student.findMany({
+      where: {
+        active: true,
+        enrolledAt: { lt: new Date(Date.UTC(year, month, 1)) },
+        AND: [
+          scopeToStudentFilter(scope) ?? {},
+          seleccion !== null ? { id: { in: seleccion as number[] } } : {},
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (alumnos.length === 0) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "No hay alumnos activos e inscritos en ese periodo para generar mensualidades.",
+      });
+    }
+
+    const { count } = await prisma.payment.createMany({
+      data: alumnos.map((a) => ({
+        studentId: a.id,
+        periodYear: year,
+        periodMonth: month,
+        amountCents,
+        note: textoOpcional(note),
+        registeredById: user.id,
+      })),
+      skipDuplicates: true,
+    });
+
+    // Un periodo ya terminado debe aparecer vencido desde el primer momento.
+    await marcarMensualidadesVencidas();
+
+    return res.status(201).json({
+      success: true,
+      creadas: count,
+      yaExistian: alumnos.length - count,
+    });
+  }
+);
+
+/** La mensualidad, si quien pregunta puede administrar a su alumno. */
+async function mensualidadAdministrable(
+  user: NonNullable<Express.Request["user"]>,
+  id: number
+) {
+  if (!Number.isInteger(id) || id < 1) return null;
+
+  const pago = await prisma.payment.findUnique({
+    where: { id },
+    select: { id: true, studentId: true, periodMonth: true, periodYear: true, amountCents: true },
+  });
+
+  return pago && (await canManageStudent(user, pago.studentId)) ? pago : null;
+}
+
+const MENSUALIDAD_NO_ENCONTRADA = {
+  success: false,
+  message: "No encontramos esa mensualidad en tu grupo.",
+};
+
+/**
+ * POST /payments/monthly/:id/pay  { method }
+ *
+ * Registra un pago recibido en el dojo, sin que la familia lo haya reportado.
+ * Si ya lo había reportado, esto también lo resuelve.
+ */
+router.post(
+  "/monthly/:id/pay",
+  requireAuth,
+  requirePermission("payments:write"),
+  async (req, res) => {
+    const { method } = req.body ?? {};
+
+    if (
+      method !== PaymentMethod.EFECTIVO &&
+      method !== PaymentMethod.TRANSFERENCIA
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica si se pagó en efectivo o por transferencia.",
+      });
+    }
+
+    const pago = await mensualidadAdministrable(
+      req.user!,
+      Number(req.params.id)
+    );
+
+    if (!pago) return res.status(404).json(MENSUALIDAD_NO_ENCONTRADA);
+
+    const { count } = await prisma.payment.updateMany({
+      where: { id: pago.id, status: { not: PaymentStatus.PAGADO } },
+      data: {
+        status: PaymentStatus.PAGADO,
+        method,
+        paidAt: new Date(),
+        registeredById: req.user!.id,
+        reportedAt: null,
+        reportedMethod: null,
+      },
+    });
+
+    if (count === 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Esa mensualidad ya está pagada.",
+      });
+    }
+
+    try {
+      await notifyChargeResolved(
+        `MENSUALIDAD-${pago.id}`,
+        pago.studentId,
+        `Mensualidad ${pago.periodMonth}/${pago.periodYear}`,
+        true
+      );
+    } catch (error) {
+      console.error("[pagos] no se pudo notificar el pago", error);
+    }
+
+    return res.json({ success: true, message: "Pago registrado." });
+  }
+);
+
+const MENSUALIDAD_NO_MODIFICABLE = {
+  success: false,
+  message:
+    "Solo se puede cambiar una mensualidad pendiente. Si la familia reportó un pago, resuélvelo primero.",
+};
+
+/**
+ * PATCH /payments/monthly/:id  { amountCents?, note? }
+ *
+ * Corrige una mensualidad que sigue pendiente, por ejemplo para aplicar una beca.
+ */
+router.patch(
+  "/monthly/:id",
+  requireAuth,
+  requirePermission("payments:write"),
+  async (req, res) => {
+    const { amountCents, note } = req.body ?? {};
+
+    if (amountCents === undefined && note === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "No mandaste ningún cambio.",
+      });
+    }
+
+    if (amountCents !== undefined && !montoValido(amountCents)) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica un monto válido, mayor a cero.",
+      });
+    }
+
+    const pago = await mensualidadAdministrable(
+      req.user!,
+      Number(req.params.id)
+    );
+
+    if (!pago) return res.status(404).json(MENSUALIDAD_NO_ENCONTRADA);
+
+    const { count } = await prisma.payment.updateMany({
+      where: {
+        id: pago.id,
+        status: { not: PaymentStatus.PAGADO },
+        reportedAt: null,
+      },
+      data: {
+        ...(amountCents !== undefined
+          ? {
+              amountCents,
+              // Una orden de PayPal abierta se creó por el monto anterior. Al
+              // soltarla ya no se puede capturar y la familia inicia otra.
+              externalReference: null,
+            }
+          : {}),
+        ...(note !== undefined ? { note: textoOpcional(note) } : {}),
+      },
+    });
+
+    if (count === 0) return res.status(409).json(MENSUALIDAD_NO_MODIFICABLE);
+
+    return res.json({ success: true, message: "Mensualidad actualizada." });
+  }
+);
+
+/**
+ * DELETE /payments/monthly/:id
+ *
+ * Quita una mensualidad generada por error. Una pagada no se puede borrar: es
+ * historial de dinero que ya entró.
+ */
+router.delete(
+  "/monthly/:id",
+  requireAuth,
+  requirePermission("payments:write"),
+  async (req, res) => {
+    const pago = await mensualidadAdministrable(
+      req.user!,
+      Number(req.params.id)
+    );
+
+    if (!pago) return res.status(404).json(MENSUALIDAD_NO_ENCONTRADA);
+
+    const { count } = await prisma.payment.deleteMany({
+      where: {
+        id: pago.id,
+        status: { not: PaymentStatus.PAGADO },
+        reportedAt: null,
+      },
+    });
+
+    if (count === 0) return res.status(409).json(MENSUALIDAD_NO_MODIFICABLE);
+
+    return res.json({ success: true, message: "Mensualidad eliminada." });
+  }
+);
 
 export default router;

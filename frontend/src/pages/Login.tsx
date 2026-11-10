@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import AuthLayout from "../layouts/AuthLayout";
 import BrandMark from "../components/BrandMark";
@@ -135,6 +135,15 @@ function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+
+            <div className="-mt-2 text-right">
+              <Link
+                to="/recuperar"
+                className="rounded-lg text-sm font-semibold text-violet-700 hover:text-violet-900 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
 
             {/* Selector de tipo de cuenta */}
             <fieldset>

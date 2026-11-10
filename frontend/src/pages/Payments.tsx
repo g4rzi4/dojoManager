@@ -6,6 +6,8 @@ import Card from "../components/Card";
 import ModuleTile from "../components/ModuleTile";
 import PageHeading from "../components/PageHeading";
 import OpcionesDePago from "../components/OpcionesDePago";
+import AccionesMensualidad from "../components/AccionesMensualidad";
+import GenerarMensualidades from "../components/GenerarMensualidades";
 import type { ModuleKey } from "../lib/modules";
 import { ApiError, getPayments, resolveCharge } from "../services/api";
 import { can, getUser } from "../services/session";
@@ -77,6 +79,8 @@ function Payments() {
   // Pagan las familias. Un profesor también ve "propios" (su grupo), pero
   // esos cobros no le toca pagarlos a él.
   const puedePagar = !can(getUser(), "events:write");
+  const puedeAdministrar = can(getUser(), "payments:write");
+  const [generando, setGenerando] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -108,7 +112,7 @@ function Payments() {
 
   return (
     <DashboardLayout>
-      <header>
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <PageHeading module="pagos">
           <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
             Pagos
@@ -118,7 +122,25 @@ function Payments() {
             que queda por cubrir.
           </p>
         </PageHeading>
+
+        {puedeAdministrar && (
+          <button
+            type="button"
+            onClick={() => setGenerando((v) => !v)}
+            aria-expanded={generando}
+            className="min-h-11 cursor-pointer rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-violet-700 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none"
+          >
+            Generar mensualidades
+          </button>
+        )}
       </header>
+
+      {generando && puedeAdministrar && (
+        <GenerarMensualidades
+          onGenerado={recargar}
+          onCerrar={() => setGenerando(false)}
+        />
+      )}
 
       {loading ? (
         <div className="mt-8 space-y-3">
@@ -387,6 +409,21 @@ function AccionesCobro({
     return fila.pagable ? (
       <OpcionesDePago tipo={fila.tipo} id={fila.id} onCambio={onCambio} />
     ) : null;
+  }
+
+  if (
+    fila.tipo === "MENSUALIDAD" &&
+    fila.amountCents !== null &&
+    (fila.estado === "PENDIENTE" || fila.estado === "VENCIDO")
+  ) {
+    return (
+      <AccionesMensualidad
+        id={fila.id}
+        amountCents={fila.amountCents}
+        descripcion={`${conceptoDe(fila)} de ${fila.studentName}`}
+        onCambio={onCambio}
+      />
+    );
   }
 
   if (fila.estado !== "POR_CONFIRMAR") return null;
