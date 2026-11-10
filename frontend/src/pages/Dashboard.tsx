@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import EventCalendar from "../components/EventCalendar";
+import IngresosDelDojo from "../components/IngresosDelDojo";
 import Card from "../components/Card";
 import ShortcutCard from "../components/ShortcutCard";
 import PageHeading from "../components/PageHeading";
@@ -94,6 +95,13 @@ function Dashboard() {
           }
         />
       </div>
+
+      {/* Ingresos y métodos de pago */}
+      {payments && (
+        <section className="mt-8" aria-label="Ingresos del dojo">
+          <IngresosDelDojo payments={payments.payments} />
+        </section>
+      )}
 
       {/* Calendario de eventos */}
       <section className="mt-8" aria-labelledby="titulo-calendario">
