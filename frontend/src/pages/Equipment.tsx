@@ -27,6 +27,7 @@ import {
 } from "../types/equipment";
 import { PAYMENT_METHOD_LABELS, type MyStudent } from "../types/payment";
 import { formatMoney } from "../utils/format";
+import { tomarSugerencia } from "../lib/senseiSugerencia";
 import { getLocale, t } from "../i18n";
 
 const OTRA_MARCA = "OTRA";
@@ -222,6 +223,32 @@ function precioDe(producto: EquipmentProduct, s: Seleccion): number | null {
   return s.color === AMBOS_COLORES ? modelo.priceCents * 2 : modelo.priceCents;
 }
 
+/** Convierte lo que recomendó Sensei en selecciones del formulario. */
+function desdeSensei(productos: EquipmentProduct[], alumnos: MyStudent[]) {
+  const sugerencia = tomarSugerencia();
+
+  if (!sugerencia || !alumnos.some((a) => a.id === sugerencia.studentId)) return null;
+
+  const selecciones: Record<number, Seleccion> = {};
+
+  for (const item of sugerencia.items) {
+    const producto = productos.find((p) => p.id === item.productId);
+
+    if (!producto?.models.some((m) => m.id === item.modelId)) continue;
+
+    selecciones[producto.id] = {
+      ...SELECCION_VACIA,
+      modelo: String(item.modelId),
+      talla: item.talla ?? "",
+      color: item.color ?? "",
+    };
+  }
+
+  return Object.keys(selecciones).length > 0
+    ? { studentId: sugerencia.studentId, selecciones }
+    : null;
+}
+
 function FormularioSolicitud({
   productos,
   alumnos,
@@ -231,9 +258,14 @@ function FormularioSolicitud({
   alumnos: MyStudent[];
   onEnviada: () => void;
 }) {
-  const [selecciones, setSelecciones] = useState<Record<number, Seleccion>>({});
+  // Si se llega desde el asesor de equipo de Sensei, la solicitud empieza
+  // llena con lo que recomendó, para revisarla antes de enviarla.
+  const [sugerencia] = useState(() => desdeSensei(productos, alumnos));
+  const [selecciones, setSelecciones] = useState<Record<number, Seleccion>>(
+    () => sugerencia?.selecciones ?? {}
+  );
   const [alumnoId, setAlumnoId] = useState<number | "">(
-    alumnos.length === 1 ? alumnos[0].id : ""
+    sugerencia?.studentId ?? (alumnos.length === 1 ? alumnos[0].id : "")
   );
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -330,6 +362,12 @@ function FormularioSolicitud({
 
   return (
     <form onSubmit={enviar} className="mt-8 space-y-6">
+      {sugerencia && (
+        <Card className="border-cyan-200 p-4 text-sm text-cyan-900">
+          {t("Sensei llenó esta solicitud con lo que te recomendó. Revisa tallas y colores antes de enviarla.")}
+        </Card>
+      )}
+
       {alumnos.length > 1 && (
         <Card className="p-5">
           <label htmlFor="equipo-alumno" className={ETIQUETA}>

@@ -315,6 +315,101 @@ export async function deleteMonthlyPayment(id: number): Promise<void> {
   await request(`/payments/monthly/${id}`, { method: "DELETE" });
 }
 
+export type ReminderDraft = {
+  alumnoId: number;
+  alumno: string;
+  tutor: string | null;
+  montoAdeudado: number;
+  pagos: { pagoId: number; mes: string; monto: number; estado: string }[];
+  /** Nulo si Claude no pudo redactarlo. */
+  mensaje: string | null;
+  /** Verdadero si el mensaje menciona el total y solo montos que existen. */
+  montosVerificados: boolean;
+  error: string | null;
+};
+
+export type RecoveryReport = {
+  resumen: string;
+  datos: {
+    tasaRecuperacion: number;
+    montoRecuperado: number;
+    montoPendiente: number;
+    pagosRecordados: number;
+  };
+};
+
+export type GroupReview = {
+  resumen: string | null;
+  revisados: number;
+  examen: { alumnoId: number; alumno: string; cinta: string; razon: string }[];
+  riesgo: { alumnoId: number; alumno: string; razon: string; mensaje: string }[];
+};
+
+export type EquipmentAdvice = {
+  studentId: number;
+  resumen: string | null;
+  totalCents: number;
+  items: {
+    productId: number;
+    producto: string;
+    modelId: number;
+    marca: string;
+    modelo: string;
+    precioCents: number;
+    esEjemplo: boolean;
+    talla: string | null;
+    color: string | null;
+    razon: string;
+  }[];
+};
+
+export async function getSenseiStatus(): Promise<{
+  disponible: boolean;
+  enlaceDePago: string;
+  tareas: string[];
+}> {
+  return request("/sensei/estado");
+}
+
+/** Claude redacta un borrador por familia. No envía nada. */
+export async function prepareReminders(): Promise<{
+  borradores: ReminderDraft[];
+  familiasSinBorrador: number;
+}> {
+  return request("/sensei/cobranza/recordatorios", { method: "POST" });
+}
+
+export async function sendReminders(
+  recordatorios: { alumnoId: number; mensaje: string }[]
+): Promise<{ enviados: number; sinAdeudo: number; sinDestinatario: number }> {
+  return request("/sensei/cobranza/enviar", { method: "POST", body: { recordatorios } });
+}
+
+export async function requestRecoveryReport(dias: number): Promise<RecoveryReport> {
+  return request("/sensei/cobranza/reporte", { method: "POST", body: { dias } });
+}
+
+export async function reviewGroup(): Promise<GroupReview> {
+  return request("/sensei/grupo", { method: "POST" });
+}
+
+export async function draftAnnouncement(idea: string): Promise<{ titulo: string; mensaje: string }> {
+  return request("/sensei/aviso", { method: "POST", body: { idea } });
+}
+
+/** Recomienda equipo del catálogo. No crea la solicitud. */
+export async function recommendEquipment(studentId: number, necesidad: string): Promise<EquipmentAdvice> {
+  return request("/sensei/equipo", { method: "POST", body: { studentId, necesidad } });
+}
+
+export async function summarizeStudent(studentId: number): Promise<string> {
+  const data = await request<{ resumen: string }>("/sensei/resumen", {
+    method: "POST",
+    body: { studentId },
+  });
+  return data.resumen;
+}
+
 export async function getPayments(): Promise<PaymentsResponse> {
   return request<PaymentsResponse>("/payments");
 }

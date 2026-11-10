@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Card from "./Card";
-import { ApiError, sendAnnouncement } from "../services/api";
+import { ApiError, draftAnnouncement, getSenseiStatus, sendAnnouncement } from "../services/api";
 import { AUDIENCES, type Audience } from "../types/notification";
 import { t } from "../i18n";
 
@@ -20,6 +20,40 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
   const [exito, setExito] = useState("");
+  const [senseiActivo, setSenseiActivo] = useState(false);
+  const [redactando, setRedactando] = useState(false);
+
+  useEffect(() => {
+    let activo = true;
+
+    getSenseiStatus()
+      .then((s) => {
+        if (activo) setSenseiActivo(s.disponible);
+      })
+      .catch(() => {});
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  /** Sensei convierte la idea escrita en el mensaje en un aviso completo. */
+  async function redactarConSensei() {
+    setRedactando(true);
+    setError("");
+
+    try {
+      const r = await draftAnnouncement(body.trim());
+      setTitle(r.titulo.slice(0, MAX_TITULO));
+      setBody(r.mensaje);
+    } catch (e: unknown) {
+      setError(
+        e instanceof ApiError ? e.message : t("Sensei no pudo redactar el aviso.")
+      );
+    } finally {
+      setRedactando(false);
+    }
+  }
 
   const valido = title.trim().length > 0 && body.trim().length > 0;
 
@@ -109,6 +143,23 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
               focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
           />
+
+          {senseiActivo && (
+            <button
+              type="button"
+              onClick={redactarConSensei}
+              disabled={redactando || body.trim().length < 5}
+              className="
+                inline-flex min-h-9 cursor-pointer items-center rounded-xl border border-cyan-200
+                bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800
+                transition-colors duration-200 motion-reduce:transition-none hover:bg-cyan-100
+                focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
+                disabled:cursor-not-allowed disabled:opacity-50
+              "
+            >
+              {redactando ? t("Sensei está redactando…") : t("Redactar con Sensei")}
+            </button>
+          )}
         </div>
 
         <div className="space-y-2">

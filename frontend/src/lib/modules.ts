@@ -1,5 +1,6 @@
 import {
   Bell,
+  Bot,
   Building2,
   CalendarCheck,
   CalendarDays,
@@ -64,6 +65,10 @@ export const MODULES = {
   plataforma: {
     icon: Building2,
     tile: "border-blue-200 bg-blue-50 text-blue-700 [--tile-shadow:var(--color-blue-400)]",
+  },
+  asistente: {
+    icon: Bot,
+    tile: "border-cyan-200 bg-cyan-50 text-cyan-700 [--tile-shadow:var(--color-cyan-400)]",
   },
   preferencias: {
     icon: SlidersHorizontal,
