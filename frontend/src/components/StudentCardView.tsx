@@ -8,6 +8,7 @@ import {
   Receipt,
   ShieldUser,
   UserRound,
+  Trophy,
 } from "lucide-react";
 
 import { getLocale, t } from "../i18n";
@@ -15,6 +16,7 @@ import Card from "./Card";
 import FormGraduacion from "./FormGraduacion";
 import { ApiError, deleteBeltPromotion } from "../services/api";
 import type { StudentCard as StudentCardData } from "../types/student";
+import { CATEGORY_LABELS, CATEGORY_STYLES } from "../types/event";
 import {
   BELT_LABELS,
   BELT_STYLES,
@@ -39,6 +41,7 @@ type Props = {
 const TABS = [
   { id: "graduaciones", label: "Graduaciones", icon: Award },
   { id: "asistencia", label: "Asistencia", icon: CalendarCheck },
+  { id: "eventos", label: "Eventos", icon: Trophy },
   { id: "pagos", label: "Pagos", icon: Receipt },
   { id: "observaciones", label: "Observaciones", icon: MessageSquare },
 ] as const;
@@ -455,6 +458,39 @@ function StudentCardView({ student, onCambio }: Props) {
                   </tbody>
                 </table>
               </div>
+            )}
+          </TabPanel>
+
+          {/* Eventos a los que fue */}
+          <TabPanel id="eventos" active={activeTab === "eventos"}>
+            {historial.eventos.length === 0 ? (
+              <Empty text={t("Todavía no ha ido a exámenes ni torneos.")} />
+            ) : (
+              <ul className="space-y-2">
+                {historial.eventos.map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm"
+                  >
+                    <span className="min-w-0 flex-1 basis-48">
+                      <span className="block font-semibold break-words text-neutral-900">
+                        {e.titulo}
+                      </span>
+                      <span className="block text-neutral-600 first-letter:uppercase">
+                        {formatLongDate(fromDateKey(e.fecha))}
+                        {e.modalidades.length > 0 && ` · ${e.modalidades.join(", ")}`}
+                      </span>
+                    </span>
+                    <span
+                      className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                        CATEGORY_STYLES[e.categoria].chip
+                      }`}
+                    >
+                      {t(CATEGORY_LABELS[e.categoria])}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
           </TabPanel>
 

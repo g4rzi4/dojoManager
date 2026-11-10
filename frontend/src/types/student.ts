@@ -102,6 +102,15 @@ export type StudentNoteEntry = {
   author: string | null;
 };
 
+/** Un evento al que fue el alumno. */
+export type StudentEventEntry = {
+  id: number;
+  titulo: string;
+  fecha: string;
+  categoria: import("./event").EventCategory;
+  modalidades: string[];
+};
+
 /** La tarjeta de información completa del alumno. */
 export type StudentCard = {
   id: number;
@@ -127,6 +136,7 @@ export type StudentCard = {
     asistenciasPresente: number;
     pagosPendientes: number;
     observaciones: number;
+    eventos: number;
   };
 
   historial: {
@@ -134,5 +144,7 @@ export type StudentCard = {
     asistencia: AttendanceEntry[];
     pagos: PaymentEntry[];
     observaciones: StudentNoteEntry[];
+    /** Exámenes, torneos y demás eventos a los que fue, del más reciente. */
+    eventos: StudentEventEntry[];
   };
 };
