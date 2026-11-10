@@ -3,6 +3,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { marcarMensualidadesVencidas } from "../lib/mensualidades";
 import { requireAgentApiKey } from "../middleware/agentAuth";
+import recordatoriosRoutes from "./agentRecordatorios.routes";
 import { PaymentStatus } from "../generated/prisma/enums";
 
 const router = Router();
@@ -173,5 +174,9 @@ router.get("/unpaid", async (_req, res) => {
     alumnos,
   });
 });
+
+// Fase 2: record-reminders y recovery-stats. Van después del requireAgentApiKey
+// de arriba, así que comparten la misma API key.
+router.use(recordatoriosRoutes);
 
 export default router;

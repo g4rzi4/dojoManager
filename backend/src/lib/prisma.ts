@@ -77,6 +77,7 @@ const ALCANCE_POR_MODELO: Record<Prisma.ModelName, "dojo" | "global" | FiltroDeD
     enrollment: { student: { dojoId } },
   }),
   EquipmentRequestItem: (dojoId) => ({ request: { student: { dojoId } } }),
+  PaymentReminder: (dojoId) => ({ payment: { student: { dojoId } } }),
 };
 
 type Args = {
