@@ -13,6 +13,23 @@ export function formatMoney(amountCents: number): string {
   });
 }
 
+/**
+ * Convierte lo que escribió el usuario en centavos. Null si no es un monto.
+ *
+ * Trabaja con el texto, sin pasar por float: 19.99 * 100 da 1998.9999999999998.
+ */
+export function pesosACentavos(texto: string): number | null {
+  const limpio = texto.trim().replace(/[$,\s]/g, "");
+  const partes = /^(\d+)(?:\.(\d{1,2}))?$/.exec(limpio);
+
+  if (!partes) return null;
+
+  const centavos =
+    Number(partes[1]) * 100 + Number((partes[2] ?? "").padEnd(2, "0"));
+
+  return centavos > 0 ? centavos : null;
+}
+
 /** "octubre 2026" a partir del año y mes (1-12) de un pago. */
 export function formatPeriod(year: number, month: number): string {
   const name = MONTH_NAMES[month - 1] ?? String(month);

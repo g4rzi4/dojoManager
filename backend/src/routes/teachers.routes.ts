@@ -2,6 +2,10 @@ import { Router } from "express";
 
 import { prisma } from "../lib/prisma";
 import { hashPassword } from "../lib/password";
+import {
+  crearEnlaceDeRestablecimiento,
+  HORAS_ENLACE_COMPARTIDO,
+} from "../lib/passwordReset";
 import { generateTeacherCode } from "../lib/teacherCode";
 import { requireAuth, requirePermission } from "../middleware/auth";
 import { can } from "../permissions";
@@ -467,6 +471,47 @@ router.patch(
     await prisma.user.update({ where: { id }, data: { active } });
 
     return res.json({ success: true });
+  }
+);
+
+/**
+ * POST /teachers/:id/reset-link
+ *
+ * El administrador genera un enlace para que el profesor elija otra contraseña.
+ */
+router.post(
+  "/:id/reset-link",
+  requireAuth,
+  requirePermission("teachers:write"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    const profesor = Number.isInteger(id)
+      ? await prisma.user.findUnique({
+          where: { id },
+          select: { id: true, role: true, active: true },
+        })
+      : null;
+
+    if (!profesor || profesor.role !== Role.PROFESOR) {
+      return res.status(404).json({
+        success: false,
+        message: "No existe ese profesor.",
+      });
+    }
+
+    if (!profesor.active) {
+      return res.status(409).json({
+        success: false,
+        message: "Ese profesor está dado de baja.",
+      });
+    }
+
+    const enlace = await crearEnlaceDeRestablecimiento(
+      profesor.id,
+      HORAS_ENLACE_COMPARTIDO
+    );
+
+    return res.status(201).json({ success: true, ...enlace });
   }
 );
 

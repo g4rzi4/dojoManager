@@ -277,6 +277,35 @@ con correo, contraseña **y su clave**.
 
 ---
 
+# Recuperar la contraseña
+
+Hay dos caminos, y los dos llevan a un enlace de un solo uso:
+
+| Camino | Quién lo inicia | Caduca |
+| --- | --- | --- |
+| **"¿Olvidaste tu contraseña?"** en el login | La persona, y le llega por correo | 1 hora |
+| **Restablecer contraseña** en la tarjeta del alumno o en la ficha del profesor | Admin o profesor, y lo comparten por WhatsApp | 24 horas |
+
+Un profesor solo genera enlaces para el alumno y los tutores de **su** grupo; los de
+profesores los genera el administrador. Quien genera el enlace nunca ve la contraseña.
+
+Para enviar correos, agrega a **`backend/.env`** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASS` y `SMTP_FROM`. **Sin `SMTP_HOST` no se envía nada**: el enlace se escribe en
+la consola del backend, útil en desarrollo. El segundo camino funciona sin correo.
+
+Qué protege el flujo:
+
+- Se guarda el **hash** del token, no el token.
+- La respuesta es la misma exista o no el correo, para no revelar cuáles están
+  registrados.
+- Cada enlace nuevo anula los anteriores, y hay límite de peticiones por IP.
+- Un profesor sigue necesitando su **clave** para entrar.
+
+> ⚠️ Cambiar la contraseña no cierra las sesiones ya abiertas: el JWT sigue siendo válido
+> hasta que caduca, a los 7 días.
+
+---
+
 # Roles y permisos
 
 Hay cuatro roles. El profesor es **subadministrador**: puede todo menos administrar
@@ -527,11 +556,8 @@ programada: el proyecto no tiene un cron corriendo, y así funcionan sin
 infraestructura extra. Son idempotentes por la columna `dedupeKey`, así que recargar
 la página no las duplica.
 
-Las de **graduaciones**, **faltas** y **eventos nuevos** tienen su función lista en
-[backend/src/lib/notifications.ts](backend/src/lib/notifications.ts), pero solo se
-disparan cuando el módulo correspondiente las llame al guardar. Si estás
-implementando `feature/students` o `feature/events`, llámalas — ver
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Las de **graduaciones** y **faltas** se envían al registrarlas, desde
+[backend/src/lib/notifications.ts](backend/src/lib/notifications.ts).
 
 Cuando algo pasa con un alumno, la notificación llega **al alumno y a todos sus
 tutores**, resuelto por `audienceForStudent`.
@@ -550,7 +576,19 @@ El alcance lo decide el backend según el rol:
 Los montos se guardan en **centavos como entero** (`amountCents`). Guardar dinero en
 `float` produce errores de redondeo.
 
-Registrar y editar cobros a mano corresponde al módulo `feature/payments`.
+## Generar y administrar mensualidades
+
+En **Pagos → Generar mensualidades**, el administrador o el profesor eligen el mes, el
+monto y si es para todo su grupo o para un solo alumno.
+
+- **Generar dos veces no duplica ni cambia montos:** quien ya tiene la mensualidad de
+  ese mes se omite. Tampoco se le cobra a un alumno un mes anterior a su inscripción.
+- **Una mensualidad pendiente** se puede cobrar en el dojo (**Registrar pago**), editar
+  (por ejemplo, para aplicar una beca) o eliminar. Una pagada no se edita ni se borra.
+- **Cambiar el monto suelta cualquier orden de PayPal abierta**, para que no se cobre el
+  monto anterior.
+- **Pasa a Vencida sola** cuando termina su mes. Se evalúa al consultar los datos, sin
+  tarea programada, igual que las notificaciones de pagos.
 
 La pestaña reúne **todos los cobros**: mensualidades, eventos y uniformes, tanto los
 pagados como los pendientes. Lo que se debe aparece primero.
@@ -630,6 +668,20 @@ pública, así que en local no llega y `PAYPAL_WEBHOOK_ID` se puede dejar vacío
 
 La integración está en [paypal.ts](backend/src/lib/paypal.ts) y
 [paypal.routes.ts](backend/src/routes/paypal.routes.ts).
+
+---
+
+# Asistencia y graduaciones
+
+**Asistencia.** En **Asistencia** el administrador o el profesor eligen el día y marcan
+quién asistió o faltó; volver a tocar una opción quita la marca. Hay una sola marca por
+alumno y día, y cada falta nueva le avisa al alumno y a sus tutores. Un profesor solo ve
+y marca a su grupo.
+
+**Graduaciones.** En la tarjeta del alumno, pestaña **Graduaciones**, se registra la
+cinta, la fecha y una nota. La más reciente cambia la cinta vigente y avisa a la familia;
+una fecha anterior solo completa el historial. La nueva cinta tiene que ser superior a
+la actual. **Quitar** deshace una captura errónea y regresa a la cinta que tenía antes.
 
 ---
 

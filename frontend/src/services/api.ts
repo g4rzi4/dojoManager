@@ -1,5 +1,6 @@
 import type { SessionUser } from "../types/user";
-import type { StudentCard, StudentListItem } from "../types/student";
+import type { Belt, StudentCard, StudentListItem } from "../types/student";
+import type { AttendanceStudent } from "../types/attendance";
 import type { MyStudent, PaymentsResponse } from "../types/payment";
 import type { AppNotification, Audience } from "../types/notification";
 import type { DojoEvent, EventCategory } from "../types/event";
@@ -144,6 +145,134 @@ export async function getMyStudents(): Promise<MyStudent[]> {
 export async function getEvents(): Promise<DojoEvent[]> {
   const data = await request<{ events: DojoEvent[] }>("/events");
   return data.events;
+}
+
+// ---------------------------------------------------------------------------
+// Recuperación de contraseña
+// ---------------------------------------------------------------------------
+
+export async function forgotPassword(
+  email: string
+): Promise<{ message: string }> {
+  return request("/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+    auth: false,
+  });
+}
+
+export async function checkResetToken(token: string): Promise<boolean> {
+  const data = await request<{ valid: boolean }>(
+    `/auth/reset-password/${encodeURIComponent(token)}`,
+    { auth: false }
+  );
+  return data.valid;
+}
+
+export async function resetPassword(
+  token: string,
+  password: string
+): Promise<{ message: string }> {
+  return request("/auth/reset-password", {
+    method: "POST",
+    body: { token, password },
+    auth: false,
+  });
+}
+
+/** Enlace para el alumno o un tutor de este expediente. */
+export async function createStudentResetLink(
+  studentId: number,
+  userId: number
+): Promise<{ url: string }> {
+  return request(`/students/${studentId}/reset-link`, {
+    method: "POST",
+    body: { userId },
+  });
+}
+
+/** Enlace para un profesor. Solo lo genera el administrador. */
+export async function createTeacherResetLink(
+  teacherId: number
+): Promise<{ url: string }> {
+  return request(`/teachers/${teacherId}/reset-link`, { method: "POST" });
+}
+
+// ---------------------------------------------------------------------------
+// Asistencia y graduaciones
+// ---------------------------------------------------------------------------
+
+export async function getAttendance(
+  date: string
+): Promise<AttendanceStudent[]> {
+  const data = await request<{ students: AttendanceStudent[] }>(
+    `/attendance?date=${encodeURIComponent(date)}`
+  );
+  return data.students;
+}
+
+export async function saveAttendance(
+  date: string,
+  records: { studentId: number; present: boolean | null }[]
+): Promise<void> {
+  await request("/attendance", { method: "PUT", body: { date, records } });
+}
+
+export async function addBeltPromotion(
+  studentId: number,
+  params: { belt: Belt; promotedAt: string; notes?: string }
+): Promise<void> {
+  await request(`/students/${studentId}/promotions`, {
+    method: "POST",
+    body: params,
+  });
+}
+
+export async function deleteBeltPromotion(
+  studentId: number,
+  promotionId: number
+): Promise<void> {
+  await request(`/students/${studentId}/promotions/${promotionId}`, {
+    method: "DELETE",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Mensualidades
+// ---------------------------------------------------------------------------
+
+export async function generateMonthlyPayments(params: {
+  year: number;
+  month: number;
+  amountCents: number;
+  studentIds?: number[];
+  note?: string;
+}): Promise<{ creadas: number; yaExistian: number }> {
+  return request("/payments/monthly/generate", {
+    method: "POST",
+    body: params,
+  });
+}
+
+export async function payMonthlyPayment(
+  id: number,
+  method: "EFECTIVO" | "TRANSFERENCIA"
+): Promise<void> {
+  await request(`/payments/monthly/${id}/pay`, {
+    method: "POST",
+    body: { method },
+  });
+}
+
+export async function updateMonthlyPayment(
+  id: number,
+  cambios: { amountCents?: number; note?: string }
+): Promise<void> {
+  await request(`/payments/monthly/${id}`, { method: "PATCH", body: cambios });
+}
+
+export async function deleteMonthlyPayment(id: number): Promise<void> {
+  await request(`/payments/monthly/${id}`, { method: "DELETE" });
 }
 
 export async function getPayments(): Promise<PaymentsResponse> {

@@ -96,6 +96,9 @@ model User {
   /// Clases del horario que imparte.
   classesTaught DojoClass[] @relation("ClaseDeProfesor")
 
+  /// Enlaces para restablecer su contraseña.
+  passwordResetTokens PasswordResetToken[]
+
   /// Notificaciones que recibe.
   notifications     Notification[] @relation("NotificacionDestinatario")
   /// Avisos que redactó, si es ADMIN o PROFESOR.
@@ -115,6 +118,22 @@ model User {
 // ---------------------------------------------------------------------------
 // Alumnos
 // ---------------------------------------------------------------------------
+
+/// Enlace de un solo uso para restablecer una contraseña.
+///
+/// Se guarda el HASH del token, no el token: quien lea esta tabla (un respaldo
+/// filtrado, por ejemplo) no puede usar los enlaces vigentes.
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
 
 enum Belt {
   BLANCO
@@ -232,6 +251,10 @@ model BeltPromotion {
   belt       Belt
   promotedAt DateTime @db.Date
   notes      String?
+
+  /// Cinta que tenía justo antes. Permite deshacer una graduación capturada
+  /// por error sin perder la cinta anterior, que pudo no venir del historial.
+  previousBelt Belt?
 
   evaluatedById Int?
   evaluatedBy   User? @relation("PromocionEvaluadaPor", fields: [evaluatedById], references: [id], onDelete: SetNull)
