@@ -67,6 +67,7 @@ const ALCANCE_POR_MODELO: Record<Prisma.ModelName, "dojo" | "global" | FiltroDeD
   Payment: porAlumno,
   StudentNote: porAlumno,
   EventEnrollment: porAlumno,
+  EventRsvp: porAlumno,
   EquipmentRequest: porAlumno,
   Invitation: (dojoId) => ({ createdBy: { dojoId } }),
   Notification: (dojoId) => ({ user: { dojoId } }),

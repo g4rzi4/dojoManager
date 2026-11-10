@@ -187,6 +187,18 @@ export async function getEvents(): Promise<DojoEvent[]> {
   return data.events;
 }
 
+/** El alumno o su tutor dicen si va o no al evento. */
+export async function respondToEvent(
+  eventId: string,
+  studentId: number,
+  asistira: boolean
+): Promise<{ message: string }> {
+  return request(`/events/${eventId}/rsvp`, {
+    method: "POST",
+    body: { studentId, asistira },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Recuperación de contraseña
 // ---------------------------------------------------------------------------
