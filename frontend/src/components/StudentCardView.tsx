@@ -12,6 +12,8 @@ import {
 
 import { getLocale, t } from "../i18n";
 import Card from "./Card";
+import FormGraduacion from "./FormGraduacion";
+import { ApiError, deleteBeltPromotion } from "../services/api";
 import type { StudentCard as StudentCardData } from "../types/student";
 import {
   BELT_LABELS,
@@ -30,6 +32,8 @@ import {
 
 type Props = {
   student: StudentCardData;
+  /** Si viene, quien mira puede registrar y quitar graduaciones. */
+  onCambio?: () => void;
 };
 
 const TABS = [
@@ -41,8 +45,9 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-function StudentCardView({ student }: Props) {
+function StudentCardView({ student, onCambio }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>("graduaciones");
+  const [errorGraduacion, setErrorGraduacion] = useState("");
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const { resumen, historial } = student;
@@ -51,6 +56,23 @@ function StudentCardView({ student }: Props) {
     resumen.asistenciasPresente,
     resumen.asistenciasRegistradas
   );
+
+  async function quitarGraduacion(id: number, cinta: string) {
+    if (!window.confirm(
+        t("¿Quitar la graduación a cinta {color}?", { color: cinta })
+      )) return;
+
+    setErrorGraduacion("");
+
+    try {
+      await deleteBeltPromotion(student.id, id);
+      onCambio?.();
+    } catch (e: unknown) {
+      setErrorGraduacion(
+        e instanceof ApiError ? e.message : t("No fue posible quitarla.")
+      );
+    }
+  }
 
   /** Flechas izquierda/derecha para moverse entre pestañas, como pide ARIA. */
   function handleTabKeyDown(event: React.KeyboardEvent, index: number) {
@@ -279,6 +301,20 @@ function StudentCardView({ student }: Props) {
         <div className="p-5 sm:p-6">
           {/* Graduaciones */}
           <TabPanel id="graduaciones" active={activeTab === "graduaciones"}>
+            {onCambio && (
+              <FormGraduacion
+                studentId={student.id}
+                currentBelt={student.currentBelt}
+                onGuardado={onCambio}
+              />
+            )}
+
+            {errorGraduacion && (
+              <p className="mb-4 text-sm font-medium text-red-700" role="alert">
+                {errorGraduacion}
+              </p>
+            )}
+
             {historial.graduaciones.length === 0 ? (
               <Empty text={t("Este alumno no tiene graduaciones registradas.")} />
             ) : (
@@ -291,12 +327,31 @@ function StudentCardView({ student }: Props) {
                       }`}
                       aria-hidden="true"
                     />
-                    <div className="min-w-0 border-b border-neutral-100 pb-4">
-                      <p className="font-semibold text-neutral-900">
-                        {t("Cinta {color}", {
-                          color: t(BELT_LABELS[g.belt]).toLowerCase(),
-                        })}
-                      </p>
+                    <div className="min-w-0 flex-1 border-b border-neutral-100 pb-4">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <p className="font-semibold text-neutral-900">
+                          {t("Cinta {color}", {
+                            color: t(BELT_LABELS[g.belt]).toLowerCase(),
+                          })}
+                        </p>
+                        {onCambio && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              quitarGraduacion(
+                                g.id,
+                                t(BELT_LABELS[g.belt]).toLowerCase()
+                              )
+                            }
+                            aria-label={t("Quitar graduación a cinta {color}", {
+                              color: t(BELT_LABELS[g.belt]).toLowerCase(),
+                            })}
+                            className="min-h-9 cursor-pointer rounded-xl px-2 py-1 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
+                          >
+                            {t("Quitar")}
+                          </button>
+                        )}
+                      </div>
                       <p className="mt-0.5 text-sm text-neutral-600 first-letter:uppercase">
                         {formatLongDate(fromDateKey(g.promotedAt))}
                         {g.evaluatedBy &&

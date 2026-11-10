@@ -16,7 +16,12 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import { getLocale, t } from "../i18n";
 import PageHeading from "../components/PageHeading";
-import { ApiError, getTeacherCard } from "../services/api";
+import EnlacesDeAcceso from "../components/EnlacesDeAcceso";
+import {
+  ApiError,
+  createTeacherResetLink,
+  getTeacherCard,
+} from "../services/api";
 import { can, getUser } from "../services/session";
 import type { TeacherCard as TeacherCardData } from "../types/teacher";
 import { BELT_LABELS, BELT_STYLES } from "../types/student";
@@ -43,6 +48,7 @@ function TeacherCard() {
   const idValido = Number.isInteger(teacherId) && teacherId >= 1;
 
   const [estado, setEstado] = useState<Estado>({ status: "cargando" });
+  const [restableciendo, setRestableciendo] = useState(false);
 
   useEffect(() => {
     if (!idValido) return;
@@ -96,6 +102,33 @@ function TeacherCard() {
       <PageHeading module="profesores"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
         {t("Ficha del profesor")}
       </h1></PageHeading>
+
+      {esAdmin && estadoFinal.status === "ok" && (
+        <div className="mt-4">
+          {restableciendo ? (
+            <EnlacesDeAcceso
+              cuentas={[
+                {
+                  id: estadoFinal.teacher.id,
+                  etiqueta: estadoFinal.teacher.name,
+                  email: estadoFinal.teacher.email,
+                },
+              ]}
+              generar={createTeacherResetLink}
+              onCerrar={() => setRestableciendo(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setRestableciendo(true)}
+              className="flex cursor-pointer items-center gap-2 rounded-2xl border border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold text-neutral-700 transition-colors duration-200 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none motion-reduce:transition-none"
+            >
+              <KeyRound size={17} aria-hidden="true" />
+              {t("Restablecer contraseña")}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="mt-6">
         {estadoFinal.status === "cargando" && (

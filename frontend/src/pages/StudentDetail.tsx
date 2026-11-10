@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Pencil, QrCode } from "lucide-react";
+import { ArrowLeft, KeyRound, Pencil, QrCode } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
@@ -9,7 +9,12 @@ import PageHeading from "../components/PageHeading";
 import StudentCardView from "../components/StudentCardView";
 import InvitationDialog from "../components/InvitationDialog";
 import StudentEditForm from "../components/StudentEditForm";
-import { ApiError, getStudentCard } from "../services/api";
+import EnlacesDeAcceso from "../components/EnlacesDeAcceso";
+import {
+  ApiError,
+  createStudentResetLink,
+  getStudentCard,
+} from "../services/api";
 import { can, getUser } from "../services/session";
 import type { StudentCard } from "../types/student";
 
@@ -47,6 +52,7 @@ function StudentDetail() {
   const [estado, setEstado] = useState<Estado>({ status: "cargando" });
   const [invitandoTutor, setInvitandoTutor] = useState(false);
   const [editando, setEditando] = useState(false);
+  const [restableciendo, setRestableciendo] = useState(false);
 
   /** Vuelve a pedir la ficha tras guardarla. */
   function recargar() {
@@ -54,6 +60,29 @@ function StudentDetail() {
       .then((student) => setEstado({ status: "ok", student }))
       .catch(() => {});
   }
+
+  /** El alumno y sus tutores: las cuentas ligadas a este expediente. */
+  const cuentas =
+    estado.status === "ok"
+      ? [
+          ...(estado.student.cuenta
+            ? [
+                {
+                  id: estado.student.cuenta.id,
+                  etiqueta: t("{nombre} (alumno)", {
+                    nombre: `${estado.student.firstName} ${estado.student.lastName}`,
+                  }),
+                  email: estado.student.cuenta.email,
+                },
+              ]
+            : []),
+          ...estado.student.tutores.map((tutor) => ({
+            id: tutor.id,
+            etiqueta: t("{nombre} (tutor)", { nombre: tutor.name }),
+            email: tutor.email,
+          })),
+        ]
+      : [];
 
   // Solo quien puede editar alumnos puede generar invitaciones.
   const puedeInvitar = can(user, "students:write");
@@ -144,6 +173,25 @@ function StudentDetail() {
             <QrCode size={17} aria-hidden="true" />
             {t("Invitar a un tutor")}
           </button>
+
+          {cuentas.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setRestableciendo((v) => !v)}
+              aria-expanded={restableciendo}
+              className="
+                flex cursor-pointer items-center gap-2 rounded-2xl border
+                border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold
+                text-neutral-700 transition-colors duration-200
+                motion-reduce:transition-none
+                hover:bg-neutral-50
+                focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
+              "
+            >
+              <KeyRound size={17} aria-hidden="true" />
+              {t("Restablecer contraseña")}
+            </button>
+          )}
           </div>
         )}
       </div>
@@ -172,6 +220,18 @@ function StudentDetail() {
         </div>
       )}
 
+      {restableciendo && puedeInvitar && estadoFinal.status === "ok" && (
+        <div className="mt-6">
+          <EnlacesDeAcceso
+            cuentas={cuentas}
+            generar={(userId) =>
+              createStudentResetLink(estadoFinal.student.id, userId)
+            }
+            onCerrar={() => setRestableciendo(false)}
+          />
+        </div>
+      )}
+
       <div className="mt-6">
         {estadoFinal.status === "cargando" && (
           <div className="space-y-6">
@@ -190,7 +250,10 @@ function StudentDetail() {
         )}
 
         {estadoFinal.status === "ok" && (
-          <StudentCardView student={estadoFinal.student} />
+          <StudentCardView
+            student={estadoFinal.student}
+            onCambio={puedeInvitar ? () => void recargar() : undefined}
+          />
         )}
       </div>
     </DashboardLayout>

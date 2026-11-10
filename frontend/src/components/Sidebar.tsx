@@ -49,6 +49,12 @@ const NAV_ITEMS: NavItem[] = [
     permission: "students:read",
   },
   {
+    to: "/asistencia",
+    label: "Asistencia",
+    module: "asistencia",
+    permission: "students:write",
+  },
+  {
     to: "/eventos",
     label: "Eventos",
     module: "eventos",

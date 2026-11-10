@@ -7,6 +7,9 @@ import Login from "./pages/Login";
 // Cada pantalla se descarga al abrirla: así el SDK de PayPal y los formularios
 // grandes no pesan en el login.
 const Enroll = lazy(() => import("./pages/Enroll"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Attendance = lazy(() => import("./pages/Attendance"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const FamilyHome = lazy(() => import("./pages/FamilyHome"));
 const Teachers = lazy(() => import("./pages/Teachers"));
@@ -41,6 +44,10 @@ function App() {
         {/* Pública: la abre una familia desde un QR, sin sesión. El token de
             la URL es lo único que la autoriza, y el backend lo valida. */}
         <Route path="/inscripcion/:token" element={<Enroll />} />
+
+        {/* Públicas: quien olvidó su contraseña no tiene sesión. */}
+        <Route path="/recuperar" element={<ForgotPassword />} />
+        <Route path="/restablecer/:token" element={<ResetPassword />} />
 
         {/* Administración */}
         <Route
@@ -77,6 +84,15 @@ function App() {
           element={
             <ProtectedRoute permission="students:read">
               <Students />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/asistencia"
+          element={
+            <ProtectedRoute permission="students:write">
+              <Attendance />
             </ProtectedRoute>
           }
         />

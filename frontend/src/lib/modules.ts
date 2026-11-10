@@ -1,5 +1,6 @@
 import {
   Bell,
+  CalendarCheck,
   CalendarDays,
   CalendarRange,
   GraduationCap,
@@ -30,6 +31,10 @@ export const MODULES = {
   alumnos: {
     icon: Users,
     tile: "border-emerald-200 bg-emerald-50 text-emerald-700 [--tile-shadow:var(--color-emerald-400)]",
+  },
+  asistencia: {
+    icon: CalendarCheck,
+    tile: "border-indigo-200 bg-indigo-50 text-indigo-700 [--tile-shadow:var(--color-indigo-400)]",
   },
   eventos: {
     icon: CalendarDays,

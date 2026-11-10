@@ -116,6 +116,8 @@ export type StudentCard = {
   enrolledAt: string;
   active: boolean;
   hasLogin: boolean;
+  /** Cuenta propia del alumno, si la tiene. */
+  cuenta: { id: number; email: string } | null;
   /** Tutores con cuenta que pueden consultar este expediente. */
   tutores: StudentGuardianEntry[];
 

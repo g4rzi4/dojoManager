@@ -13,6 +13,7 @@ import invitationRoutes from "./routes/invitations.routes";
 import paypalRoutes from "./routes/paypal.routes";
 import equipmentRoutes from "./routes/equipment.routes";
 import classRoutes from "./routes/classes.routes";
+import attendanceRoutes from "./routes/attendance.routes";
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/invitations", invitationRoutes);
 app.use("/paypal", paypalRoutes);
 app.use("/equipment", equipmentRoutes);
 app.use("/classes", classRoutes);
+app.use("/attendance", attendanceRoutes);
 
 // Ruta no encontrada
 app.use((_req, res) => {
