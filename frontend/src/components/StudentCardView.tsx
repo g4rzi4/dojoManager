@@ -10,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 
+import CaminoDeCintas from "./CaminoDeCintas";
 import Card from "./Card";
 import FormGraduacion from "./FormGraduacion";
 import { ApiError, deleteBeltPromotion } from "../services/api";
@@ -221,6 +222,12 @@ function StudentCardView({ student, onCambio }: Props) {
           </div>
         )}
       </Card>
+
+      {/* Avance de cintas */}
+      <CaminoDeCintas
+        currentBelt={student.currentBelt}
+        graduaciones={historial.graduaciones}
+      />
 
       {/* Resumen */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
