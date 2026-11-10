@@ -15,6 +15,7 @@ alumnos, profesores, cobros y calendario, y las familias pagan en línea con **P
 | [Horario](#horario-de-clases) | Clases semanales por profesor |
 | [Pagos](#pagos) | Mensualidades, eventos y uniformes en un solo historial |
 | [PayPal](#pago-en-línea-con-paypal) | Pago en línea con captura en el servidor |
+| [Sensei](#sensei-asistente-con-ia) | Asistente con Claude: cobranza, revisión del grupo, avisos, asesor de equipo y resumen del alumno |
 | [Uniformes y protecciones](#uniformes-y-protecciones) | Solicitud de equipo por marca, modelo y talla |
 | [Inscripción por QR](#inscripción-por-qr) | Alta de alumnos y tutores desde el celular |
 | [Notificaciones](#notificaciones) | Automáticas y avisos del dojo |
@@ -40,6 +41,7 @@ alumnos, profesores, cobros y calendario, y las familias pagan en línea con **P
 ### Servicios
 - PayPal (Orders v2 y JavaScript SDK, en modo sandbox)
 - Correo SMTP con Nodemailer, opcional, para recuperar contraseñas
+- Claude (API de Anthropic, modelo Claude Opus 5.5) para Sensei, el asistente
 
 ---
 
@@ -416,6 +418,9 @@ que crea dojos y administradores pero no ve sus alumnos ni sus pagos (ver
 | Ver pagos | **todos** | los que le corresponden | sus hijos | los suyos |
 | Pagar | ❌ | ❌ | ✅ | ✅ |
 | Confirmar pagos en efectivo o transferencia | ✅ | los que le corresponden | ❌ | ❌ |
+| **Sensei:** cobranza, revisión del grupo y avisos | ✅ | su grupo | ❌ | ❌ |
+| **Sensei:** asesor de equipo | ❌ | ❌ | ✅ | ✅ |
+| **Sensei:** resumen del alumno | ✅ | su grupo | sus hijos | él mismo |
 | Solicitar **uniformes y protecciones** | ❌ | ❌ | ✅ | ✅ |
 | Mandar avisos | ✅ | ✅ | ❌ | ❌ |
 | Ver el calendario y el horario | ✅ | ✅ | ✅ | ✅ |
@@ -768,6 +773,53 @@ La integración está en [paypal.ts](backend/src/lib/paypal.ts) y
 
 ---
 
+# Sensei (asistente con IA)
+
+**Sensei** es el asistente de la app, con **Claude**. Cada rol ve tareas distintas en el
+menú **Sensei**:
+
+| Tarea | Para quién | Qué hace |
+| --- | --- | --- |
+| **Recordatorios de pago** | Admin y profesores | Redacta un mensaje por familia con mensualidades pendientes. Una persona los revisa, los edita y elige cuáles enviar; llegan como notificación con el enlace para pagar |
+| **Reporte de recuperación** | Admin y profesores | Resume cuánto se pagó después de los recordatorios, junto a las cifras reales |
+| **Revisión del grupo** | Admin y profesores | Propone candidatos a examen de cinta y señala a quién podría estar por dejar el dojo, con un mensaje para su familia |
+| **Avisos** | Admin y profesores | En **Notificaciones → Mandar un aviso**, convierte la idea escrita en un aviso con título y mensaje |
+| **Asesor de equipo** | Tutores y alumnos | Con la edad, la cinta y lo que la familia describe, recomienda uniforme y protecciones del catálogo, con talla y modelo. **Revisar y solicitar** llena la solicitud en Uniformes y protecciones para confirmarla y pagarla |
+| **Resumen del alumno** | Los cuatro roles | Asistencia, cinta, observaciones, lo pendiente y lo que viene, en pocas líneas |
+
+Cada tarea es **una sola llamada** a Claude con instrucciones fijas, no un chat libre:
+cuesta poco y lo que responde se puede verificar.
+
+Lo que protege el flujo:
+
+- **Claude solo redacta y sugiere.** No consulta la base, no fija montos ni precios, y
+  no envía, solicita ni cobra nada por su cuenta: siempre lo confirma una persona.
+- **Solo ve lo que ese usuario puede ver.** El backend arma los datos con el mismo
+  alcance que el resto de la API: un profesor, su grupo; una familia, sus hijos.
+- **Se valida lo que responde.** Los recordatorios se marcan si mencionan un monto que no
+  existe; las recomendaciones de equipo se descartan si no son de un producto, modelo,
+  talla y color del catálogo; la revisión del grupo solo acepta alumnos del grupo.
+- **No recibe teléfonos ni correos**, y para recomendar equipo tampoco recibe el nombre:
+  solo la edad y la cinta.
+- **Hay un límite de uso** por tarea, porque cada petición tiene un costo.
+
+La cobranza usa los mismos campos que [`/api/agent/unpaid`](#agente-de-cobranza-recordatorios-y-recuperación-fase-2),
+y el cálculo de recuperación vive en
+[lib/recuperacion.ts](backend/src/lib/recuperacion.ts), compartido con la ruta de Zapier.
+Los prompts están en [lib/sensei.ts](backend/src/lib/sensei.ts) y las rutas en
+[sensei.routes.ts](backend/src/routes/sensei.routes.ts).
+
+Para activarlo, agrega a **`backend/.env`** una llave de
+[console.anthropic.com](https://console.anthropic.com):
+
+```env
+ANTHROPIC_API_KEY="..."
+```
+
+Sin ella, Sensei avisa que no está disponible y el resto de la app funciona igual.
+
+---
+
 # Agente de cobranza: recordatorios y recuperación (fase 2)
 
 Después de que Zapier envía los recordatorios de cobro, el backend guarda a qué cobros
@@ -1085,7 +1137,6 @@ conflictos y comandos de rescate— está en [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Lo que todavía no existe, para que nadie lo dé por hecho:
 
-- **Asistente de IA.** Está planeado; hoy la app no tiene ninguna función de IA.
 - **Publicación en un servidor.** La app corre en local; el webhook de PayPal necesita
   una URL pública para funcionar.
 - **Pantalla para editar el catálogo de uniformes.** Por ahora se carga con
