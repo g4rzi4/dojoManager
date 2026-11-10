@@ -76,6 +76,13 @@ const NAV_ITEMS: NavItem[] = [
     permission: "self:read",
   },
   {
+    to: "/sensei",
+    label: "Sensei",
+    module: "asistente",
+    // Los cuatro roles: cada uno ve las tareas que le tocan.
+    permission: "self:read",
+  },
+  {
     to: "/uniformes",
     label: "Uniformes y protecciones",
     module: "equipo",

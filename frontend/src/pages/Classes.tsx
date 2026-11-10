@@ -273,7 +273,7 @@ function Classes() {
           <p className="mt-2 text-sm text-neutral-600">
             {puedeEditar
               ? t("Agrega la primera con el botón de arriba.")
-              : t("El dojo todavía no ha publicado su horario.")}
+              : t("Tu profesor todavía no tiene clases en el horario.")}
           </p>
         </Card>
       ) : vista === "semana" ? (

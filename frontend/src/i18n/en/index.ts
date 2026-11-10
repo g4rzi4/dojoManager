@@ -1,3 +1,4 @@
+import { assistant } from "./assistant";
 import { attendance } from "./attendance";
 import { backend } from "./backend";
 import { constants } from "./constants";
@@ -11,6 +12,7 @@ import { uniforms } from "./uniforms";
 
 /** Traducciones al inglés. La llave es el texto original en español. */
 export const en: Record<string, string> = {
+  ...assistant,
   ...attendance,
   ...backend,
   ...constants,

@@ -22,6 +22,7 @@ const MyCards = lazy(() => import("./pages/MyCards"));
 const Events = lazy(() => import("./pages/Events"));
 const Classes = lazy(() => import("./pages/Classes"));
 const Payments = lazy(() => import("./pages/Payments"));
+const Sensei = lazy(() => import("./pages/Sensei"));
 const Equipment = lazy(() => import("./pages/Equipment"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Preferences = lazy(() => import("./pages/Preferences"));
@@ -162,6 +163,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Equipment />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/sensei"
+          element={
+            <ProtectedRoute>
+              <Sensei />
             </ProtectedRoute>
           }
         />

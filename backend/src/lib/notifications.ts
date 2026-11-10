@@ -479,6 +479,32 @@ export async function notifyChargeResolved(
 }
 
 /**
+ * Llamar al enviar un recordatorio de pago aprobado desde el asistente de
+ * cobranza. Llega al alumno y a sus tutores. Devuelve a cuántos les llegó.
+ */
+export async function notifyPaymentReminder(
+  studentId: number,
+  mensaje: string
+): Promise<number> {
+  const destinatarios = await audienceForStudent(studentId);
+  const ahora = Date.now();
+
+  await createAutomatic(
+    destinatarios.map((userId) => ({
+      userId,
+      topic: NotificationTopic.PAGO,
+      title: "Recordatorio de pago",
+      body: mensaje,
+      link: "/pagos",
+      // Con la hora: el dojo puede volver a recordar el mismo adeudo.
+      dedupeKey: `recordatorio-${studentId}-${userId}-${ahora}`,
+    }))
+  );
+
+  return destinatarios.length;
+}
+
+/**
  * Manda un aviso redactado por el dojo.
  *
  * Sin dedupeKey a propósito: si el profesor quiere repetir el mismo aviso,

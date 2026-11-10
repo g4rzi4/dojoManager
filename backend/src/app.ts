@@ -16,6 +16,7 @@ import equipmentRoutes from "./routes/equipment.routes";
 import classRoutes from "./routes/classes.routes";
 import attendanceRoutes from "./routes/attendance.routes";
 import agentRoutes from "./routes/agent.routes";
+import senseiRoutes from "./routes/sensei.routes";
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use("/paypal", paypalRoutes);
 app.use("/equipment", equipmentRoutes);
 app.use("/classes", classRoutes);
 app.use("/attendance", attendanceRoutes);
+app.use("/sensei", senseiRoutes);
 app.use("/api/agent", agentRoutes);
 app.use("/agent", agentRoutes);
 

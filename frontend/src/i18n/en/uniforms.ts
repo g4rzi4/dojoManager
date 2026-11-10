@@ -154,4 +154,6 @@ export const uniforms: Record<string, string> = {
     "We couldn't verify your payment. Contact the dojo.",
   Uniformes: "Uniforms",
   Protecciones: "Protective gear",
+  "Tu profesor todavía no tiene clases en el horario.":
+    "Your teacher has no classes on the schedule yet.",
 };

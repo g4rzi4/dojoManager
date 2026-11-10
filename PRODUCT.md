@@ -33,7 +33,7 @@ Spanish-language (es-MX), amounts in Mexican pesos. Staff work from a computer; 
 
 ## Capabilities and Constraints
 
-React 19, TypeScript, Vite, Tailwind CSS 4 frontend. Express, Prisma and PostgreSQL backend. Access is role-scoped and enforced by the backend. Each dojo sees only its own data; the filter lives in `backend/src/lib/prisma.ts`. The AI assistant is planned and does not exist yet, so the interface must not present it as available.
+React 19, TypeScript, Vite, Tailwind CSS 4 frontend. Express, Prisma and PostgreSQL backend. Access is role-scoped and enforced by the backend. Each dojo sees only its own data; the filter lives in `backend/src/lib/prisma.ts`. Sensei, the in-app assistant, uses Claude for fixed per-role tasks: payment reminders, the recovery report, group review and announcements for staff; a gear advisor for families; a student summary for everyone. It only drafts and suggests from data scoped to the user, a person confirms any action, and the server validates what it returns.
 
 ## Brand Commitments
 

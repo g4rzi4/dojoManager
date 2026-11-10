@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { familyStudentIds } from "../lib/access";
 import { prisma } from "../lib/prisma";
 import { requireAuth, requirePermission } from "../middleware/auth";
 import { Discipline, Level, Role } from "../generated/prisma/enums";
@@ -9,13 +10,33 @@ const router = Router();
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /**
- * GET /classes — el horario completo del dojo.
+ * GET /classes — el horario de clases.
  *
  * Reusa los permisos de eventos: el horario es parte del calendario, y le
- * importa a los cuatro roles.
+ * importa a los cuatro roles. El admin y los profesores ven el del dojo
+ * completo; un alumno o un tutor, solo las clases de los profesores de sus
+ * alumnos, que son las que le sirven.
  */
-router.get("/", requireAuth, requirePermission("events:read"), async (_req, res) => {
+router.get("/", requireAuth, requirePermission("events:read"), async (req, res) => {
+  const user = req.user!;
+  let soloDeProfesores: number[] | null = null;
+
+  if (user.role === Role.TUTOR || user.role === Role.ALUMNO) {
+    const propios = await familyStudentIds(user);
+
+    const alumnos = await prisma.student.findMany({
+      where: { id: { in: propios } },
+      select: { teacherId: true },
+    });
+
+    soloDeProfesores = [
+      ...new Set(alumnos.flatMap((a) => (a.teacherId === null ? [] : [a.teacherId]))),
+    ];
+  }
+
   const classes = await prisma.dojoClass.findMany({
+    // Una lista vacía no encuentra nada: sin profesor asignado, no hay horario.
+    where: soloDeProfesores === null ? undefined : { teacherId: { in: soloDeProfesores } },
     orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     include: { teacher: { select: { name: true } } },
   });
