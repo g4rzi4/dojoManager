@@ -7,6 +7,8 @@ export type TokenPayload = {
   /** Id del usuario. */
   sub: number;
   role: Role;
+  /** Dojo de la cuenta. Va firmado: de aquí sale el filtro de cada consulta. */
+  dojoId: number;
 };
 
 export function signToken(payload: TokenPayload): string {
@@ -30,9 +32,14 @@ export function verifyToken(token: string): TokenPayload | null {
       typeof decoded === "object" &&
       decoded !== null &&
       typeof decoded.sub === "number" &&
-      typeof decoded.role === "string"
+      typeof decoded.role === "string" &&
+      typeof decoded.dojoId === "number"
     ) {
-      return { sub: decoded.sub, role: decoded.role as Role };
+      return {
+        sub: decoded.sub,
+        role: decoded.role as Role,
+        dojoId: decoded.dojoId,
+      };
     }
 
     return null;

@@ -8,12 +8,14 @@ web
 
 ## Users
 
-Four roles use the same app, and each deserves the same level of care:
+Four roles work inside each dojo, and each deserves the same level of care:
 
 - **Administrador:** owner of a martial arts school. Manages teachers, students, events and all collections.
 - **Profesor:** sub-administrator. Sees only their own group of students, enrolls them, sets their own event prices and confirms payments credited to their key.
 - **Tutor:** parent or guardian with one or more children enrolled. Checks each child's record and pays monthly fees and events.
 - **Alumno:** student with an account. Checks their own record, payments and calendar.
+
+Above them, the **Superadministrador** owns the platform: creates dojos and their administrators, and does not see any dojo's students or payments.
 
 Hackathon judges also evaluate the app through demo accounts.
 
@@ -31,7 +33,7 @@ Spanish-language (es-MX), amounts in Mexican pesos. Staff work from a computer; 
 
 ## Capabilities and Constraints
 
-React 19, TypeScript, Vite, Tailwind CSS 4 frontend. Express, Prisma and PostgreSQL backend. Access is role-scoped and enforced by the backend. Data is not separated per dojo. The AI assistant is planned and does not exist yet, so the interface must not present it as available.
+React 19, TypeScript, Vite, Tailwind CSS 4 frontend. Express, Prisma and PostgreSQL backend. Access is role-scoped and enforced by the backend. Each dojo sees only its own data; the filter lives in `backend/src/lib/prisma.ts`. The AI assistant is planned and does not exist yet, so the interface must not present it as available.
 
 ## Brand Commitments
 

@@ -223,9 +223,8 @@ curl http://localhost:3000
 
 # Dojo de demostración
 
-Un segundo juego de cuentas, en una **base de datos aparte**: la app no separa los
-datos por dojo y un admin ve todo lo que hay en la base, así que esta es la forma de
-tener un dojo nuevo sin los registros del seed normal. Trae cuentas, alumnos, un
+Un segundo juego de cuentas, en una **base de datos aparte**, para tener datos de
+ejemplo sin los registros del seed normal. Trae cuentas, alumnos, un
 catálogo de uniformes con **precios de ejemplo** y horarios aleatorios para cada
 profesor. Todavía no tiene mensualidades ni eventos.
 
@@ -246,6 +245,8 @@ y reinicia el backend. Para volver a tus datos, deshaz el cambio.
 
 La contraseña de todas las cuentas es **`Dojo2026!`**. Son datos ficticios: no guardes
 información real en esta base.
+
+**Superadministrador:** `superadmin@dojodemo.test` (crea dojos y administradores)
 
 **Administrador:** `admin@dojodemo.test` (Valeria Campos)
 
@@ -274,6 +275,73 @@ información real en esta base.
 
 Los hijos de una misma familia entrenan con el mismo profesor. Los profesores entran
 con correo, contraseña **y su clave**.
+
+---
+
+# Varios dojos
+
+No hay registro público. Los dojos los crea el **superadministrador**, el dueño de la
+plataforma, desde **Plataforma**: ahí ve todos los dojos y puede sumarles administradores,
+pero no ve sus alumnos ni sus pagos.
+
+La primera cuenta se crea desde el servidor, porque no hay pantalla para eso a propósito.
+Desde `backend/`:
+
+```bash
+SUPERADMIN_EMAIL="tu@correo.com" SUPERADMIN_PASSWORD="una-contraseña-larga" npx tsx prisma/crear-superadmin.ts
+```
+
+Cada dojo ve solo lo suyo; lo único compartido es el catálogo de uniformes, que no tiene
+datos personales.
+
+El filtro está en un solo lugar, [lib/prisma.ts](backend/src/lib/prisma.ts): cada
+consulta se limita al dojo que viene firmado en el token. Las rutas no tienen que hacer
+nada. Una consulta sin dojo **lanza un error** en lugar de devolver datos de todos.
+
+Al programar, tres cosas:
+
+- **Tabla nueva:** TypeScript no compila hasta decidir en `ALCANCE_POR_MODELO` a qué
+  dojo pertenece.
+- **Ruta sin sesión** (como un enlace público o un webhook): usa `prismaGlobal` para
+  averiguar el dojo y `conDojo(id, ...)` para lo demás.
+- **Un id que llega en la petición:** el filtro no revisa las filas que se crean. Antes
+  de crear algo que apunte a ese id, búscalo con una consulta normal para confirmar que
+  es del dojo. Es el error más fácil de cometer aquí.
+
+El correo y la clave de profesor son únicos entre todos los dojos, porque el login no
+pregunta de qué dojo eres.
+
+Al aplicar la migración `dojos`, todo lo que ya existía pasa a un primer dojo llamado
+"Mi dojo", y las sesiones abiertas se cierran porque su token no trae dojo.
+
+---
+
+# Preferencias de usuario
+
+Cada persona elige en **Preferencias** su idioma (español o inglés), la vista (clara
+u oscura) y el tamaño de letra. Se guardan en su cuenta, en las columnas `language`,
+`theme` y `fontSize` de `User`, así que la siguen entre dispositivos. También se
+recuerdan en el navegador para aplicarlas desde el primer instante y en las pantallas
+sin sesión.
+
+**Al agregar textos a la interfaz**, envuélvelos en `t()` y agrega su inglés en
+[frontend/src/i18n/en/](frontend/src/i18n/en/). La llave es el propio texto en español;
+si falta la traducción, se muestra en español:
+
+```tsx
+{t("Hola, {nombre}", { nombre: user.name })}
+```
+
+`t()` va dentro del render. Las constantes a nivel de módulo se quedan en español y se
+traducen donde se muestran: `t(ROLE_LABELS[role])`.
+
+Lo que **no** se traduce: lo que escribe el dojo (avisos, nombres, títulos de eventos)
+y lo que ya está guardado en español en la base, como las notificaciones automáticas.
+Tampoco los mensajes del backend que llevan un valor variable dentro.
+
+**La vista oscura** invierte la escala de colores en
+[index.css](frontend/src/index.css), así que las clases normales de Tailwind funcionan
+sin `dark:`. Para fondos de tarjeta usa `bg-surface`, no `bg-white`.
 
 ---
 

@@ -13,6 +13,7 @@ import {
   markNotificationRead,
 } from "../services/api";
 import { can, getUser } from "../services/session";
+import { t, getLocale } from "../i18n";
 import type { AppNotification } from "../types/notification";
 import { TOPIC_LABELS, TOPIC_STYLES } from "../types/notification";
 
@@ -32,7 +33,7 @@ function Notifications() {
         setError(
           e instanceof ApiError
             ? e.message
-            : "No fue posible cargar las notificaciones."
+            : t("No fue posible cargar las notificaciones.")
         );
       });
   }
@@ -49,7 +50,7 @@ function Notifications() {
           setError(
             e instanceof ApiError
               ? e.message
-              : "No fue posible cargar las notificaciones."
+              : t("No fue posible cargar las notificaciones.")
           );
         }
       })
@@ -94,12 +95,12 @@ function Notifications() {
       <header className="flex flex-wrap items-center justify-between gap-4">
         <PageHeading module="notificaciones">
           <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-            Notificaciones
+            {t("Notificaciones")}
           </h1>
           <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
             {sinLeer === 0
-              ? "Estás al día."
-              : `Tienes ${sinLeer} sin leer.`}
+              ? t("Estás al día.")
+              : t("Tienes {n} sin leer.", { n: sinLeer })}
           </p>
         </PageHeading>
 
@@ -110,7 +111,7 @@ function Notifications() {
               onClick={marcarTodas}
               className="
                 flex cursor-pointer items-center gap-2 rounded-2xl border
-                border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+                border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold
                 text-neutral-700 transition-colors duration-200
                 motion-reduce:transition-none
                 hover:bg-neutral-50
@@ -118,7 +119,7 @@ function Notifications() {
               "
             >
               <CheckCheck size={17} aria-hidden="true" />
-              Marcar todas como leídas
+              {t("Marcar todas como leídas")}
             </button>
           )}
 
@@ -137,7 +138,7 @@ function Notifications() {
               "
             >
               <Megaphone size={17} aria-hidden="true" />
-              Mandar un aviso
+              {t("Mandar un aviso")}
             </button>
           )}
         </div>
@@ -165,7 +166,7 @@ function Notifications() {
         ) : error ? (
           <Card className="border-red-200 p-6">
             <p className="font-semibold text-red-800">
-              No se pudieron cargar las notificaciones
+              {t("No se pudieron cargar las notificaciones")}
             </p>
             <p className="mt-1 text-sm text-red-700">{error}</p>
           </Card>
@@ -175,11 +176,12 @@ function Notifications() {
               <BellOff size={26} aria-hidden="true" />
             </span>
             <h2 className="mt-4 font-bold text-neutral-900">
-              No tienes notificaciones
+              {t("No tienes notificaciones")}
             </h2>
             <p className="mt-2 text-sm text-neutral-600">
-              Aquí llegarán los avisos del dojo y los recordatorios de pagos,
-              graduaciones y eventos.
+              {t(
+                "Aquí llegarán los avisos del dojo y los recordatorios de pagos, graduaciones y eventos."
+              )}
             </p>
           </Card>
         ) : (
@@ -197,26 +199,26 @@ function Notifications() {
                         TOPIC_STYLES[n.topic]
                       }`}
                     >
-                      {TOPIC_LABELS[n.topic]}
+                      {t(TOPIC_LABELS[n.topic])}
                     </span>
 
                     {n.kind === "AVISO" && (
-                      <span className="flex shrink-0 items-center gap-1 rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700">
+                      <span className="flex shrink-0 items-center gap-1 rounded-full border border-neutral-300 bg-surface px-2.5 py-1 text-xs font-semibold text-neutral-700">
                         <Megaphone size={12} aria-hidden="true" />
-                        Del dojo
+                        {t("Del dojo")}
                       </span>
                     )}
 
                     {n.kind === "AUTOMATICA" && (
-                      <span className="flex shrink-0 items-center gap-1 rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700">
+                      <span className="flex shrink-0 items-center gap-1 rounded-full border border-neutral-300 bg-surface px-2.5 py-1 text-xs font-semibold text-neutral-700">
                         <Settings2 size={12} aria-hidden="true" />
-                        Automática
+                        {t("Automática")}
                       </span>
                     )}
 
                     {!n.read && (
                       <span className="ml-auto shrink-0 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-800">
-                        Sin leer
+                        {t("Sin leer")}
                       </span>
                     )}
                   </div>
@@ -228,7 +230,7 @@ function Notifications() {
 
                   <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                     <p className="text-xs text-neutral-600">
-                      {new Date(n.createdAt).toLocaleString("es-MX", {
+                      {new Date(n.createdAt).toLocaleString(getLocale(), {
                         day: "numeric",
                         month: "long",
                         hour: "2-digit",
@@ -248,7 +250,7 @@ function Notifications() {
                           focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                         "
                       >
-                        Ver detalle
+                        {t("Ver detalle")}
                       </Link>
                     )}
 
@@ -266,7 +268,7 @@ function Notifications() {
                         "
                       >
                         <Check size={14} aria-hidden="true" />
-                        Marcar como leída
+                        {t("Marcar como leída")}
                       </button>
                     )}
                   </div>

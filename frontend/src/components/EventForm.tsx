@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import Card from "./Card";
 import { ApiError, createEvent } from "../services/api";
 import { CATEGORY_LABELS, type EventCategory } from "../types/event";
+import { t } from "../i18n";
 
 type Props = {
   onCreado: () => void | Promise<void>;
@@ -91,7 +92,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
       await onCreado();
     } catch (e: unknown) {
       setError(
-        e instanceof ApiError ? e.message : "No fue posible crear el evento."
+        e instanceof ApiError ? e.message : t("No fue posible crear el evento.")
       );
     } finally {
       setGuardando(false);
@@ -99,17 +100,16 @@ function EventForm({ onCreado, onCancelar }: Props) {
   }
 
   const inputClase = `
-    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
     outline-none transition-[border-color,box-shadow,background-color]
     focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-neutral-900">Agregar un evento</h2>
+      <h2 className="font-bold text-neutral-900">{t("Agregar un evento")}</h2>
       <p className="mt-1 text-sm text-neutral-600">
-        Aparece en el calendario de todos y les llega una notificación a
-        alumnos y tutores.
+        {t("Aparece en el calendario de todos y les llega una notificación a alumnos y tutores.")}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
@@ -118,14 +118,14 @@ function EventForm({ onCreado, onCancelar }: Props) {
             htmlFor="ev-titulo"
             className="block text-sm font-medium text-neutral-700"
           >
-            Título
+            {t("Título")}
           </label>
           <input
             id="ev-titulo"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Examen de cinta azul"
+            placeholder={t("Examen de cinta azul")}
             className={inputClase}
           />
         </div>
@@ -136,7 +136,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
               htmlFor="ev-fecha"
               className="block text-sm font-medium text-neutral-700"
             >
-              Fecha
+              {t("Fecha")}
             </label>
             <input
               id="ev-fecha"
@@ -152,8 +152,8 @@ function EventForm({ onCreado, onCancelar }: Props) {
               htmlFor="ev-hora"
               className="block text-sm font-medium text-neutral-700"
             >
-              Hora{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Hora")}{" "}
+              <span className="font-normal text-neutral-500">{t("(opcional)")}</span>
             </label>
             <input
               id="ev-hora"
@@ -164,7 +164,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
               className={inputClase}
             />
             <p id="ev-hora-ayuda" className="text-xs text-neutral-500">
-              Sin hora, dura todo el día.
+              {t("Sin hora, dura todo el día.")}
             </p>
           </div>
 
@@ -173,7 +173,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
               htmlFor="ev-categoria"
               className="block text-sm font-medium text-neutral-700"
             >
-              Categoría
+              {t("Categoría")}
             </label>
             <select
               id="ev-categoria"
@@ -183,7 +183,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
             >
               {CATEGORIAS.map((c) => (
                 <option key={c} value={c}>
-                  {CATEGORY_LABELS[c]}
+                  {t(CATEGORY_LABELS[c])}
                 </option>
               ))}
             </select>
@@ -201,11 +201,10 @@ function EventForm({ onCreado, onCancelar }: Props) {
             />
             <span>
               <span className="block text-sm font-medium text-neutral-700">
-                Requiere pago para participar
+                {t("Requiere pago para participar")}
               </span>
               <span className="mt-0.5 block text-xs text-neutral-600">
-                Los alumnos reportarán el pago con la clave de su profesor, y
-                quedan inscritos cuando él lo confirme.
+                {t("Los alumnos reportarán el pago con la clave de su profesor, y quedan inscritos cuando él lo confirme.")}
               </span>
             </span>
           </label>
@@ -221,12 +220,10 @@ function EventForm({ onCreado, onCancelar }: Props) {
                 />
                 <span>
                   <span className="block text-sm font-medium text-neutral-700">
-                    Cobrar por modalidad
+                    {t("Cobrar por modalidad")}
                   </span>
                   <span className="mt-0.5 block text-xs text-neutral-600">
-                    Para torneos: cada modalidad tiene su costo y el alumno
-                    paga la suma de las que elija. Hay quien entra a kata y
-                    kumite.
+                    {t("Para torneos: cada modalidad tiene su costo y el alumno paga la suma de las que elija. Hay quien entra a kata y kumite.")}
                   </span>
                 </span>
               </label>
@@ -240,7 +237,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
                           htmlFor={`mod-nombre-${i}`}
                           className="block text-sm font-medium text-neutral-700"
                         >
-                          Modalidad {i + 1}
+                          {t("Modalidad {n}", { n: i + 1 })}
                         </label>
                         <input
                           id={`mod-nombre-${i}`}
@@ -263,7 +260,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
                           htmlFor={`mod-precio-${i}`}
                           className="block text-sm font-medium text-neutral-700"
                         >
-                          Costo
+                          {t("Costo")}
                         </label>
                         <input
                           id={`mod-precio-${i}`}
@@ -291,7 +288,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
                               prev.filter((_, idx) => idx !== i)
                             )
                           }
-                          aria-label={`Quitar la modalidad ${i + 1}`}
+                          aria-label={t("Quitar la modalidad {n}", { n: i + 1 })}
                           className="
                             flex h-11 w-11 shrink-0 cursor-pointer items-center
                             justify-center rounded-xl text-neutral-500
@@ -314,7 +311,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
                     }
                     className="
                       flex cursor-pointer items-center gap-2 rounded-2xl border
-                      border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+                      border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold
                       text-neutral-700 transition-colors duration-200
                       motion-reduce:transition-none
                       hover:bg-neutral-50
@@ -322,7 +319,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
                     "
                   >
                     <Plus size={16} aria-hidden="true" />
-                    Agregar modalidad
+                    {t("Agregar modalidad")}
                   </button>
                 </div>
               ) : (
@@ -331,7 +328,7 @@ function EventForm({ onCreado, onCancelar }: Props) {
                     htmlFor="ev-precio"
                     className="block text-sm font-medium text-neutral-700"
                   >
-                    Costo en pesos
+                    {t("Costo en pesos")}
                   </label>
                   <input
                     id="ev-precio"
@@ -368,21 +365,21 @@ function EventForm({ onCreado, onCancelar }: Props) {
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Guardando…" : "Agregar evento"}
+            {guardando ? t("Guardando…") : t("Agregar evento")}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-3
               font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
               hover:bg-neutral-50
               focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
-            Cancelar
+            {t("Cancelar")}
           </button>
         </div>
       </form>

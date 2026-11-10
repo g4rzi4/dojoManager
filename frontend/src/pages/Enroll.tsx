@@ -4,6 +4,7 @@ import { CircleCheck, Plus, Trash2, TriangleAlert } from "lucide-react";
 
 import BrandMark from "../components/BrandMark";
 import Card from "../components/Card";
+import { t } from "../i18n";
 import {
   ApiError,
   getPublicInvitation,
@@ -82,7 +83,7 @@ function Enroll() {
             message:
               e instanceof ApiError
                 ? e.message
-                : "No fue posible abrir el enlace de inscripción.",
+                : t("No fue posible abrir el enlace de inscripción."),
           });
         }
       });
@@ -97,7 +98,9 @@ function Enroll() {
     ? estado
     : {
         status: "invalida",
-        message: "El enlace está incompleto. Pide que te lo manden de nuevo.",
+        message: t(
+          "El enlace está incompleto. Pide que te lo manden de nuevo."
+        ),
       };
 
   function actualizarHijo(i: number, campo: keyof ChildPayload, valor: string) {
@@ -114,7 +117,11 @@ function Enroll() {
     setError("");
 
     if (password.length < MIN_PASSWORD) {
-      setError(`La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`);
+      setError(
+        t("La contraseña debe tener al menos {min} caracteres.", {
+          min: MIN_PASSWORD,
+        })
+      );
       return;
     }
 
@@ -159,12 +166,12 @@ function Enroll() {
 
       const res = await submitEnrollment(token, payload);
 
-      setEstado({ status: "enviada", message: res.message });
+      setEstado({ status: "enviada", message: t(res.message) });
     } catch (e: unknown) {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible enviar el formulario."
+          : t("No fue posible enviar el formulario.")
       );
     } finally {
       setEnviando(false);
@@ -172,7 +179,7 @@ function Enroll() {
   }
 
   const inputClase = `
-    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
     outline-none transition-[border-color,box-shadow,background-color]
     focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
@@ -185,7 +192,7 @@ function Enroll() {
           <BrandMark className="h-11 w-11" />
           <div>
             <p className="font-bold text-neutral-900">DojoManager</p>
-            <p className="text-xs text-neutral-600">Inscripción</p>
+            <p className="text-xs text-neutral-600">{t("Inscripción")}</p>
           </div>
         </div>
 
@@ -200,7 +207,7 @@ function Enroll() {
                 <TriangleAlert size={26} aria-hidden="true" />
               </span>
               <h1 className="mt-4 text-xl font-bold text-neutral-900">
-                Este enlace no se puede usar
+                {t("Este enlace no se puede usar")}
               </h1>
               <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-600">
                 {estadoFinal.message}
@@ -214,7 +221,7 @@ function Enroll() {
                 <CircleCheck size={26} aria-hidden="true" />
               </span>
               <h1 className="mt-4 text-xl font-bold text-neutral-900">
-                ¡Registro completo!
+                {t("¡Registro completo!")}
               </h1>
               <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-600">
                 {estadoFinal.message}
@@ -229,7 +236,7 @@ function Enroll() {
                   focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
                 "
               >
-                Iniciar sesión
+                {t("Iniciar sesión")}
               </Link>
             </Card>
           )}
@@ -238,13 +245,16 @@ function Enroll() {
             <Card className="p-5 sm:p-6">
               <h1 className="text-xl font-bold text-neutral-900 sm:text-2xl">
                 {estadoFinal.invitation.kind === "ALUMNO"
-                  ? "Completa tus datos"
-                  : "Datos del tutor y de sus hijos"}
+                  ? t("Completa tus datos")
+                  : t("Datos del tutor y de sus hijos")}
               </h1>
               <p className="mt-2 text-sm text-neutral-600">
-                Te invitó <strong>{estadoFinal.invitation.invitadoPor}</strong>.
+                {t("Te invitó")}{" "}
+                <strong>{estadoFinal.invitation.invitadoPor}</strong>.
                 {estadoFinal.invitation.alumnoLigado &&
-                  ` Quedarás ligado al expediente de ${estadoFinal.invitation.alumnoLigado}.`}
+                  ` ${t("Quedarás ligado al expediente de {nombre}.", {
+                    nombre: estadoFinal.invitation.alumnoLigado,
+                  })}`}
               </p>
 
               <form onSubmit={handleSubmit} className="mt-6 space-y-6">
@@ -256,7 +266,7 @@ function Enroll() {
                         htmlFor="e-nombre"
                         className="block text-sm font-medium text-neutral-700"
                       >
-                        Nombre
+                        {t("Nombre")}
                       </label>
                       <input
                         id="e-nombre"
@@ -273,7 +283,7 @@ function Enroll() {
                         htmlFor="e-apellido"
                         className="block text-sm font-medium text-neutral-700"
                       >
-                        Apellido
+                        {t("Apellido")}
                       </label>
                       <input
                         id="e-apellido"
@@ -290,7 +300,7 @@ function Enroll() {
                         htmlFor="e-nacimiento"
                         className="block text-sm font-medium text-neutral-700"
                       >
-                        Fecha de nacimiento
+                        {t("Fecha de nacimiento")}
                       </label>
                       <input
                         id="e-nacimiento"
@@ -306,7 +316,7 @@ function Enroll() {
                         htmlFor="e-celular"
                         className="block text-sm font-medium text-neutral-700"
                       >
-                        Celular
+                        {t("Celular")}
                       </label>
                       <input
                         id="e-celular"
@@ -323,9 +333,9 @@ function Enroll() {
                         htmlFor="e-tutor"
                         className="block text-sm font-medium text-neutral-700"
                       >
-                        Nombre de tu tutor{" "}
+                        {t("Nombre de tu tutor")}{" "}
                         <span className="font-normal text-neutral-500">
-                          (si eres menor de edad)
+                          {t("(si eres menor de edad)")}
                         </span>
                       </label>
                       <input
@@ -342,7 +352,7 @@ function Enroll() {
                         htmlFor="e-tutor-tel"
                         className="block text-sm font-medium text-neutral-700"
                       >
-                        Celular de tu tutor
+                        {t("Celular de tu tutor")}
                       </label>
                       <input
                         id="e-tutor-tel"
@@ -358,9 +368,9 @@ function Enroll() {
                         htmlFor="e-medico"
                         className="block text-sm font-medium text-neutral-700"
                       >
-                        Información médica{" "}
+                        {t("Información médica")}{" "}
                         <span className="font-normal text-neutral-500">
-                          (opcional)
+                          {t("(opcional)")}
                         </span>
                       </label>
                       <textarea
@@ -368,7 +378,9 @@ function Enroll() {
                         rows={2}
                         value={medicalNotes}
                         onChange={(e) => setMedicalNotes(e.target.value)}
-                        placeholder="Alergias, lesiones o padecimientos que el profesor deba conocer."
+                        placeholder={t(
+                          "Alergias, lesiones o padecimientos que el profesor deba conocer."
+                        )}
                         className={inputClase}
                       />
                     </div>
@@ -384,7 +396,7 @@ function Enroll() {
                           htmlFor="e-tu-nombre"
                           className="block text-sm font-medium text-neutral-700"
                         >
-                          Tu nombre completo
+                          {t("Tu nombre completo")}
                         </label>
                         <input
                           id="e-tu-nombre"
@@ -401,7 +413,7 @@ function Enroll() {
                           htmlFor="e-parentesco"
                           className="block text-sm font-medium text-neutral-700"
                         >
-                          Parentesco
+                          {t("Parentesco")}
                         </label>
                         <select
                           id="e-parentesco"
@@ -413,9 +425,9 @@ function Enroll() {
                           }
                           className={`${inputClase} cursor-pointer`}
                         >
-                          <option value="MADRE">Madre</option>
-                          <option value="PADRE">Padre</option>
-                          <option value="TUTOR">Tutor o tutora</option>
+                          <option value="MADRE">{t("Madre")}</option>
+                          <option value="PADRE">{t("Padre")}</option>
+                          <option value="TUTOR">{t("Tutor o tutora")}</option>
                         </select>
                       </div>
 
@@ -424,7 +436,7 @@ function Enroll() {
                           htmlFor="e-tu-celular"
                           className="block text-sm font-medium text-neutral-700"
                         >
-                          Tu celular
+                          {t("Tu celular")}
                         </label>
                         <input
                           id="e-tu-celular"
@@ -440,7 +452,7 @@ function Enroll() {
                     {/* Hijos */}
                     <fieldset className="border-t border-neutral-200 pt-5">
                       <legend className="text-sm font-semibold text-neutral-900">
-                        Tus hijos en el dojo
+                        {t("Tus hijos en el dojo")}
                       </legend>
 
                       <div className="mt-4 space-y-4">
@@ -451,7 +463,7 @@ function Enroll() {
                           >
                             <div className="flex items-center justify-between">
                               <p className="text-sm font-semibold text-neutral-900">
-                                Hijo o hija {i + 1}
+                                {t("Hijo o hija {n}", { n: i + 1 })}
                               </p>
 
                               {children.length > 1 && (
@@ -462,7 +474,7 @@ function Enroll() {
                                       prev.filter((_, idx) => idx !== i)
                                     )
                                   }
-                                  aria-label={`Quitar al hijo ${i + 1}`}
+                                  aria-label={t("Quitar al hijo {n}", { n: i + 1 })}
                                   className="
                                     flex h-11 w-11 cursor-pointer items-center
                                     justify-center rounded-xl text-neutral-500
@@ -483,7 +495,7 @@ function Enroll() {
                                   htmlFor={`h-nombre-${i}`}
                                   className="block text-sm font-medium text-neutral-700"
                                 >
-                                  Nombre
+                                  {t("Nombre")}
                                 </label>
                                 <input
                                   id={`h-nombre-${i}`}
@@ -502,7 +514,7 @@ function Enroll() {
                                   htmlFor={`h-apellido-${i}`}
                                   className="block text-sm font-medium text-neutral-700"
                                 >
-                                  Apellido
+                                  {t("Apellido")}
                                 </label>
                                 <input
                                   id={`h-apellido-${i}`}
@@ -521,7 +533,7 @@ function Enroll() {
                                   htmlFor={`h-nacimiento-${i}`}
                                   className="block text-sm font-medium text-neutral-700"
                                 >
-                                  Fecha de nacimiento
+                                  {t("Fecha de nacimiento")}
                                 </label>
                                 <input
                                   id={`h-nacimiento-${i}`}
@@ -539,7 +551,7 @@ function Enroll() {
                                   htmlFor={`h-medico-${i}`}
                                   className="block text-sm font-medium text-neutral-700"
                                 >
-                                  Información médica
+                                  {t("Información médica")}
                                 </label>
                                 <input
                                   id={`h-medico-${i}`}
@@ -548,7 +560,7 @@ function Enroll() {
                                   onChange={(e) =>
                                     actualizarHijo(i, "medicalNotes", e.target.value)
                                   }
-                                  placeholder="Alergias, lesiones"
+                                  placeholder={t("Alergias, lesiones")}
                                   className={inputClase}
                                 />
                               </div>
@@ -568,7 +580,7 @@ function Enroll() {
                           }
                           className="
                             mt-4 flex cursor-pointer items-center gap-2 rounded-2xl
-                            border border-neutral-300 bg-white px-4 py-2.5 text-sm
+                            border border-neutral-300 bg-surface px-4 py-2.5 text-sm
                             font-semibold text-neutral-700
                             transition-colors duration-200
                             motion-reduce:transition-none
@@ -577,7 +589,7 @@ function Enroll() {
                           "
                         >
                           <Plus size={16} aria-hidden="true" />
-                          Agregar otro hijo
+                          {t("Agregar otro hijo")}
                         </button>
                       )}
                     </fieldset>
@@ -587,14 +599,14 @@ function Enroll() {
                 {/* Acceso */}
                 <fieldset className="border-t border-neutral-200 pt-5">
                   <legend className="text-sm font-semibold text-neutral-900">
-                    Tu acceso al sistema
+                    {t("Tu acceso al sistema")}
                   </legend>
                   <p className="mt-1 text-sm text-neutral-600">
-                    Con esto podrás entrar a consultar{" "}
                     {estadoFinal.invitation.kind === "ALUMNO"
-                      ? "tu expediente"
-                      : "el expediente de tus hijos"}
-                    .
+                      ? t("Con esto podrás entrar a consultar tu expediente.")
+                      : t(
+                          "Con esto podrás entrar a consultar el expediente de tus hijos."
+                        )}
                   </p>
 
                   <div className="mt-4 grid gap-5 sm:grid-cols-2">
@@ -603,7 +615,7 @@ function Enroll() {
                         htmlFor="e-correo"
                         className="block text-sm font-medium text-neutral-700"
                       >
-                        Correo electrónico
+                        {t("Correo electrónico")}
                       </label>
                       <input
                         id="e-correo"
@@ -621,7 +633,7 @@ function Enroll() {
                         htmlFor="e-password"
                         className="block text-sm font-medium text-neutral-700"
                       >
-                        Contraseña
+                        {t("Contraseña")}
                       </label>
                       <input
                         id="e-password"
@@ -635,7 +647,7 @@ function Enroll() {
                         className={inputClase}
                       />
                       <p id="e-password-ayuda" className="text-xs text-neutral-500">
-                        Al menos {MIN_PASSWORD} caracteres.
+                        {t("Al menos {min} caracteres.", { min: MIN_PASSWORD })}
                       </p>
                     </div>
                   </div>
@@ -662,7 +674,7 @@ function Enroll() {
                     disabled:cursor-not-allowed disabled:opacity-50
                   "
                 >
-                  {enviando ? "Enviando…" : "Completar inscripción"}
+                  {enviando ? t("Enviando…") : t("Completar inscripción")}
                 </button>
               </form>
             </Card>

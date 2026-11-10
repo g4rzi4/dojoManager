@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { Check, Copy, QrCode, TriangleAlert } from "lucide-react";
 
+import { getLocale, t } from "../i18n";
 import Card from "./Card";
 import { ApiError, createInvitation } from "../services/api";
 import {
@@ -81,7 +82,7 @@ function InvitationDialog({
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible generar la invitación."
+          : t("No fue posible generar la invitación.")
       );
     } finally {
       setGenerando(false);
@@ -101,7 +102,7 @@ function InvitationDialog({
   }
 
   const inputClase = `
-    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
     outline-none transition-[border-color,box-shadow,background-color]
     focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
@@ -110,7 +111,7 @@ function InvitationDialog({
   // Ya generada: QR + enlace
   // -------------------------------------------------------------------------
   if (invitacion) {
-    const caduca = new Date(invitacion.expiresAt).toLocaleDateString("es-MX", {
+    const caduca = new Date(invitacion.expiresAt).toLocaleDateString(getLocale(), {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -119,18 +120,23 @@ function InvitationDialog({
     return (
       <Card className="p-5 sm:p-6">
         <h2 className="font-bold text-neutral-900">
-          Invitación para {INVITATION_KIND_LABELS[invitacion.kind].toLowerCase()}
+          {t("Invitación para {tipo}", {
+            tipo: t(INVITATION_KIND_LABELS[invitacion.kind]).toLowerCase(),
+          })}
         </h2>
         <p className="mt-1 text-sm text-neutral-600">
-          Comparte el QR o el enlace. Al llenar el formulario queda registrado
-          en tu grupo.
+          {t(
+            "Comparte el QR o el enlace. Al llenar el formulario queda registrado en tu grupo."
+          )}
         </p>
 
         <div className="mt-5 flex flex-col items-center gap-5 sm:flex-row sm:items-start">
           {qr ? (
             <img
               src={qr}
-              alt={`Código QR del enlace de inscripción para ${INVITATION_KIND_LABELS[invitacion.kind].toLowerCase()}`}
+              alt={t("Código QR del enlace de inscripción para {tipo}", {
+                tipo: t(INVITATION_KIND_LABELS[invitacion.kind]).toLowerCase(),
+              })}
               className="h-44 w-44 shrink-0 rounded-2xl border border-neutral-200"
             />
           ) : (
@@ -141,7 +147,7 @@ function InvitationDialog({
 
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-neutral-600">
-              Enlace
+              {t("Enlace")}
             </p>
 
             {/* break-all para que una URL larga no desborde en móvil */}
@@ -154,7 +160,7 @@ function InvitationDialog({
               onClick={copiar}
               className="
                 mt-3 flex cursor-pointer items-center gap-2 rounded-2xl border
-                border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+                border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold
                 text-neutral-700 transition-colors duration-200
                 motion-reduce:transition-none
                 hover:bg-neutral-50
@@ -164,12 +170,12 @@ function InvitationDialog({
               {copiado ? (
                 <>
                   <Check size={16} aria-hidden="true" className="text-emerald-700" />
-                  Copiado
+                  {t("Copiado")}
                 </>
               ) : (
                 <>
                   <Copy size={16} aria-hidden="true" />
-                  Copiar enlace
+                  {t("Copiar enlace")}
                 </>
               )}
             </button>
@@ -183,11 +189,12 @@ function InvitationDialog({
             className="mt-0.5 shrink-0 text-amber-700"
           />
           <div className="text-sm text-amber-900">
-            <p className="font-semibold">Sirve una sola vez</p>
+            <p className="font-semibold">{t("Sirve una sola vez")}</p>
             <p className="mt-1">
-              Al llenarse queda inservible, y caduca el {caduca}. Mándaselo
-              solo a la persona que se va a inscribir: cualquiera con el
-              enlace puede llenar el formulario.
+              {t(
+                "Al llenarse queda inservible, y caduca el {fecha}. Mándaselo solo a la persona que se va a inscribir: cualquiera con el enlace puede llenar el formulario.",
+                { fecha: caduca }
+              )}
             </p>
           </div>
         </div>
@@ -196,14 +203,14 @@ function InvitationDialog({
           type="button"
           onClick={onCerrar}
           className="
-            mt-5 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+            mt-5 cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-3
             font-semibold text-neutral-700 transition-colors duration-200
             motion-reduce:transition-none
             hover:bg-neutral-50
             focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
           "
         >
-          Listo
+          {t("Listo")}
         </button>
       </Card>
     );
@@ -215,19 +222,23 @@ function InvitationDialog({
   return (
     <Card className="p-5 sm:p-6">
       <h2 className="font-bold text-neutral-900">
-        Generar invitación de inscripción
+        {t("Generar invitación de inscripción")}
       </h2>
       <p className="mt-1 text-sm text-neutral-600">
         {studentName
-          ? `Para sumar un tutor al expediente de ${studentName}.`
-          : "La persona llena sus datos y queda registrada en tu grupo, sin que tú captures nada."}
+          ? t("Para sumar un tutor al expediente de {nombre}.", {
+              nombre: studentName,
+            })
+          : t(
+              "La persona llena sus datos y queda registrada en tu grupo, sin que tú captures nada."
+            )}
       </p>
 
       <div className="mt-5 space-y-5">
         {!soloTipo && (
           <fieldset>
             <legend className="text-sm font-medium text-neutral-700">
-              ¿Para quién es?
+              {t("¿Para quién es?")}
             </legend>
 
             <div className="mt-2 grid gap-3 sm:grid-cols-2">
@@ -241,7 +252,7 @@ function InvitationDialog({
                     ${
                       kind === k
                         ? "border-violet-600 bg-violet-50"
-                        : "border-neutral-300 bg-white hover:bg-neutral-50"
+                        : "border-neutral-300 bg-surface hover:bg-neutral-50"
                     }
                   `}
                 >
@@ -255,12 +266,14 @@ function InvitationDialog({
                   />
                   <span>
                     <span className="block text-sm font-semibold text-neutral-900">
-                      {INVITATION_KIND_LABELS[k]}
+                      {t(INVITATION_KIND_LABELS[k])}
                     </span>
                     <span className="mt-0.5 block text-xs text-neutral-600">
                       {k === "ALUMNO"
-                        ? "Llena sus propios datos: nombre, fecha de nacimiento, correo y celular."
-                        : "Llena sus datos y los de sus hijos."}
+                        ? t(
+                            "Llena sus propios datos: nombre, fecha de nacimiento, correo y celular."
+                          )
+                        : t("Llena sus datos y los de sus hijos.")}
                     </span>
                   </span>
                 </label>
@@ -274,21 +287,24 @@ function InvitationDialog({
             htmlFor="inv-nota"
             className="block text-sm font-medium text-neutral-700"
           >
-            Nota para ti{" "}
-            <span className="font-normal text-neutral-500">(opcional)</span>
+            {t("Nota para ti")}{" "}
+            <span className="font-normal text-neutral-500">
+              {t("(opcional)")}
+            </span>
           </label>
           <input
             id="inv-nota"
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Familia Pérez, hermano de Ana"
+            placeholder={t("Familia Pérez, hermano de Ana")}
             aria-describedby="inv-nota-ayuda"
             className={inputClase}
           />
           <p id="inv-nota-ayuda" className="text-xs text-neutral-500">
-            Solo tú la ves. Sirve para recordar a quién le mandaste cada
-            enlace.
+            {t(
+              "Solo tú la ves. Sirve para recordar a quién le mandaste cada enlace."
+            )}
           </p>
         </div>
 
@@ -313,21 +329,21 @@ function InvitationDialog({
             "
           >
             <QrCode size={17} aria-hidden="true" />
-            {generando ? "Generando…" : "Generar QR y enlace"}
+            {generando ? t("Generando…") : t("Generar QR y enlace")}
           </button>
 
           <button
             type="button"
             onClick={onCerrar}
             className="
-              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-3
               font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
               hover:bg-neutral-50
               focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
-            Cancelar
+            {t("Cancelar")}
           </button>
         </div>
       </div>

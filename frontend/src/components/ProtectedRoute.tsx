@@ -2,12 +2,17 @@ import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 
 import { can, getUser, homePathFor } from "../services/session";
-import type { Permission } from "../types/user";
+import type { Permission, Role } from "../types/user";
 
 type Props = {
   children: ReactNode;
   /** Permiso necesario. Sin él, basta con tener sesión. */
   permission?: Permission;
+  /**
+   * Roles para los que existe la pantalla. Para las que no dependen de un
+   * permiso sino de quién eres: la tarjeta es del alumno, las fichas del tutor.
+   */
+  roles?: Role[];
 };
 
 /**
@@ -18,14 +23,17 @@ type Props = {
  * backend valida el token y el permiso en cada petición, así que la página
  * se vería vacía o con un error 403.
  */
-function ProtectedRoute({ children, permission }: Props) {
+function ProtectedRoute({ children, permission, roles }: Props) {
   const user = getUser();
 
   if (!user) {
     return <Navigate to="/" replace />;
   }
 
-  if (permission && !can(user, permission)) {
+  if (
+    (permission && !can(user, permission)) ||
+    (roles && !roles.includes(user.role))
+  ) {
     // Lo mandamos a su propia pantalla de inicio en lugar de dejarlo en una
     // página vacía sin explicación.
     return <Navigate to={homePathFor(user)} replace />;

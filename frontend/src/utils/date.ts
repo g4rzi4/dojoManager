@@ -1,3 +1,5 @@
+import { getLocale } from "../i18n";
+
 export const MONTH_NAMES = [
   "enero",
   "febrero",
@@ -70,7 +72,7 @@ export function isSameDay(a: Date, b: Date): boolean {
 
 /** Formatea como "lunes 3 de marzo de 2026". */
 export function formatLongDate(date: Date): string {
-  return date.toLocaleDateString("es-MX", {
+  return date.toLocaleDateString(getLocale(), {
     weekday: "long",
     day: "numeric",
     month: "long",

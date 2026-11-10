@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fafafa" />
     <title>DojoManager</title>
+    <script>
+      // Antes de pintar, para que la vista oscura no parpadee en blanco.
+      // Los valores completos viven en src/services/preferences.ts.
+      try {
+        var p = JSON.parse(localStorage.getItem("preferences") || "{}");
+        if (p.theme === "DARK") document.documentElement.dataset.theme = "dark";
+        if (p.fontSize === "SMALL") document.documentElement.style.fontSize = "90%";
+        if (p.fontSize === "LARGE") document.documentElement.style.fontSize = "115%";
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

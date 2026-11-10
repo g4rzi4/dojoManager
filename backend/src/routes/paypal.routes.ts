@@ -16,7 +16,8 @@ import {
   verifyWebhook,
   type CapturedOrder,
 } from "../lib/paypal";
-import { prisma } from "../lib/prisma";
+import { conDojo } from "../lib/dojoContext";
+import { prisma, prismaGlobal } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 import {
   EquipmentRequestStatus,
@@ -28,6 +29,19 @@ import {
 const router = Router();
 
 /** Busca el cobro al que pertenece una orden. */
+/** El webhook no lleva sesión: el dojo sale del cobro que pagaron. */
+async function dojoDeOrden(orderId: string): Promise<number | null> {
+  const where = { externalReference: orderId };
+  const select = { student: { select: { dojoId: true } } };
+
+  const cobro =
+    (await prismaGlobal.payment.findUnique({ where, select })) ??
+    (await prismaGlobal.eventEnrollment.findUnique({ where, select })) ??
+    (await prismaGlobal.equipmentRequest.findUnique({ where, select }));
+
+  return cobro?.student.dojoId ?? null;
+}
+
 async function cobroDeOrden(orderId: string) {
   const payment = await prisma.payment.findUnique({
     where: { externalReference: orderId },
@@ -409,13 +423,19 @@ router.post("/webhook", async (req: Request & { rawBody?: Buffer }, res) => {
   if (evento.event_type === "PAYMENT.CAPTURE.COMPLETED") {
     const recurso = evento.resource;
     const orderId = recurso?.supplementary_data?.related_ids?.order_id;
-    const cobro = orderId ? await cobroDeOrden(orderId) : null;
+    const dojoId = orderId ? await dojoDeOrden(orderId) : null;
 
-    if (cobro && !yaLiquidado(cobro)) {
-      await liquidar(cobro, {
-        status: recurso.status,
-        amountCents: payPalValueToCents(recurso.amount.value),
-        currency: recurso.amount.currency_code,
+    if (dojoId !== null) {
+      await conDojo(dojoId, async () => {
+        const cobro = await cobroDeOrden(orderId);
+
+        if (cobro && !yaLiquidado(cobro)) {
+          await liquidar(cobro, {
+            status: recurso.status,
+            amountCents: payPalValueToCents(recurso.amount.value),
+            currency: recurso.amount.currency_code,
+          });
+        }
       });
     }
   }

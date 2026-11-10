@@ -10,6 +10,7 @@
  * Es idempotente: se puede correr varias veces sin duplicar nada.
  */
 
+import { enElPrimerDojo } from "./dojoDeSemilla";
 import { prisma } from "../src/lib/prisma";
 import { EquipmentCategory } from "../src/generated/prisma/enums";
 
@@ -120,7 +121,7 @@ async function main() {
   console.log("Catálogo de ejemplo listo.");
 }
 
-main()
+enElPrimerDojo(main)
   .catch((error) => {
     console.error(error);
     process.exitCode = 1;

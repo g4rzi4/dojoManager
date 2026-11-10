@@ -16,6 +16,7 @@ import PageHeading from "../components/PageHeading";
 import ClassForm from "../components/ClassForm";
 import { ApiError, createClass, deleteClass, getClasses } from "../services/api";
 import { can, getUser } from "../services/session";
+import { t } from "../i18n";
 import {
   DAY_NAMES,
   DISCIPLINE_LABELS,
@@ -64,7 +65,7 @@ function Classes() {
         if (activo) setClasses(data);
       })
       .catch((e: unknown) => {
-        if (activo) setError(mensajeDe(e, "No fue posible cargar el horario."));
+        if (activo) setError(mensajeDe(e, t("No fue posible cargar el horario.")));
       })
       .finally(() => {
         if (activo) setCargando(false);
@@ -116,12 +117,12 @@ function Classes() {
       setClasses((prev) => [...prev, creada]);
       setAgregando(false);
     } catch (e: unknown) {
-      setError(mensajeDe(e, "No fue posible agregar la clase."));
+      setError(mensajeDe(e, t("No fue posible agregar la clase.")));
     }
   }
 
   async function quitar(clase: DojoClass) {
-    if (!window.confirm(`¿Quitar "${clase.title}" del horario?`)) return;
+    if (!window.confirm(t('¿Quitar "{titulo}" del horario?', { titulo: clase.title }))) return;
 
     setError("");
 
@@ -129,7 +130,7 @@ function Classes() {
       await deleteClass(clase.id);
       setClasses((prev) => prev.filter((c) => c.id !== clase.id));
     } catch (e: unknown) {
-      setError(mensajeDe(e, "No fue posible quitar la clase."));
+      setError(mensajeDe(e, t("No fue posible quitar la clase.")));
     }
   }
 
@@ -138,10 +139,10 @@ function Classes() {
       <header className="flex flex-wrap items-center justify-between gap-4">
         <PageHeading module="horario">
           <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-            Horario de clases
+            {t("Horario de clases")}
           </h1>
           <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
-            Las clases que se repiten cada semana, por día y horario.
+            {t("Las clases que se repiten cada semana, por día y horario.")}
           </p>
         </PageHeading>
 
@@ -149,8 +150,8 @@ function Classes() {
           {/* Cambio de vista */}
           <div
             role="group"
-            aria-label="Cambiar vista"
-            className="flex rounded-2xl border border-neutral-300 bg-white p-1"
+            aria-label={t("Cambiar vista")}
+            className="flex rounded-2xl border border-neutral-300 bg-surface p-1"
           >
             <button
               type="button"
@@ -169,7 +170,7 @@ function Classes() {
               `}
             >
               <CalendarRange size={16} aria-hidden="true" />
-              Semana
+              {t("Semana")}
             </button>
             <button
               type="button"
@@ -188,7 +189,7 @@ function Classes() {
               `}
             >
               <List size={16} aria-hidden="true" />
-              Lista
+              {t("Lista")}
             </button>
           </div>
 
@@ -207,7 +208,7 @@ function Classes() {
               "
             >
               <Plus size={17} aria-hidden="true" />
-              Agregar clase
+              {t("Agregar clase")}
             </button>
           )}
         </div>
@@ -227,7 +228,7 @@ function Classes() {
             htmlFor="filtro-profesor"
             className="block text-sm font-medium text-neutral-700"
           >
-            Profesor
+            {t("Profesor")}
           </label>
           <select
             id="filtro-profesor"
@@ -238,12 +239,12 @@ function Classes() {
               )
             }
             className="
-              mt-2 w-full cursor-pointer rounded-2xl border border-neutral-300 bg-white
+              mt-2 w-full cursor-pointer rounded-2xl border border-neutral-300 bg-surface
               px-4 py-3 text-neutral-800 outline-none
               focus:border-violet-600 focus:ring-4 focus:ring-violet-100
             "
           >
-            <option value="TODOS">Todos los profesores</option>
+            <option value="TODOS">{t("Todos los profesores")}</option>
             {profesores.map(([id, nombre]) => (
               <option key={id} value={id}>
                 {nombre}
@@ -267,12 +268,12 @@ function Classes() {
             <CalendarRange size={26} aria-hidden="true" />
           </span>
           <h2 className="mt-4 font-bold text-neutral-900">
-            No hay clases en el horario
+            {t("No hay clases en el horario")}
           </h2>
           <p className="mt-2 text-sm text-neutral-600">
             {puedeEditar
-              ? "Agrega la primera con el botón de arriba."
-              : "El dojo todavía no ha publicado su horario."}
+              ? t("Agrega la primera con el botón de arriba.")
+              : t("El dojo todavía no ha publicado su horario.")}
           </p>
         </Card>
       ) : vista === "semana" ? (
@@ -280,22 +281,22 @@ function Classes() {
            funciona igual de bien en pantalla chica. */
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
           {DAY_NAMES.map((nombre, i) => (
-            <section key={nombre} aria-label={nombre}>
+            <section key={nombre} aria-label={t(nombre)}>
               <h2
                 className={`mb-3 text-sm font-semibold ${
                   i === hoy ? "text-violet-700" : "text-neutral-900"
                 }`}
               >
-                {nombre}
+                {t(nombre)}
                 {i === hoy && (
                   <span className="ml-2 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-800">
-                    Hoy
+                    {t("Hoy")}
                   </span>
                 )}
               </h2>
 
               {porDia[i].length === 0 ? (
-                <p className="text-xs text-neutral-500">Sin clases</p>
+                <p className="text-xs text-neutral-500">{t("Sin clases")}</p>
               ) : (
                 <ul className="space-y-2">
                   {porDia[i].map((c) => (
@@ -318,7 +319,7 @@ function Classes() {
                           <button
                             type="button"
                             onClick={() => quitar(c)}
-                            aria-label={`Quitar ${c.title} del horario`}
+                            aria-label={t("Quitar {titulo} del horario", { titulo: c.title })}
                             className="
                               mt-2 flex cursor-pointer items-center gap-1 rounded
                               text-xs font-semibold opacity-80
@@ -329,7 +330,7 @@ function Classes() {
                             "
                           >
                             <Trash2 size={12} aria-hidden="true" />
-                            Quitar
+                            {t("Quitar")}
                           </button>
                         )}
                       </div>
@@ -347,10 +348,10 @@ function Classes() {
             porDia[i].length === 0 ? null : (
               <section key={nombre}>
                 <h2 className="text-sm font-semibold text-neutral-900">
-                  {nombre}
+                  {t(nombre)}
                   {i === hoy && (
                     <span className="ml-2 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-800">
-                      Hoy
+                      {t("Hoy")}
                     </span>
                   )}
                 </h2>
@@ -379,7 +380,7 @@ function Classes() {
                             </span>
                             <span className="flex items-center gap-1">
                               <Users size={14} aria-hidden="true" />
-                              {c.capacity} lugares
+                              {t("{n} lugares", { n: c.capacity })}
                             </span>
                           </div>
                         </div>
@@ -389,18 +390,18 @@ function Classes() {
                             DISCIPLINE_STYLES[c.discipline].card
                           }`}
                         >
-                          {DISCIPLINE_LABELS[c.discipline]}
+                          {t(DISCIPLINE_LABELS[c.discipline])}
                         </span>
 
-                        <span className="shrink-0 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-semibold text-neutral-700">
-                          {LEVEL_LABELS[c.level]}
+                        <span className="shrink-0 rounded-full border border-neutral-300 bg-surface px-3 py-1 text-xs font-semibold text-neutral-700">
+                          {t(LEVEL_LABELS[c.level])}
                         </span>
 
                         {puedeQuitar(c) && (
                           <button
                             type="button"
                             onClick={() => quitar(c)}
-                            aria-label={`Quitar ${c.title} del horario`}
+                            aria-label={t("Quitar {titulo} del horario", { titulo: c.title })}
                             className="
                               flex h-11 w-11 shrink-0 cursor-pointer items-center
                               justify-center rounded-xl text-neutral-500

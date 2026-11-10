@@ -3,6 +3,7 @@ import { useState } from "react";
 import Card from "./Card";
 import { ApiError, createStudent } from "../services/api";
 import { getUser } from "../services/session";
+import { t } from "../i18n";
 
 type Props = {
   onCreado: () => void | Promise<void>;
@@ -58,7 +59,7 @@ function StudentForm({ onCreado, onCancelar }: Props) {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible registrar al alumno."
+          : t("No fue posible registrar al alumno.")
       );
     } finally {
       setGuardando(false);
@@ -66,18 +67,18 @@ function StudentForm({ onCreado, onCancelar }: Props) {
   }
 
   const inputClase = `
-    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
     outline-none transition-[border-color,box-shadow,background-color]
     focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-neutral-900">Registrar un alumno</h2>
+      <h2 className="font-bold text-neutral-900">{t("Registrar un alumno")}</h2>
       <p className="mt-1 text-sm text-neutral-600">
         {esAdmin
-          ? "Escribe la clave del profesor para asignarlo a su grupo."
-          : "Queda asignado a tu grupo automáticamente."}
+          ? t("Escribe la clave del profesor para asignarlo a su grupo.")
+          : t("Queda asignado a tu grupo automáticamente.")}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
@@ -87,7 +88,7 @@ function StudentForm({ onCreado, onCancelar }: Props) {
               htmlFor="al-nombre"
               className="block text-sm font-medium text-neutral-700"
             >
-              Nombre
+              {t("Nombre")}
             </label>
             <input
               id="al-nombre"
@@ -103,7 +104,7 @@ function StudentForm({ onCreado, onCancelar }: Props) {
               htmlFor="al-apellido"
               className="block text-sm font-medium text-neutral-700"
             >
-              Apellido
+              {t("Apellido")}
             </label>
             <input
               id="al-apellido"
@@ -119,8 +120,8 @@ function StudentForm({ onCreado, onCancelar }: Props) {
               htmlFor="al-nacimiento"
               className="block text-sm font-medium text-neutral-700"
             >
-              Fecha de nacimiento{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Fecha de nacimiento")}{" "}
+              <span className="font-normal text-neutral-500">{t("(opcional)")}</span>
             </label>
             <input
               id="al-nacimiento"
@@ -136,8 +137,8 @@ function StudentForm({ onCreado, onCancelar }: Props) {
               htmlFor="al-telefono"
               className="block text-sm font-medium text-neutral-700"
             >
-              Teléfono{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Teléfono")}{" "}
+              <span className="font-normal text-neutral-500">{t("(opcional)")}</span>
             </label>
             <input
               id="al-telefono"
@@ -153,8 +154,8 @@ function StudentForm({ onCreado, onCancelar }: Props) {
               htmlFor="al-tutor"
               className="block text-sm font-medium text-neutral-700"
             >
-              Nombre del tutor{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Nombre del tutor")}{" "}
+              <span className="font-normal text-neutral-500">{t("(opcional)")}</span>
             </label>
             <input
               id="al-tutor"
@@ -170,8 +171,8 @@ function StudentForm({ onCreado, onCancelar }: Props) {
               htmlFor="al-tutor-tel"
               className="block text-sm font-medium text-neutral-700"
             >
-              Teléfono del tutor{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Teléfono del tutor")}{" "}
+              <span className="font-normal text-neutral-500">{t("(opcional)")}</span>
             </label>
             <input
               id="al-tutor-tel"
@@ -188,15 +189,15 @@ function StudentForm({ onCreado, onCancelar }: Props) {
             htmlFor="al-medico"
             className="block text-sm font-medium text-neutral-700"
           >
-            Información médica{" "}
-            <span className="font-normal text-neutral-500">(opcional)</span>
+            {t("Información médica")}{" "}
+            <span className="font-normal text-neutral-500">{t("(opcional)")}</span>
           </label>
           <textarea
             id="al-medico"
             rows={2}
             value={medicalNotes}
             onChange={(e) => setMedicalNotes(e.target.value)}
-            placeholder="Alergias, lesiones o padecimientos que el profesor deba conocer."
+            placeholder={t("Alergias, lesiones o padecimientos que el profesor deba conocer.")}
             className={inputClase}
           />
         </div>
@@ -209,8 +210,8 @@ function StudentForm({ onCreado, onCancelar }: Props) {
               htmlFor="al-clave"
               className="block text-sm font-medium text-neutral-700"
             >
-              Clave del profesor{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Clave del profesor")}{" "}
+              <span className="font-normal text-neutral-500">{t("(opcional)")}</span>
             </label>
             <input
               id="al-clave"
@@ -222,8 +223,7 @@ function StudentForm({ onCreado, onCancelar }: Props) {
               className={`${inputClase} font-mono`}
             />
             <p id="al-clave-ayuda" className="text-xs text-neutral-500">
-              La encuentras en la sección de Profesores. Si la dejas vacía, el
-              alumno queda sin profesor asignado.
+              {t("La encuentras en la sección de Profesores. Si la dejas vacía, el alumno queda sin profesor asignado.")}
             </p>
           </div>
         )}
@@ -247,21 +247,21 @@ function StudentForm({ onCreado, onCancelar }: Props) {
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Registrando…" : "Registrar alumno"}
+            {guardando ? t("Registrando…") : t("Registrar alumno")}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-3
               font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
               hover:bg-neutral-50
               focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
-            Cancelar
+            {t("Cancelar")}
           </button>
         </div>
       </form>

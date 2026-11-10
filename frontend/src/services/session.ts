@@ -1,3 +1,4 @@
+import { applyPreferences } from "./preferences";
 import type { Permission, SessionUser } from "../types/user";
 
 const TOKEN_KEY = "token";
@@ -6,6 +7,7 @@ const USER_KEY = "user";
 export function saveSession(token: string, user: SessionUser) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  applyPreferences(user.preferences);
 }
 
 export function getToken(): string | null {
@@ -60,6 +62,10 @@ export function can(
 
 /** A dónde mandar al usuario después de iniciar sesión, según su rol. */
 export function homePathFor(user: SessionUser): string {
+  if (user.role === "SUPERADMIN") {
+    return "/plataforma";
+  }
+
   // Alumno y tutor comparten el panel familiar; el backend decide cuántos
   // expedientes trae ese panel.
   if (user.role === "ALUMNO" || user.role === "TUTOR") {

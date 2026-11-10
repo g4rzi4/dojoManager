@@ -6,6 +6,7 @@ import BrandMark from "../components/BrandMark";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import { ApiError, checkResetToken, resetPassword } from "../services/api";
+import { t } from "../i18n";
 
 const MIN_PASSWORD = 8;
 
@@ -48,12 +49,16 @@ function ResetPassword() {
     if (guardando) return;
 
     if (password.length < MIN_PASSWORD) {
-      setError(`La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`);
+      setError(
+        t("La contraseña debe tener al menos {n} caracteres.", {
+          n: MIN_PASSWORD,
+        })
+      );
       return;
     }
 
     if (password !== confirmacion) {
-      setError("Las contraseñas no coinciden.");
+      setError(t("Las contraseñas no coinciden."));
       return;
     }
 
@@ -67,7 +72,7 @@ function ResetPassword() {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible conectar con el servidor."
+          : t("No fue posible conectar con el servidor.")
       );
     } finally {
       setGuardando(false);
@@ -80,25 +85,25 @@ function ResetPassword() {
         <BrandMark className="h-11 w-11" />
 
         <h1 className="mt-5 text-3xl font-bold text-neutral-800">
-          Elige una nueva contraseña
+          {t("Elige una nueva contraseña")}
         </h1>
 
         {vigente === null && (
           <p className="mt-3 text-neutral-600" role="status">
-            Revisando el enlace…
+            {t("Revisando el enlace…")}
           </p>
         )}
 
         {vigente === false && (
           <>
             <p className="mt-3 text-neutral-700" role="alert">
-              {ENLACE_INVALIDO}
+              {t(ENLACE_INVALIDO)}
             </p>
             <Link
               to="/recuperar"
               className="mt-6 inline-block rounded-xl py-1 text-sm font-semibold text-violet-700 hover:text-violet-900 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
             >
-              Solicitar un enlace nuevo
+              {t("Solicitar un enlace nuevo")}
             </Link>
           </>
         )}
@@ -106,13 +111,13 @@ function ResetPassword() {
         {vigente && listo && (
           <>
             <p className="mt-3 text-neutral-700" role="status">
-              Tu contraseña se actualizó. Ya puedes iniciar sesión con ella.
+              {t("Tu contraseña se actualizó. Ya puedes iniciar sesión con ella.")}
             </p>
             <Link
               to="/"
               className="mt-6 inline-block rounded-xl py-1 text-sm font-semibold text-violet-700 hover:text-violet-900 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
             >
-              Ir a iniciar sesión
+              {t("Ir a iniciar sesión")}
             </Link>
           </>
         )}
@@ -120,7 +125,9 @@ function ResetPassword() {
         {vigente && !listo && (
           <form onSubmit={handleSubmit} className="mt-7 space-y-5">
             <Input
-              label={`Nueva contraseña (mínimo ${MIN_PASSWORD} caracteres)`}
+              label={t("Nueva contraseña (mínimo {n} caracteres)", {
+                n: MIN_PASSWORD,
+              })}
               type="password"
               name="new-password"
               autoComplete="new-password"
@@ -130,7 +137,7 @@ function ResetPassword() {
             />
 
             <Input
-              label="Confírmala"
+              label={t("Confírmala")}
               type="password"
               name="confirm-password"
               autoComplete="new-password"
@@ -146,7 +153,7 @@ function ResetPassword() {
             )}
 
             <Button type="submit" disabled={guardando}>
-              {guardando ? "Guardando…" : "Guardar contraseña"}
+              {guardando ? t("Guardando…") : t("Guardar contraseña")}
             </Button>
           </form>
         )}

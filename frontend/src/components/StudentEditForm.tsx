@@ -5,6 +5,7 @@ import { ApiError, updateStudent } from "../services/api";
 import { getUser } from "../services/session";
 import type { Belt, StudentCard } from "../types/student";
 import { BELT_LABELS } from "../types/student";
+import { t } from "../i18n";
 
 type Props = {
   student: StudentCard;
@@ -67,7 +68,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
     if (active !== student.active) cambios.active = active;
 
     if (Object.keys(cambios).length === 0) {
-      setError("No cambiaste nada.");
+      setError(t("No cambiaste nada."));
       setGuardando(false);
       return;
     }
@@ -77,7 +78,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
       await onGuardado();
     } catch (e: unknown) {
       setError(
-        e instanceof ApiError ? e.message : "No fue posible guardar la ficha."
+        e instanceof ApiError ? e.message : t("No fue posible guardar la ficha.")
       );
     } finally {
       setGuardando(false);
@@ -85,20 +86,20 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
   }
 
   const inputClase = `
-    w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+    w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
     outline-none transition-[border-color,box-shadow,background-color]
     focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
   `;
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-neutral-900">Editar ficha</h2>
+      <h2 className="font-bold text-neutral-900">{t("Editar ficha")}</h2>
 
       <div className="mt-5 space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="se-nombre" className="block text-sm font-medium text-neutral-700">
-              Nombre
+              {t("Nombre")}
             </label>
             <input
               id="se-nombre"
@@ -111,7 +112,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
 
           <div className="space-y-2">
             <label htmlFor="se-apellido" className="block text-sm font-medium text-neutral-700">
-              Apellido
+              {t("Apellido")}
             </label>
             <input
               id="se-apellido"
@@ -124,7 +125,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
 
           <div className="space-y-2">
             <label htmlFor="se-nacimiento" className="block text-sm font-medium text-neutral-700">
-              Fecha de nacimiento
+              {t("Fecha de nacimiento")}
             </label>
             <input
               id="se-nacimiento"
@@ -137,7 +138,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
 
           <div className="space-y-2">
             <label htmlFor="se-cinta" className="block text-sm font-medium text-neutral-700">
-              Cinta actual
+              {t("Cinta actual")}
             </label>
             <select
               id="se-cinta"
@@ -148,19 +149,19 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
             >
               {CINTAS.map((b) => (
                 <option key={b} value={b}>
-                  {BELT_LABELS[b]}
+                  {t(BELT_LABELS[b])}
                 </option>
               ))}
             </select>
             <p id="se-cinta-ayuda" className="text-xs text-neutral-500">
-              Cambia la cinta vigente, pero <strong>no</strong> agrega una
-              graduación al historial.
+              {t("Cambia la cinta vigente, pero")} <strong>{t("no")}</strong>{" "}
+              {t("agrega una graduación al historial.")}
             </p>
           </div>
 
           <div className="space-y-2">
             <label htmlFor="se-telefono" className="block text-sm font-medium text-neutral-700">
-              Teléfono
+              {t("Teléfono")}
             </label>
             <input
               id="se-telefono"
@@ -173,7 +174,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
 
           <div className="space-y-2">
             <label htmlFor="se-tutor" className="block text-sm font-medium text-neutral-700">
-              Nombre del tutor
+              {t("Nombre del tutor")}
             </label>
             <input
               id="se-tutor"
@@ -186,7 +187,7 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
 
           <div className="space-y-2">
             <label htmlFor="se-tutor-tel" className="block text-sm font-medium text-neutral-700">
-              Teléfono del tutor
+              {t("Teléfono del tutor")}
             </label>
             <input
               id="se-tutor-tel"
@@ -200,14 +201,14 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
 
         <div className="space-y-2">
           <label htmlFor="se-medico" className="block text-sm font-medium text-neutral-700">
-            Información médica
+            {t("Información médica")}
           </label>
           <textarea
             id="se-medico"
             rows={2}
             value={medicalNotes}
             onChange={(e) => setMedicalNotes(e.target.value)}
-            placeholder="Alergias, lesiones o padecimientos que el profesor deba conocer."
+            placeholder={t("Alergias, lesiones o padecimientos que el profesor deba conocer.")}
             className={inputClase}
           />
         </div>
@@ -222,18 +223,17 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
           />
           <span>
             <span className="block text-sm font-medium text-neutral-700">
-              Alumno activo
+              {t("Alumno activo")}
             </span>
             <span className="mt-0.5 block text-xs text-neutral-600">
-              Desactivarlo lo saca de las listas pero conserva su historial de
-              pagos y graduaciones.
+              {t("Desactivarlo lo saca de las listas pero conserva su historial de pagos y graduaciones.")}
             </span>
           </span>
         </label>
 
         {!esAdmin && (
           <p className="text-xs text-neutral-500">
-            Para pasar este alumno a otro profesor, pídeselo al administrador.
+            {t("Para pasar este alumno a otro profesor, pídeselo al administrador.")}
           </p>
         )}
 
@@ -257,21 +257,21 @@ function StudentEditForm({ student, onGuardado, onCancelar }: Props) {
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Guardando…" : "Guardar ficha"}
+            {guardando ? t("Guardando…") : t("Guardar ficha")}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-3
               font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
               hover:bg-neutral-50
               focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
-            Cancelar
+            {t("Cancelar")}
           </button>
         </div>
       </div>

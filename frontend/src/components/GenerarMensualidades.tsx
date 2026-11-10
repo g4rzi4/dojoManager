@@ -5,9 +5,10 @@ import { ApiError, generateMonthlyPayments, getStudents } from "../services/api"
 import type { StudentListItem } from "../types/student";
 import { MONTH_NAMES } from "../utils/date";
 import { pesosACentavos } from "../utils/format";
+import { t } from "../i18n";
 
 const CAMPO = `
-  mt-2 w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+  mt-2 w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
   text-neutral-800 outline-none
   focus:border-violet-600 focus:ring-4 focus:ring-violet-100
 `;
@@ -56,7 +57,7 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
     const amountCents = pesosACentavos(monto);
 
     if (amountCents === null) {
-      setError("Escribe un monto válido, por ejemplo 700 o 700.50.");
+      setError(t("Escribe un monto válido, por ejemplo 700 o 700.50."));
       return;
     }
 
@@ -74,14 +75,17 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
       });
 
       setResultado(
-        `Se generaron ${res.creadas}. ${res.yaExistian} ya la tenían.`
+        t("Se generaron {creadas}. {existentes} ya la tenían.", {
+          creadas: res.creadas,
+          existentes: res.yaExistian,
+        })
       );
       onGenerado();
     } catch (e: unknown) {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible generar las mensualidades."
+          : t("No fue posible generar las mensualidades.")
       );
     } finally {
       setGuardando(false);
@@ -91,10 +95,10 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
   return (
     <Card className="mt-6 p-5 sm:p-6">
       <h2 className="text-lg font-bold text-neutral-900">
-        Generar mensualidades
+        {t("Generar mensualidades")}
       </h2>
       <p className="mt-1 text-sm text-neutral-600">
-        A quien ya tenga la mensualidad de ese mes no se le crea otra.
+        {t("A quien ya tenga la mensualidad de ese mes no se le crea otra.")}
       </p>
 
       <form
@@ -103,7 +107,7 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
       >
         <div>
           <label htmlFor="gm-mes" className={ETIQUETA}>
-            Mes
+            {t("Mes")}
           </label>
           <select
             id="gm-mes"
@@ -113,7 +117,7 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
           >
             {MONTH_NAMES.map((nombre, i) => (
               <option key={nombre} value={i + 1}>
-                {nombre}
+                {t(nombre)}
               </option>
             ))}
           </select>
@@ -121,7 +125,7 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
 
         <div>
           <label htmlFor="gm-anio" className={ETIQUETA}>
-            Año
+            {t("Año")}
           </label>
           <input
             id="gm-anio"
@@ -136,7 +140,7 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
 
         <div>
           <label htmlFor="gm-monto" className={ETIQUETA}>
-            Monto en pesos
+            {t("Monto en pesos")}
           </label>
           <input
             id="gm-monto"
@@ -152,7 +156,7 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
 
         <div>
           <label htmlFor="gm-alumno" className={ETIQUETA}>
-            Para
+            {t("Para")}
           </label>
           <select
             id="gm-alumno"
@@ -160,7 +164,7 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
             onChange={(e) => setAlumno(e.target.value)}
             className={`${CAMPO} cursor-pointer`}
           >
-            <option value="TODOS">Todos los alumnos activos</option>
+            <option value="TODOS">{t("Todos los alumnos activos")}</option>
             {alumnos.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.firstName} {a.lastName}
@@ -171,7 +175,7 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
 
         <div className="sm:col-span-2 lg:col-span-4">
           <label htmlFor="gm-nota" className={ETIQUETA}>
-            Nota (opcional)
+            {t("Nota (opcional)")}
           </label>
           <input
             id="gm-nota"
@@ -197,16 +201,16 @@ function GenerarMensualidades({ onGenerado, onCerrar }: Props) {
           <button
             type="button"
             onClick={onCerrar}
-            className="min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
+            className="min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
           >
-            Cerrar
+            {t("Cerrar")}
           </button>
           <button
             type="submit"
             disabled={guardando}
             className="min-h-11 cursor-pointer rounded-2xl bg-violet-600 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {guardando ? "Generando…" : "Generar"}
+            {guardando ? t("Generando…") : t("Generar")}
           </button>
         </div>
       </form>

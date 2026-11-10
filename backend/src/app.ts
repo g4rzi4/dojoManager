@@ -3,6 +3,7 @@ import cors from "cors";
 
 import { config } from "./config";
 import authRoutes from "./routes/auth.routes";
+import platformRoutes from "./routes/platform.routes";
 import studentRoutes from "./routes/students.routes";
 import notificationRoutes from "./routes/notifications.routes";
 import paymentRoutes from "./routes/payments.routes";
@@ -43,6 +44,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/auth", authRoutes);
+app.use("/platform", platformRoutes);
 app.use("/students", studentRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/payments", paymentRoutes);
@@ -68,6 +70,26 @@ app.use((_req, res) => {
  * SQL o la cadena de conexión. Al log sí va completo.
  */
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  // El correo es único entre todos los dojos, pero las rutas solo ven el suyo:
+  // si ya lo usa una cuenta de otro dojo, se entera hasta la base de datos.
+  if (
+    (error as { code?: string })?.code === "P2002" &&
+    JSON.stringify((error as { meta?: unknown }).meta ?? "").includes("email")
+  ) {
+    return res.status(409).json({
+      success: false,
+      message: "Ya existe una cuenta con ese correo.",
+    });
+  }
+
+  // Lo que una ruta intenta cambiar y no existe, o es de otro dojo.
+  if ((error as { code?: string })?.code === "P2025") {
+    return res.status(404).json({
+      success: false,
+      message: "No se encontró ese registro.",
+    });
+  }
+
   console.error("[error no manejado]", error);
 
   res.status(500).json({

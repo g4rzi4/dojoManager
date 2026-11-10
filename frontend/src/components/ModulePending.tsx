@@ -1,5 +1,6 @@
 import { Construction } from "lucide-react";
 
+import { t } from "../i18n";
 import Card from "./Card";
 import PageHeading from "./PageHeading";
 
@@ -31,15 +32,15 @@ function ModulePending({ title, description, branch }: Props) {
         </span>
 
         <h2 className="mt-4 font-bold text-neutral-900">
-          Módulo en construcción
+          {t("Módulo en construcción")}
         </h2>
 
         <p className="mx-auto mt-2 max-w-md text-sm text-neutral-600">
-          Esta sección se desarrolla en la rama{" "}
+          {t("Esta sección se desarrolla en la rama")}{" "}
           <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-xs text-neutral-800">
             {branch}
           </code>
-          . Consulta el reparto de módulos en CONTRIBUTING.md.
+          . {t("Consulta el reparto de módulos en CONTRIBUTING.md.")}
         </p>
       </Card>
     </>

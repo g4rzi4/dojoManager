@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { prisma } from "../lib/prisma";
+import { prisma, prismaGlobal } from "../lib/prisma";
 import { signToken } from "../lib/jwt";
 import { verifyPassword } from "../lib/password";
 import { requireAuth } from "../middleware/auth";
@@ -12,9 +12,22 @@ import {
   solicitarRecuperacion,
 } from "../lib/passwordReset";
 import { ROLE_PERMISSIONS } from "../permissions";
-import { Role } from "../generated/prisma/enums";
+import { FontSize, Language, Role, Theme } from "../generated/prisma/enums";
 
 const router = Router();
+
+/** Las preferencias tal como las recibe el frontend. */
+function preferencesOf(user: {
+  language: Language;
+  theme: Theme;
+  fontSize: FontSize;
+}) {
+  return {
+    language: user.language,
+    theme: user.theme,
+    fontSize: user.fontSize,
+  };
+}
 
 /**
  * El login no exige sesión, así que es el lugar natural para probar
@@ -43,7 +56,8 @@ router.post("/login", limiteLogin, async (req, res) => {
     });
   }
 
-  const user = await prisma.user.findUnique({
+  // Sin filtro de dojo: al iniciar sesión todavía no se sabe de cuál es.
+  const user = await prismaGlobal.user.findUnique({
     where: { email: email.trim().toLowerCase() },
     include: { student: { select: { id: true } } },
   });
@@ -96,7 +110,11 @@ router.post("/login", limiteLogin, async (req, res) => {
     });
   }
 
-  const token = signToken({ sub: user.id, role: user.role });
+  const token = signToken({
+    sub: user.id,
+    role: user.role,
+    dojoId: user.dojoId,
+  });
 
   return res.json({
     success: true,
@@ -110,6 +128,7 @@ router.post("/login", limiteLogin, async (req, res) => {
       // Si es alumno, su expediente, para poder mandarlo a su tarjeta.
       studentId: user.student?.id ?? null,
       permissions: ROLE_PERMISSIONS[user.role],
+      preferences: preferencesOf(user),
     },
   });
 });
@@ -143,8 +162,40 @@ router.get("/me", requireAuth, async (req, res) => {
       teacherCode: user.teacherCode,
       studentId: user.student?.id ?? null,
       permissions: ROLE_PERMISSIONS[user.role],
+      preferences: preferencesOf(user),
     },
   });
+});
+
+/**
+ * PATCH /auth/me/preferences
+ *
+ * Solo pide sesión: son los cuatro roles y cada quien cambia las suyas. El id
+ * sale del token, así que nadie puede tocar las preferencias de otra cuenta.
+ */
+router.patch("/me/preferences", requireAuth, async (req, res) => {
+  const { language, theme, fontSize } = req.body ?? {};
+
+  const esValido = (valor: unknown, opciones: object) =>
+    valor === undefined || Object.values(opciones).includes(valor);
+
+  if (
+    !esValido(language, Language) ||
+    !esValido(theme, Theme) ||
+    !esValido(fontSize, FontSize)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Alguna de las preferencias no es válida.",
+    });
+  }
+
+  const user = await prisma.user.update({
+    where: { id: req.user!.id },
+    data: { language, theme, fontSize },
+  });
+
+  return res.json({ success: true, preferences: preferencesOf(user) });
 });
 
 /** Sin sesión, igual que el login: se limita para frenar abusos. */

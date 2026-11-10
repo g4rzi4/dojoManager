@@ -4,6 +4,7 @@ import { ChevronRight, QrCode, UserPlus, Users } from "lucide-react";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
+import { t } from "../i18n";
 import PageHeading from "../components/PageHeading";
 import StudentForm from "../components/StudentForm";
 import InvitationDialog from "../components/InvitationDialog";
@@ -25,7 +26,7 @@ function Students() {
         setError(
           e instanceof ApiError
             ? e.message
-            : "No fue posible cargar los alumnos."
+            : t("No fue posible cargar los alumnos.")
         );
       });
   }
@@ -42,7 +43,7 @@ function Students() {
           setError(
             e instanceof ApiError
               ? e.message
-              : "No fue posible cargar los alumnos."
+              : t("No fue posible cargar los alumnos.")
           );
         }
       })
@@ -60,10 +61,10 @@ function Students() {
       <header className="flex flex-wrap items-center justify-between gap-4">
         <PageHeading module="alumnos">
           <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-            Alumnos
+            {t("Alumnos")}
           </h1>
           <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
-            Consulta la tarjeta de información y el historial de cada alumno.
+            {t("Consulta la tarjeta de información y el historial de cada alumno.")}
           </p>
         </PageHeading>
 
@@ -74,7 +75,7 @@ function Students() {
           aria-expanded={invitando}
           className="
             flex cursor-pointer items-center gap-2 rounded-2xl border
-            border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold
+            border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold
             text-neutral-700 transition-colors duration-200
             motion-reduce:transition-none
             hover:bg-neutral-50
@@ -82,7 +83,7 @@ function Students() {
           "
         >
           <QrCode size={17} aria-hidden="true" />
-          Invitar por QR
+          {t("Invitar por QR")}
         </button>
 
         <button
@@ -99,7 +100,7 @@ function Students() {
           "
         >
           <UserPlus size={17} aria-hidden="true" />
-          Registrar alumno
+          {t("Registrar alumno")}
         </button>
         </div>
       </header>
@@ -132,7 +133,7 @@ function Students() {
         ) : error ? (
           <Card className="border-red-200 p-6">
             <p className="font-semibold text-red-800">
-              No se pudieron cargar los alumnos
+              {t("No se pudieron cargar los alumnos")}
             </p>
             <p className="mt-1 text-sm text-red-700">{error}</p>
           </Card>
@@ -142,10 +143,10 @@ function Students() {
               <Users size={26} aria-hidden="true" />
             </span>
             <h2 className="mt-4 font-bold text-neutral-900">
-              Todavía no hay alumnos
+              {t("Todavía no hay alumnos")}
             </h2>
             <p className="mt-2 text-sm text-neutral-600">
-              Registra el primero con el botón de arriba.
+              {t("Registra el primero con el botón de arriba.")}
             </p>
           </Card>
         ) : (
@@ -172,7 +173,7 @@ function Students() {
                         {s.firstName} {s.lastName}
                       </p>
                       <p className="mt-0.5 text-sm text-neutral-600">
-                        {s.teacherName ?? "Sin profesor asignado"}
+                        {s.teacherName ?? t("Sin profesor asignado")}
                       </p>
                     </div>
 
@@ -181,12 +182,12 @@ function Students() {
                         BELT_STYLES[s.currentBelt]
                       }`}
                     >
-                      {BELT_LABELS[s.currentBelt]}
+                      {t(BELT_LABELS[s.currentBelt])}
                     </span>
 
                     {!s.active && (
                       <span className="shrink-0 rounded-full border border-neutral-300 bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
-                        Inactivo
+                        {t("Inactivo")}
                       </span>
                     )}
 

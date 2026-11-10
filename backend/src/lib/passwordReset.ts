@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { config } from "../config";
 import { enviarCorreo } from "./mailer";
 import { hashPassword } from "./password";
-import { prisma } from "./prisma";
+import { prismaGlobal } from "./prisma";
 
 /** El enlace por correo caduca pronto: el correo es el canal menos privado. */
 const HORAS_ENLACE_CORREO = 1;
@@ -20,7 +20,13 @@ function hashDeToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/** Crea un enlace nuevo y anula los anteriores de ese usuario. */
+/**
+ * Crea un enlace nuevo y anula los anteriores de ese usuario.
+ *
+ * Este archivo usa prismaGlobal porque recuperar la contraseña ocurre sin
+ * sesión. Las rutas con sesión que llaman aquí ya validaron que el usuario
+ * sea de su dojo.
+ */
 export async function crearEnlaceDeRestablecimiento(
   userId: number,
   horas: number
@@ -29,9 +35,9 @@ export async function crearEnlaceDeRestablecimiento(
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + horas * 60 * 60 * 1000);
 
-  await prisma.$transaction([
-    prisma.passwordResetToken.deleteMany({ where: { userId } }),
-    prisma.passwordResetToken.create({
+  await prismaGlobal.$transaction([
+    prismaGlobal.passwordResetToken.deleteMany({ where: { userId } }),
+    prismaGlobal.passwordResetToken.create({
       data: { userId, tokenHash: hashDeToken(token), expiresAt },
     }),
   ]);
@@ -44,14 +50,14 @@ export async function crearEnlaceDeRestablecimiento(
  * sin decirlo: la respuesta no debe revelar qué correos están registrados.
  */
 export async function solicitarRecuperacion(email: string): Promise<void> {
-  const user = await prisma.user.findUnique({
+  const user = await prismaGlobal.user.findUnique({
     where: { email: email.trim().toLowerCase() },
     select: { id: true, name: true, email: true, active: true },
   });
 
   if (!user?.active) return;
 
-  const reciente = await prisma.passwordResetToken.findFirst({
+  const reciente = await prismaGlobal.passwordResetToken.findFirst({
     where: {
       userId: user.id,
       createdAt: { gt: new Date(Date.now() - SEGUNDOS_ENTRE_CORREOS * 1000) },
@@ -84,7 +90,7 @@ export async function solicitarRecuperacion(email: string): Promise<void> {
 
 /** ¿El enlace todavía sirve? */
 export async function enlaceVigente(token: string): Promise<boolean> {
-  const fila = await prisma.passwordResetToken.findUnique({
+  const fila = await prismaGlobal.passwordResetToken.findUnique({
     where: { tokenHash: hashDeToken(token) },
     select: {
       usedAt: true,
@@ -113,7 +119,7 @@ export async function restablecerContrasena(
   const hash = await hashPassword(password);
   const tokenHash = hashDeToken(token);
 
-  return prisma.$transaction(async (tx) => {
+  return prismaGlobal.$transaction(async (tx) => {
     const { count } = await tx.passwordResetToken.updateMany({
       where: { tokenHash, usedAt: null, expiresAt: { gt: new Date() } },
       data: { usedAt: new Date() },
