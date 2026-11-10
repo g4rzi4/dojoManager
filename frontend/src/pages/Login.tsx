@@ -9,6 +9,7 @@ import ModuleTile from "../components/ModuleTile";
 import type { ModuleKey } from "../lib/modules";
 import { ApiError, login } from "../services/api";
 import { homePathFor, saveSession } from "../services/session";
+import { t } from "../i18n";
 
 /** Lo que incluye la app, con su color e inclinación. */
 const MODULOS: { module: ModuleKey; label: string; giro: string; tinta: string }[] = [
@@ -63,7 +64,7 @@ function Login() {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible conectar con el servidor."
+          : t("No fue posible conectar con el servidor.")
       );
     } finally {
       setLoading(false);
@@ -75,7 +76,7 @@ function Login() {
       <div className="grid gap-2 p-2.5 sm:p-4 lg:grid-cols-[1.1fr_1fr]">
         {/* Presentación */}
         <div className="flex flex-col justify-between gap-8 p-5 sm:p-8 lg:p-10">
-          <div className="flex w-fit items-center gap-2.5 rounded-[1.25rem] border border-neutral-200/80 bg-white py-2 pr-4 pl-2 shadow-surface">
+          <div className="flex w-fit items-center gap-2.5 rounded-[1.25rem] border border-neutral-200/80 bg-surface py-2 pr-4 pl-2 shadow-surface">
             <BrandMark className="h-9 w-9" />
             <span className="text-xl font-bold text-neutral-800" translate="no">
               DojoManager
@@ -84,11 +85,12 @@ function Login() {
 
           <div>
             <h1 className="text-4xl leading-[1.08] font-bold text-neutral-800 sm:text-5xl lg:text-6xl">
-              Administra tu <span className="text-violet-600">dojo</span> desde
-              un solo lugar.
+              {t("Administra tu")}{" "}
+              <span className="text-violet-600">dojo</span>{" "}
+              {t("desde un solo lugar.")}
             </h1>
             <p className="mt-4 max-w-md text-lg font-medium text-pretty text-neutral-600 sm:text-xl">
-              Controla alumnos, profesores, clases y pagos.
+              {t("Controla alumnos, profesores, clases y pagos.")}
             </p>
           </div>
 
@@ -100,9 +102,9 @@ function Login() {
               >
                 <ModuleTile module={module} size="lg" />
                 <span
-                  className={`rounded-xl border border-neutral-200/80 bg-white px-2.5 py-0.5 text-sm font-semibold ${tinta}`}
+                  className={`rounded-xl border border-neutral-200/80 bg-surface px-2.5 py-0.5 text-sm font-semibold ${tinta}`}
                 >
-                  {label}
+                  {t(label)}
                 </span>
               </li>
             ))}
@@ -110,14 +112,14 @@ function Login() {
         </div>
 
         {/* Formulario */}
-        <div className="rounded-[2.1rem] border border-neutral-200/80 bg-white p-6 sm:rounded-[2.5rem] sm:p-10">
-          <h2 className="text-3xl font-bold text-neutral-800">Bienvenido</h2>
+        <div className="rounded-[2.1rem] border border-neutral-200/80 bg-surface p-6 sm:rounded-[2.5rem] sm:p-10">
+          <h2 className="text-3xl font-bold text-neutral-800">{t("Bienvenido")}</h2>
 
-          <p className="mt-1 text-neutral-600">Inicia sesión para continuar.</p>
+          <p className="mt-1 text-neutral-600">{t("Inicia sesión para continuar.")}</p>
 
           <form onSubmit={handleLogin} className="mt-7 space-y-5">
             <Input
-              label="Correo electrónico"
+              label={t("Correo electrónico")}
               type="email"
               name="email"
               autoComplete="email"
@@ -128,7 +130,7 @@ function Login() {
             />
 
             <Input
-              label="Contraseña"
+              label={t("Contraseña")}
               type="password"
               name="password"
               autoComplete="current-password"
@@ -141,14 +143,14 @@ function Login() {
                 to="/recuperar"
                 className="rounded-lg text-sm font-semibold text-violet-700 hover:text-violet-900 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
               >
-                ¿Olvidaste tu contraseña?
+                {t("¿Olvidaste tu contraseña?")}
               </Link>
             </div>
 
             {/* Selector de tipo de cuenta */}
             <fieldset>
               <legend className="text-sm font-medium text-neutral-700">
-                ¿Cómo entras?
+                {t("¿Cómo entras?")}
               </legend>
 
               <div className="mt-2 grid grid-cols-2 gap-1 rounded-[1.25rem] border border-neutral-200 bg-neutral-50 p-1">
@@ -177,7 +179,7 @@ function Login() {
                       onChange={() => setComoProfesor(valor)}
                       className="sr-only"
                     />
-                    {etiqueta}
+                    {t(etiqueta)}
                   </label>
                 ))}
               </div>
@@ -186,7 +188,7 @@ function Login() {
             {/* La clave es el tercer factor de los profesores */}
             {comoProfesor && (
               <Input
-                label="Clave de profesor"
+                label={t("Clave de profesor")}
                 type="text"
                 name="teacher-code"
                 autoComplete="off"
@@ -206,7 +208,7 @@ function Login() {
             )}
 
             <Button type="submit" disabled={loading}>
-              {loading ? "Ingresando…" : "Iniciar sesión"}
+              {loading ? t("Ingresando…") : t("Iniciar sesión")}
             </Button>
           </form>
         </div>

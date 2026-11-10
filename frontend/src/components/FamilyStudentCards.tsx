@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { IdCard } from "lucide-react";
 
+import { t } from "../i18n";
 import Card from "./Card";
 import StudentCardView from "./StudentCardView";
 import { ApiError, getStudentCard } from "../services/api";
@@ -53,7 +54,7 @@ function FamilyStudentCards({ students }: Props) {
             message:
               e instanceof ApiError
                 ? e.message
-                : "No fue posible cargar el expediente.",
+                : t("No fue posible cargar el expediente."),
           });
         }
       });
@@ -72,10 +73,10 @@ function FamilyStudentCards({ students }: Props) {
           <IdCard size={26} aria-hidden="true" />
         </span>
         <h3 className="mt-4 font-bold text-neutral-900">
-          No hay expedientes ligados a tu cuenta
+          {t("No hay expedientes ligados a tu cuenta")}
         </h3>
         <p className="mt-2 text-sm text-neutral-600">
-          Pide al dojo que ligue el expediente a tu cuenta.
+          {t("Pide al dojo que ligue el expediente a tu cuenta.")}
         </p>
       </Card>
     );
@@ -94,7 +95,7 @@ function FamilyStudentCards({ students }: Props) {
       {students.length > 1 && (
         <div
           role="tablist"
-          aria-label="Elegir expediente"
+          aria-label={t("Elegir expediente")}
           className="mb-5 flex flex-wrap gap-2"
         >
           {students.map((s) => {
@@ -115,7 +116,7 @@ function FamilyStudentCards({ students }: Props) {
                   ${
                     activa
                       ? "border-violet-600 bg-violet-50"
-                      : "border-neutral-300 bg-white hover:bg-neutral-50"
+                      : "border-neutral-300 bg-surface hover:bg-neutral-50"
                   }
                 `}
               >
@@ -143,7 +144,9 @@ function FamilyStudentCards({ students }: Props) {
                       BELT_STYLES[s.currentBelt]
                     }`}
                   >
-                    Cinta {BELT_LABELS[s.currentBelt].toLowerCase()}
+                    {t("Cinta {color}", {
+                      color: t(BELT_LABELS[s.currentBelt]).toLowerCase(),
+                    })}
                   </span>
                 </span>
               </button>
@@ -155,7 +158,7 @@ function FamilyStudentCards({ students }: Props) {
       {errorActual && (
         <Card className="border-red-200 p-6">
           <p className="font-semibold text-red-800">
-            No se pudo mostrar el expediente
+            {t("No se pudo mostrar el expediente")}
           </p>
           <p className="mt-1 text-sm text-red-700">{errorActual}</p>
         </Card>

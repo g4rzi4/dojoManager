@@ -3,11 +3,12 @@ import { useState, type FormEvent } from "react";
 import { addBeltPromotion, ApiError } from "../services/api";
 import { BELT_LABELS, type Belt } from "../types/student";
 import { toDateKey } from "../utils/date";
+import { t } from "../i18n";
 
 const CINTAS = Object.keys(BELT_LABELS) as Belt[];
 
 const CAMPO = `
-  mt-2 w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+  mt-2 w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
   text-neutral-800 outline-none
   focus:border-violet-600 focus:ring-4 focus:ring-violet-100
 `;
@@ -60,7 +61,7 @@ function FormGraduacion({ studentId, currentBelt, onGuardado }: Props) {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible registrar la graduación."
+          : t("No fue posible registrar la graduación.")
       );
     } finally {
       setGuardando(false);
@@ -75,7 +76,7 @@ function FormGraduacion({ studentId, currentBelt, onGuardado }: Props) {
           onClick={abrir}
           className="min-h-11 cursor-pointer rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
-          Registrar graduación
+          {t("Registrar graduación")}
         </button>
       </div>
     );
@@ -88,7 +89,7 @@ function FormGraduacion({ studentId, currentBelt, onGuardado }: Props) {
     >
       <div>
         <label htmlFor="grad-cinta" className={ETIQUETA}>
-          Nueva cinta
+          {t("Nueva cinta")}
         </label>
         <select
           id="grad-cinta"
@@ -98,7 +99,7 @@ function FormGraduacion({ studentId, currentBelt, onGuardado }: Props) {
         >
           {CINTAS.map((c) => (
             <option key={c} value={c}>
-              {BELT_LABELS[c]}
+              {t(BELT_LABELS[c])}
             </option>
           ))}
         </select>
@@ -106,7 +107,7 @@ function FormGraduacion({ studentId, currentBelt, onGuardado }: Props) {
 
       <div>
         <label htmlFor="grad-fecha" className={ETIQUETA}>
-          Fecha del examen
+          {t("Fecha del examen")}
         </label>
         <input
           id="grad-fecha"
@@ -121,7 +122,7 @@ function FormGraduacion({ studentId, currentBelt, onGuardado }: Props) {
 
       <div className="sm:col-span-2">
         <label htmlFor="grad-notas" className={ETIQUETA}>
-          Notas (opcional)
+          {t("Notas (opcional)")}
         </label>
         <input
           id="grad-notas"
@@ -142,16 +143,16 @@ function FormGraduacion({ studentId, currentBelt, onGuardado }: Props) {
         <button
           type="button"
           onClick={() => setAbierto(false)}
-          className="min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
+          className="min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
         >
-          Cancelar
+          {t("Cancelar")}
         </button>
         <button
           type="submit"
           disabled={guardando}
           className="min-h-11 cursor-pointer rounded-2xl bg-violet-600 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {guardando ? "Guardando…" : "Guardar graduación"}
+          {guardando ? t("Guardando…") : t("Guardar graduación")}
         </button>
       </div>
     </form>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import PagarConPayPal from "./PagarConPayPal";
 import { ApiError, reportCharge } from "../services/api";
 import type { ChargeType } from "../types/payment";
+import { t } from "../i18n";
 
 type Props = {
   tipo: ChargeType;
@@ -11,7 +12,7 @@ type Props = {
 };
 
 const BOTON = `
-  min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-4 py-2
+  min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-4 py-2
   text-sm font-semibold whitespace-nowrap text-neutral-700
   transition-colors duration-200 motion-reduce:transition-none hover:bg-neutral-50
   focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
@@ -37,7 +38,9 @@ function OpcionesDePago({ tipo, id, onCambio }: Props) {
       await onCambio();
     } catch (e: unknown) {
       setError(
-        e instanceof ApiError ? e.message : "No fue posible avisar del pago."
+        e instanceof ApiError
+          ? e.message
+          : t("No fue posible avisar del pago.")
       );
     } finally {
       setEnviando(false);
@@ -48,7 +51,7 @@ function OpcionesDePago({ tipo, id, onCambio }: Props) {
     return (
       <div className="max-w-xs">
         <p className="text-xs text-neutral-600">
-          Quedará pagado cuando tu profesor confirme que lo recibió.
+          {t("Quedará pagado cuando tu profesor confirme que lo recibió.")}
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           <button
@@ -57,7 +60,7 @@ function OpcionesDePago({ tipo, id, onCambio }: Props) {
             onClick={() => reportar("EFECTIVO")}
             className={BOTON}
           >
-            Efectivo
+            {t("Efectivo")}
           </button>
           <button
             type="button"
@@ -65,7 +68,7 @@ function OpcionesDePago({ tipo, id, onCambio }: Props) {
             onClick={() => reportar("TRANSFERENCIA")}
             className={BOTON}
           >
-            Transferencia
+            {t("Transferencia")}
           </button>
           <button
             type="button"
@@ -73,7 +76,7 @@ function OpcionesDePago({ tipo, id, onCambio }: Props) {
             onClick={() => setEligiendo(false)}
             className={`${BOTON} border-transparent bg-transparent`}
           >
-            Cancelar
+            {t("Cancelar")}
           </button>
         </div>
         {error && (
@@ -93,7 +96,7 @@ function OpcionesDePago({ tipo, id, onCambio }: Props) {
         onClick={() => setEligiendo(true)}
         className={BOTON}
       >
-        Efectivo o transferencia
+        {t("Efectivo o transferencia")}
       </button>
     </div>
   );

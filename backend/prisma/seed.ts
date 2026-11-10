@@ -10,6 +10,7 @@
  * en producción ni subas estas cuentas a un servidor público.
  */
 
+import { enElPrimerDojo } from "./dojoDeSemilla";
 import { prisma } from "../src/lib/prisma";
 import { hashPassword } from "../src/lib/password";
 import {
@@ -493,7 +494,7 @@ async function main() {
   console.log("    - Examen de cinta verde: cuota unica $300");
 }
 
-main()
+enElPrimerDojo(main)
   .then(async () => {
     await prisma.$disconnect();
   })

@@ -4,6 +4,7 @@ import { Check, X } from "lucide-react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import PageHeading from "../components/PageHeading";
+import { t } from "../i18n";
 import { ApiError, getAttendance, saveAttendance } from "../services/api";
 import type { AttendanceStudent } from "../types/attendance";
 import { BELT_LABELS } from "../types/student";
@@ -15,7 +16,7 @@ type Marcas = Record<number, Marca>;
 type Lista = { fecha: string; students: AttendanceStudent[] };
 
 const CAMPO = `
-  mt-2 w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+  mt-2 w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
   text-neutral-800 outline-none
   focus:border-violet-600 focus:ring-4 focus:ring-violet-100
 `;
@@ -53,7 +54,7 @@ function Attendance() {
             message:
               e instanceof ApiError
                 ? e.message
-                : "No fue posible cargar la lista.",
+                : t("No fue posible cargar la lista."),
           });
         }
       });
@@ -88,7 +89,9 @@ function Attendance() {
   function cambiarFecha(nueva: string) {
     if (
       cambios.length > 0 &&
-      !window.confirm("Tienes cambios sin guardar. ¿Cambiar de día y perderlos?")
+      !window.confirm(
+        t("Tienes cambios sin guardar. ¿Cambiar de día y perderlos?")
+      )
     ) {
       return;
     }
@@ -135,12 +138,12 @@ function Attendance() {
           present: marcas[s.id] ?? null,
         })),
       });
-      setAviso("Asistencia guardada.");
+      setAviso(t("Asistencia guardada."));
     } catch (e: unknown) {
       setErrorGuardar(
         e instanceof ApiError
           ? e.message
-          : "No fue posible guardar la asistencia."
+          : t("No fue posible guardar la asistencia.")
       );
     } finally {
       setGuardando(false);
@@ -152,10 +155,10 @@ function Attendance() {
       <header>
         <PageHeading module="asistencia">
           <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-            Asistencia
+            {t("Asistencia")}
           </h1>
           <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
-            Pasa lista del día. A la familia le llega un aviso por cada falta.
+            {t("Pasa lista del día. A la familia le llega un aviso por cada falta.")}
           </p>
         </PageHeading>
       </header>
@@ -166,7 +169,7 @@ function Attendance() {
             htmlFor="fecha-lista"
             className="block text-sm font-medium text-neutral-700"
           >
-            Día
+            {t("Día")}
           </label>
           <input
             id="fecha-lista"
@@ -183,12 +186,12 @@ function Attendance() {
             htmlFor="buscar-alumno"
             className="block text-sm font-medium text-neutral-700"
           >
-            Buscar alumno
+            {t("Buscar alumno")}
           </label>
           <input
             id="buscar-alumno"
             type="search"
-            placeholder="Nombre o apellido"
+            placeholder={t("Nombre o apellido")}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className={CAMPO}
@@ -199,7 +202,7 @@ function Attendance() {
       {error ? (
         <Card className="mt-6 border-red-200 p-6">
           <p className="font-semibold text-red-800">
-            No se pudo cargar la lista
+            {t("No se pudo cargar la lista")}
           </p>
           <p className="mt-1 text-sm text-red-700">{error}</p>
         </Card>
@@ -207,33 +210,37 @@ function Attendance() {
         <Card className="mt-6 h-64 animate-pulse motion-reduce:animate-none" />
       ) : actual.students.length === 0 ? (
         <Card className="mt-6 p-8 text-center">
-          <h2 className="font-bold text-neutral-900">No hay alumnos activos</h2>
+          <h2 className="font-bold text-neutral-900">
+            {t("No hay alumnos activos")}
+          </h2>
           <p className="mt-2 text-sm text-neutral-600">
-            Cuando tengas alumnos en tu grupo, aparecerán aquí.
+            {t("Cuando tengas alumnos en tu grupo, aparecerán aquí.")}
           </p>
         </Card>
       ) : (
         <>
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-neutral-700" role="status">
-              Asistieron: <span className="font-semibold">{presentes}</span> ·
-              Faltaron: <span className="font-semibold">{faltas}</span> · Sin
-              marcar: <span className="font-semibold">{sinMarcar}</span>
+              {t("Asistieron:")}{" "}
+              <span className="font-semibold">{presentes}</span> ·{" "}
+              {t("Faltaron:")} <span className="font-semibold">{faltas}</span>{" "}
+              · {t("Sin marcar:")}{" "}
+              <span className="font-semibold">{sinMarcar}</span>
             </p>
 
             <button
               type="button"
               onClick={marcarPresentesLosDemas}
-              className="min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors duration-200 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none motion-reduce:transition-none"
+              className="min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors duration-200 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none motion-reduce:transition-none"
             >
-              Marcar a los demás como presentes
+              {t("Marcar a los demás como presentes")}
             </button>
           </div>
 
           <Card className="mt-3 overflow-hidden">
             {visibles.length === 0 ? (
               <p className="p-6 text-center text-sm text-neutral-600">
-                Ningún alumno coincide con la búsqueda.
+                {t("Ningún alumno coincide con la búsqueda.")}
               </p>
             ) : (
               <ul className="divide-y divide-neutral-100">
@@ -250,14 +257,16 @@ function Attendance() {
                           {nombre}
                         </p>
                         <p className="text-sm text-neutral-600">
-                          Cinta {BELT_LABELS[s.currentBelt].toLowerCase()}
+                          {t("Cinta {color}", {
+                            color: t(BELT_LABELS[s.currentBelt]).toLowerCase(),
+                          })}
                           {s.teacherName && ` · ${s.teacherName}`}
                         </p>
                       </div>
 
                       <div
                         role="group"
-                        aria-label={`Asistencia de ${nombre}`}
+                        aria-label={t("Asistencia de {nombre}", { nombre })}
                         className="flex gap-2"
                       >
                         <BotonMarca
@@ -297,10 +306,12 @@ function Attendance() {
               className="min-h-11 cursor-pointer rounded-2xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-violet-700 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
             >
               {guardando
-                ? "Guardando…"
+                ? t("Guardando…")
                 : cambios.length > 0
-                  ? `Guardar ${cambios.length} ${cambios.length === 1 ? "cambio" : "cambios"}`
-                  : "Sin cambios"}
+                  ? cambios.length === 1
+                    ? t("Guardar {n} cambio", { n: cambios.length })
+                    : t("Guardar {n} cambios", { n: cambios.length })
+                  : t("Sin cambios")}
             </button>
           </div>
         </>
@@ -325,7 +336,7 @@ function BotonMarca({
     ? esPresente
       ? "border-emerald-700 bg-emerald-700 text-white"
       : "border-red-700 bg-red-700 text-white"
-    : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50";
+    : "border-neutral-300 bg-surface text-neutral-700 hover:bg-neutral-50";
 
   return (
     <button
@@ -335,7 +346,7 @@ function BotonMarca({
       className={`flex min-h-11 cursor-pointer items-center gap-1.5 rounded-2xl border px-3.5 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none motion-reduce:transition-none ${color}`}
     >
       <Icono size={16} aria-hidden="true" />
-      {esPresente ? "Asistió" : "Faltó"}
+      {esPresente ? t("Asistió") : t("Faltó")}
     </button>
   );
 }

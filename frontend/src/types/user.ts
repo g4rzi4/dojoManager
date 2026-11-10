@@ -1,4 +1,6 @@
-export type Role = "ADMIN" | "PROFESOR" | "TUTOR" | "ALUMNO";
+import type { Preferences } from "../services/preferences";
+
+export type Role = "SUPERADMIN" | "ADMIN" | "PROFESOR" | "TUTOR" | "ALUMNO";
 
 export type Permission =
   | "students:read"
@@ -12,6 +14,7 @@ export type Permission =
   | "teachers:write"
   | "settings:write"
   | "notifications:send"
+  | "platform:manage"
   | "self:read";
 
 export type SessionUser = {
@@ -32,9 +35,12 @@ export type SessionUser = {
    * servidor en cada petición.
    */
   permissions: Permission[];
+  /** Idioma, vista y tamaño de letra guardados en la cuenta. */
+  preferences: Preferences;
 };
 
 export const ROLE_LABELS: Record<Role, string> = {
+  SUPERADMIN: "Superadministrador",
   ADMIN: "Administrador",
   PROFESOR: "Profesor",
   TUTOR: "Tutor",

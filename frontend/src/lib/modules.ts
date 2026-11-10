@@ -1,5 +1,6 @@
 import {
   Bell,
+  Building2,
   CalendarCheck,
   CalendarDays,
   CalendarRange,
@@ -7,6 +8,7 @@ import {
   IdCard,
   LayoutDashboard,
   Receipt,
+  SlidersHorizontal,
   Shirt,
   Users,
 } from "lucide-react";
@@ -58,6 +60,14 @@ export const MODULES = {
   tarjeta: {
     icon: IdCard,
     tile: "border-lime-300 bg-lime-50 text-lime-700 [--tile-shadow:var(--color-lime-400)]",
+  },
+  plataforma: {
+    icon: Building2,
+    tile: "border-blue-200 bg-blue-50 text-blue-700 [--tile-shadow:var(--color-blue-400)]",
+  },
+  preferencias: {
+    icon: SlidersHorizontal,
+    tile: "border-indigo-200 bg-indigo-50 text-indigo-700 [--tile-shadow:var(--color-indigo-400)]",
   },
 } as const;
 

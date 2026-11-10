@@ -6,6 +6,7 @@ import BrandMark from "../components/BrandMark";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import { ApiError, forgotPassword } from "../services/api";
+import { t } from "../i18n";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -23,12 +24,12 @@ function ForgotPassword() {
 
     try {
       const res = await forgotPassword(email);
-      setMensaje(res.message);
+      setMensaje(t(res.message));
     } catch (e: unknown) {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible conectar con el servidor."
+          : t("No fue posible conectar con el servidor.")
       );
     } finally {
       setEnviando(false);
@@ -41,26 +42,29 @@ function ForgotPassword() {
         <BrandMark className="h-11 w-11" />
 
         <h1 className="mt-5 text-3xl font-bold text-neutral-800">
-          Recupera tu contraseña
+          {t("Recupera tu contraseña")}
         </h1>
 
         {mensaje ? (
           <div role="status">
             <p className="mt-3 text-neutral-700">{mensaje}</p>
             <p className="mt-3 text-sm text-neutral-600">
-              ¿No te llegó? Revisa tu correo no deseado o pídele a tu profesor
-              un enlace para restablecerla.
+              {t(
+                "¿No te llegó? Revisa tu correo no deseado o pídele a tu profesor un enlace para restablecerla."
+              )}
             </p>
           </div>
         ) : (
           <>
             <p className="mt-2 text-neutral-600">
-              Escribe tu correo y te enviaremos un enlace para elegir una nueva.
+              {t(
+                "Escribe tu correo y te enviaremos un enlace para elegir una nueva."
+              )}
             </p>
 
             <form onSubmit={handleSubmit} className="mt-7 space-y-5">
               <Input
-                label="Correo electrónico"
+                label={t("Correo electrónico")}
                 type="email"
                 name="email"
                 autoComplete="email"
@@ -78,7 +82,7 @@ function ForgotPassword() {
               )}
 
               <Button type="submit" disabled={enviando}>
-                {enviando ? "Enviando…" : "Enviar enlace"}
+                {enviando ? t("Enviando…") : t("Enviar enlace")}
               </Button>
             </form>
           </>
@@ -88,7 +92,7 @@ function ForgotPassword() {
           to="/"
           className="mt-6 inline-block rounded-xl py-1 text-sm font-semibold text-violet-700 hover:text-violet-900 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
         >
-          Volver a iniciar sesión
+          {t("Volver a iniciar sesión")}
         </Link>
       </div>
     </AuthLayout>

@@ -5,6 +5,7 @@ import BrandMark from "./BrandMark";
 import ModuleTile from "./ModuleTile";
 import { can, clearSession, getUser } from "../services/session";
 import { ROLE_LABELS, type Permission } from "../types/user";
+import { t } from "../i18n";
 import type { ModuleKey } from "../lib/modules";
 
 type Props = {
@@ -87,13 +88,23 @@ const NAV_ITEMS: NavItem[] = [
     module: "notificaciones",
     permission: "self:read",
   },
+  {
+    to: "/preferencias",
+    label: "Preferencias",
+    module: "preferencias",
+    permission: "self:read",
+  },
 ];
 
 function Sidebar({ open, onClose }: Props) {
   const navigate = useNavigate();
   const user = getUser();
 
-  const visibleItems = NAV_ITEMS.filter((item) => can(user, item.permission));
+  // El superadministrador no trabaja dentro de un dojo: solo ve su pantalla.
+  const esSuper = user?.role === "SUPERADMIN";
+  const visibleItems = esSuper
+    ? []
+    : NAV_ITEMS.filter((item) => can(user, item.permission));
 
   // Alumno y tutor no administran el dojo: entran a su propio panel.
   const esFamilia = user?.role === "ALUMNO" || user?.role === "TUTOR";
@@ -119,14 +130,14 @@ function Sidebar({ open, onClose }: Props) {
       <aside
         className={`
           fixed inset-y-0 left-0 z-40 flex w-72 flex-col overscroll-contain
-          rounded-r-[2rem] border-r border-neutral-200/80 bg-white shadow-float
+          rounded-r-[2rem] border-r border-neutral-200/80 bg-surface shadow-float
           transition-[transform,visibility] duration-200 ease-out
           motion-reduce:transition-none
           lg:visible lg:sticky lg:top-3 lg:z-auto lg:h-[calc(100dvh-1.5rem)]
           lg:translate-x-0 lg:rounded-[2rem] lg:border
           ${open ? "visible translate-x-0" : "invisible -translate-x-full"}
         `}
-        aria-label="Navegación principal"
+        aria-label={t("Navegación principal")}
       >
         {/* Encabezado */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
@@ -137,7 +148,11 @@ function Sidebar({ open, onClose }: Props) {
                 DojoManager
               </p>
               <p className="text-sm text-neutral-600">
-                {esFamilia ? "Mi dojo" : "Administración"}
+                {esSuper
+                  ? t("Plataforma")
+                  : esFamilia
+                    ? t("Mi dojo")
+                    : t("Administración")}
               </p>
             </div>
           </div>
@@ -145,7 +160,7 @@ function Sidebar({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Cerrar menú"
+            aria-label={t("Cerrar menú")}
             className="
               flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl
               text-neutral-600 transition-colors duration-200
@@ -161,10 +176,27 @@ function Sidebar({ open, onClose }: Props) {
         {/* Navegación */}
         <nav className="flex-1 overflow-y-auto px-3 py-3">
           <ul className="space-y-1">
+            {esSuper && (
+              <>
+                <SidebarLink
+                  to="/plataforma"
+                  label={t("Plataforma")}
+                  module="plataforma"
+                  onClose={onClose}
+                />
+                <SidebarLink
+                  to="/preferencias"
+                  label={t("Preferencias")}
+                  module="preferencias"
+                  onClose={onClose}
+                />
+              </>
+            )}
+
             {esFamilia && (
               <SidebarLink
                 to="/inicio"
-                label="Inicio"
+                label={t("Inicio")}
                 module="inicio"
                 onClose={onClose}
               />
@@ -173,7 +205,7 @@ function Sidebar({ open, onClose }: Props) {
             {esAlumno && (
               <SidebarLink
                 to="/mi-tarjeta"
-                label="Ver mi ficha"
+                label={t("Ver mi ficha")}
                 module="tarjeta"
                 onClose={onClose}
               />
@@ -182,7 +214,7 @@ function Sidebar({ open, onClose }: Props) {
             {esTutor && (
               <SidebarLink
                 to="/mis-fichas"
-                label="Ver mis fichas"
+                label={t("Ver mis fichas")}
                 module="tarjeta"
                 onClose={onClose}
               />
@@ -192,7 +224,7 @@ function Sidebar({ open, onClose }: Props) {
               <SidebarLink
                 key={to}
                 to={to}
-                label={label}
+                label={t(label)}
                 module={module}
                 onClose={onClose}
               />
@@ -209,10 +241,10 @@ function Sidebar({ open, onClose }: Props) {
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-neutral-800">
-                  {user?.name ?? "Invitado"}
+                  {user?.name ?? t("Invitado")}
                 </p>
                 <p className="truncate text-sm text-neutral-600">
-                  {user ? ROLE_LABELS[user.role] : "Sin sesión"}
+                  {user ? t(ROLE_LABELS[user.role]) : t("Sin sesión")}
                 </p>
               </div>
             </div>
@@ -229,7 +261,7 @@ function Sidebar({ open, onClose }: Props) {
               "
             >
               <LogOut size={18} aria-hidden="true" />
-              Cerrar sesión
+              {t("Cerrar sesión")}
             </button>
           </div>
         </div>

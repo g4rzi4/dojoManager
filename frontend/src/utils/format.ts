@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { MONTH_NAMES } from "./date";
 
 /**
@@ -32,7 +33,7 @@ export function pesosACentavos(texto: string): number | null {
 
 /** "octubre 2026" a partir del año y mes (1-12) de un pago. */
 export function formatPeriod(year: number, month: number): string {
-  const name = MONTH_NAMES[month - 1] ?? String(month);
+  const name = t(MONTH_NAMES[month - 1] ?? String(month));
   return `${name} ${year}`;
 }
 

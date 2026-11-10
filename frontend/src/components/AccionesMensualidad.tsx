@@ -6,10 +6,11 @@ import {
   payMonthlyPayment,
   updateMonthlyPayment,
 } from "../services/api";
+import { t } from "../i18n";
 import { pesosACentavos } from "../utils/format";
 
 const SECUNDARIO =
-  "min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-3 py-2 text-sm font-semibold whitespace-nowrap text-neutral-700 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+  "min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-3 py-2 text-sm font-semibold whitespace-nowrap text-neutral-700 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 const PRIMARIO =
   "min-h-11 cursor-pointer rounded-2xl bg-violet-600 px-3 py-2 text-sm font-semibold whitespace-nowrap text-white hover:bg-violet-700 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
@@ -40,7 +41,9 @@ function AccionesMensualidad({ id, amountCents, descripcion, onCambio }: Props) 
       onCambio();
     } catch (e: unknown) {
       setError(
-        e instanceof ApiError ? e.message : "No fue posible guardar el cambio."
+        e instanceof ApiError
+          ? e.message
+          : t("No fue posible guardar el cambio.")
       );
     } finally {
       setGuardando(false);
@@ -51,7 +54,7 @@ function AccionesMensualidad({ id, amountCents, descripcion, onCambio }: Props) 
     const centavos = pesosACentavos(monto);
 
     if (centavos === null) {
-      setError("Escribe un monto válido.");
+      setError(t("Escribe un monto válido."));
       return;
     }
 
@@ -59,7 +62,7 @@ function AccionesMensualidad({ id, amountCents, descripcion, onCambio }: Props) 
   }
 
   function eliminar() {
-    if (window.confirm(`¿Eliminar la mensualidad de ${descripcion}?`)) {
+    if (window.confirm(t("¿Eliminar la mensualidad de {descripcion}?", { descripcion }))) {
       void ejecutar(() => deleteMonthlyPayment(id));
     }
   }
@@ -72,27 +75,29 @@ function AccionesMensualidad({ id, amountCents, descripcion, onCambio }: Props) 
             <button
               type="button"
               className={PRIMARIO}
-              aria-label={`Registrar pago de ${descripcion}`}
+              aria-label={t("Registrar pago de {descripcion}", { descripcion })}
               onClick={() => setModo("pagar")}
             >
-              Registrar pago
+              {t("Registrar pago")}
             </button>
             <button
               type="button"
               className={SECUNDARIO}
-              aria-label={`Editar monto de ${descripcion}`}
+              aria-label={t("Editar monto de {descripcion}", { descripcion })}
               onClick={() => setModo("editar")}
             >
-              Editar
+              {t("Editar")}
             </button>
             <button
               type="button"
               className={SECUNDARIO}
               disabled={guardando}
-              aria-label={`Eliminar mensualidad de ${descripcion}`}
+              aria-label={t("Eliminar mensualidad de {descripcion}", {
+                descripcion,
+              })}
               onClick={eliminar}
             >
-              Eliminar
+              {t("Eliminar")}
             </button>
           </>
         )}
@@ -105,7 +110,7 @@ function AccionesMensualidad({ id, amountCents, descripcion, onCambio }: Props) 
               disabled={guardando}
               onClick={() => ejecutar(() => payMonthlyPayment(id, "EFECTIVO"))}
             >
-              Efectivo
+              {t("Efectivo")}
             </button>
             <button
               type="button"
@@ -115,14 +120,14 @@ function AccionesMensualidad({ id, amountCents, descripcion, onCambio }: Props) 
                 ejecutar(() => payMonthlyPayment(id, "TRANSFERENCIA"))
               }
             >
-              Transferencia
+              {t("Transferencia")}
             </button>
             <button
               type="button"
               className={SECUNDARIO}
               onClick={() => setModo("inicio")}
             >
-              Cancelar
+              {t("Cancelar")}
             </button>
           </>
         )}
@@ -132,10 +137,10 @@ function AccionesMensualidad({ id, amountCents, descripcion, onCambio }: Props) 
             <input
               type="text"
               inputMode="decimal"
-              aria-label={`Nuevo monto de ${descripcion}`}
+              aria-label={t("Nuevo monto de {descripcion}", { descripcion })}
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
-              className="min-h-11 w-28 rounded-2xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-100"
+              className="min-h-11 w-28 rounded-2xl border border-neutral-300 bg-surface px-3 py-2 text-sm text-neutral-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-100"
             />
             <button
               type="button"
@@ -143,14 +148,14 @@ function AccionesMensualidad({ id, amountCents, descripcion, onCambio }: Props) 
               disabled={guardando}
               onClick={guardarMonto}
             >
-              Guardar
+              {t("Guardar")}
             </button>
             <button
               type="button"
               className={SECUNDARIO}
               onClick={() => setModo("inicio")}
             >
-              Cancelar
+              {t("Cancelar")}
             </button>
           </>
         )}

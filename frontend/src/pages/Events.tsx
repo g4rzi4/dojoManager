@@ -9,6 +9,7 @@ import EventPaymentPanel from "../components/EventPaymentPanel";
 import EventEditForm from "../components/EventEditForm";
 import { ApiError, deleteEvent, getEvents, getMyStudents } from "../services/api";
 import { can, getUser } from "../services/session";
+import { t } from "../i18n";
 import type { DojoEvent } from "../types/event";
 import type { MyStudent } from "../types/payment";
 import { CATEGORY_LABELS, CATEGORY_STYLES } from "../types/event";
@@ -37,7 +38,7 @@ function Events() {
         setError(
           e instanceof ApiError
             ? e.message
-            : "No fue posible cargar los eventos."
+            : t("No fue posible cargar los eventos.")
         );
       });
   }
@@ -62,7 +63,7 @@ function Events() {
           setError(
             e instanceof ApiError
               ? e.message
-              : "No fue posible cargar los eventos."
+              : t("No fue posible cargar los eventos.")
           );
         }
       })
@@ -79,7 +80,9 @@ function Events() {
     // Confirmación antes de borrar: es irreversible y un clic de más en una
     // lista es fácil.
     const seguro = window.confirm(
-      `¿Quitar "${event.title}" del calendario? No se puede deshacer.`
+      t('¿Quitar "{titulo}" del calendario? No se puede deshacer.', {
+        titulo: event.title,
+      })
     );
 
     if (!seguro) return;
@@ -92,7 +95,7 @@ function Events() {
       await cargar();
     } catch (e: unknown) {
       setError(
-        e instanceof ApiError ? e.message : "No fue posible quitar el evento."
+        e instanceof ApiError ? e.message : t("No fue posible quitar el evento.")
       );
     } finally {
       setBorrando(null);
@@ -130,10 +133,10 @@ function Events() {
       <header className="flex flex-wrap items-center justify-between gap-4">
         <PageHeading module="eventos">
           <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-            Eventos
+            {t("Eventos")}
           </h1>
           <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
-            Clases, exámenes de cinta, torneos y fechas de cobro.
+            {t("Clases, exámenes de cinta, torneos y fechas de cobro.")}
           </p>
         </PageHeading>
 
@@ -152,7 +155,7 @@ function Events() {
             "
           >
             <CalendarPlus size={17} aria-hidden="true" />
-            Agregar evento
+            {t("Agregar evento")}
           </button>
         )}
       </header>
@@ -171,12 +174,12 @@ function Events() {
 
       {error && (
         <Card className="mt-6 border-red-200 p-6">
-          <p className="font-semibold text-red-800">Ocurrió un problema</p>
+          <p className="font-semibold text-red-800">{t("Ocurrió un problema")}</p>
           <p className="mt-1 text-sm text-red-700">{error}</p>
         </Card>
       )}
 
-      <section className="mt-8" aria-label="Próximos eventos">
+      <section className="mt-8" aria-label={t("Próximos eventos")}>
         {loading ? (
           <div className="space-y-3">
             <Card className="h-24 animate-pulse motion-reduce:animate-none" />
@@ -189,12 +192,12 @@ function Events() {
               <CalendarDays size={26} aria-hidden="true" />
             </span>
             <h2 className="mt-4 font-bold text-neutral-900">
-              No hay eventos próximos
+              {t("No hay eventos próximos")}
             </h2>
             <p className="mt-2 text-sm text-neutral-600">
               {puedeEditar
-                ? "Agrega el primero con el botón de arriba."
-                : "Los eventos que programe el dojo aparecerán aquí."}
+                ? t("Agrega el primero con el botón de arriba.")
+                : t("Los eventos que programe el dojo aparecerán aquí.")}
             </p>
           </Card>
         ) : (
@@ -221,7 +224,7 @@ function Events() {
                                 {event.time}
                               </>
                             ) : (
-                              "Todo el día"
+                              t("Todo el día")
                             )}
                           </p>
                         </div>
@@ -231,17 +234,22 @@ function Events() {
                             CATEGORY_STYLES[event.category].chip
                           }`}
                         >
-                          {CATEGORY_LABELS[event.category]}
+                          {t(CATEGORY_LABELS[event.category])}
                         </span>
 
                         {event.requiresPayment && (
                           <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
                             {event.modalities && event.modalities.length > 0
-                              ? `${event.modalities.length} modalidades · desde ${formatMoney(
-                                  Math.min(
-                                    ...event.modalities.map((m) => m.priceCents)
-                                  )
-                                )}`
+                              ? t("{n} modalidades · desde {precio}", {
+                                  n: event.modalities.length,
+                                  precio: formatMoney(
+                                    Math.min(
+                                      ...event.modalities.map(
+                                        (m) => m.priceCents
+                                      )
+                                    )
+                                  ),
+                                })
                               : formatMoney(event.priceCents ?? 0)}
                           </span>
                         )}
@@ -261,13 +269,13 @@ function Events() {
                               focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none
                               ${
                                 puedeEditar
-                                  ? "border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                                  ? "border border-neutral-300 bg-surface text-neutral-700 hover:bg-neutral-50"
                                   : "bg-violet-600 text-white hover:bg-violet-700"
                               }
                             `}
                           >
                             <Receipt size={14} aria-hidden="true" />
-                            {puedeEditar ? "Pagos" : "Pagar"}
+                            {puedeEditar ? t("Pagos") : t("Pagar")}
                           </button>
                         )}
 
@@ -278,7 +286,7 @@ function Events() {
                               setEditando((x) => (x === event.id ? null : event.id))
                             }
                             aria-expanded={editando === event.id}
-                            aria-label={`Editar ${event.title}`}
+                            aria-label={t("Editar {titulo}", { titulo: event.title })}
                             className="
                               flex h-11 w-11 shrink-0 cursor-pointer items-center
                               justify-center rounded-xl text-neutral-500
@@ -297,7 +305,9 @@ function Events() {
                             type="button"
                             onClick={() => quitar(event)}
                             disabled={borrando === event.id}
-                            aria-label={`Quitar ${event.title} del calendario`}
+                            aria-label={t("Quitar {titulo} del calendario", {
+                              titulo: event.title,
+                            })}
                             className="
                               flex h-11 w-11 shrink-0 cursor-pointer items-center
                               justify-center rounded-xl text-neutral-500

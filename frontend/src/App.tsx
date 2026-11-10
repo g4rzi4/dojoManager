@@ -10,6 +10,7 @@ const Enroll = lazy(() => import("./pages/Enroll"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Attendance = lazy(() => import("./pages/Attendance"));
+const Platform = lazy(() => import("./pages/Platform"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const FamilyHome = lazy(() => import("./pages/FamilyHome"));
 const Teachers = lazy(() => import("./pages/Teachers"));
@@ -23,6 +24,7 @@ const Classes = lazy(() => import("./pages/Classes"));
 const Payments = lazy(() => import("./pages/Payments"));
 const Equipment = lazy(() => import("./pages/Equipment"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const Preferences = lazy(() => import("./pages/Preferences"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 /**
@@ -100,7 +102,7 @@ function App() {
         <Route
           path="/inicio"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["ALUMNO", "TUTOR"]}>
               <FamilyHome />
             </ProtectedRoute>
           }
@@ -121,7 +123,7 @@ function App() {
         <Route
           path="/mi-tarjeta"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["ALUMNO"]}>
               <MyCard />
             </ProtectedRoute>
           }
@@ -149,7 +151,7 @@ function App() {
         <Route
           path="/mis-fichas"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["TUTOR"]}>
               <MyCards />
             </ProtectedRoute>
           }
@@ -178,6 +180,24 @@ function App() {
           element={
             <ProtectedRoute>
               <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/preferencias"
+          element={
+            <ProtectedRoute>
+              <Preferences />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plataforma"
+          element={
+            <ProtectedRoute permission="platform:manage">
+              <Platform />
             </ProtectedRoute>
           }
         />

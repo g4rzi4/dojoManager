@@ -27,6 +27,7 @@ import {
 } from "../types/equipment";
 import { PAYMENT_METHOD_LABELS, type MyStudent } from "../types/payment";
 import { formatMoney } from "../utils/format";
+import { getLocale, t } from "../i18n";
 
 const OTRA_MARCA = "OTRA";
 const AMBOS_COLORES = "AMBOS";
@@ -37,7 +38,7 @@ const CATEGORIAS: { value: EquipmentCategory; titulo: string }[] = [
 ];
 
 const CAMPO = `
-  w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-neutral-800
+  w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3 text-neutral-800
   outline-none transition-[border-color,box-shadow] motion-reduce:transition-none
   focus:border-violet-600 focus:ring-4 focus:ring-violet-100
 `;
@@ -53,7 +54,7 @@ const BOTON_PRIMARIO = `
 `;
 
 const BOTON_SECUNDARIO = `
-  min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-4 py-2
+  min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-4 py-2
   text-sm font-semibold text-neutral-700 transition-colors duration-200
   motion-reduce:transition-none hover:bg-neutral-50
   focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
@@ -92,7 +93,7 @@ function Equipment() {
         setError("");
       })
       .catch((e: unknown) => {
-        if (activo) setError(mensajeDe(e, "No fue posible cargar la información."));
+        if (activo) setError(mensajeDe(e, t("No fue posible cargar la información.")));
       })
       .finally(() => {
         if (activo) setCargando(false);
@@ -110,12 +111,14 @@ function Equipment() {
       <header>
         <PageHeading module="equipo">
           <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-            Uniformes y protecciones
+            {t("Uniformes y protecciones")}
           </h1>
           <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
             {esPersonal
-              ? "Confirma disponibilidad y precio de lo que piden tus alumnos."
-              : "Elige lo que necesitas y tu profesor confirmará disponibilidad y precio."}
+              ? t("Confirma disponibilidad y precio de lo que piden tus alumnos.")
+              : t(
+                  "Elige lo que necesitas y tu profesor confirmará disponibilidad y precio."
+                )}
           </p>
         </PageHeading>
       </header>
@@ -123,7 +126,7 @@ function Equipment() {
       {error && (
         <Card className="mt-6 border-red-200 p-6">
           <p className="font-semibold text-red-800">
-            No se pudo cargar la información
+            {t("No se pudo cargar la información")}
           </p>
           <p className="mt-1 text-sm text-red-700">{error}</p>
         </Card>
@@ -146,7 +149,7 @@ function Equipment() {
               id="titulo-solicitudes"
               className="mb-4 text-lg font-bold text-neutral-800"
             >
-              {esPersonal ? "Solicitudes" : "Mis solicitudes"}
+              {esPersonal ? t("Solicitudes") : t("Mis solicitudes")}
             </h2>
 
             {solicitudes.length === 0 ? (
@@ -155,12 +158,12 @@ function Equipment() {
                   <Shirt size={26} aria-hidden="true" />
                 </span>
                 <p className="mt-4 font-bold text-neutral-800">
-                  Todavía no hay solicitudes
+                  {t("Todavía no hay solicitudes")}
                 </p>
                 <p className="mt-1 text-sm text-neutral-600">
                   {esPersonal
-                    ? "Aquí aparecerá lo que pidan tus alumnos."
-                    : "Aquí podrás seguir lo que le pidas a tu profesor."}
+                    ? t("Aquí aparecerá lo que pidan tus alumnos.")
+                    : t("Aquí podrás seguir lo que le pidas a tu profesor.")}
                 </p>
               </Card>
             ) : (
@@ -241,10 +244,10 @@ function FormularioSolicitud({
     return (
       <Card className="mt-8 p-8 text-center">
         <p className="font-bold text-neutral-800">
-          El dojo todavía no tiene catálogo
+          {t("El dojo todavía no tiene catálogo")}
         </p>
         <p className="mt-1 text-sm text-neutral-600">
-          Cuando se carguen los productos, podrás pedirlos desde aquí.
+          {t("Cuando se carguen los productos, podrás pedirlos desde aquí.")}
         </p>
       </Card>
     );
@@ -258,6 +261,15 @@ function FormularioSolicitud({
 
   const puedeEnviar =
     elegidos.length > 0 && completos && alumnoId !== "" && !enviando;
+
+  const n = elegidos.length;
+  const resumenProductos = hayPorConfirmar
+    ? n === 1
+      ? t("{n} producto · falta confirmar precio", { n })
+      : t("{n} productos · falta confirmar precio", { n })
+    : n === 1
+      ? t("{n} producto", { n })
+      : t("{n} productos", { n });
 
   function alternar(id: number, elegido: boolean) {
     setSelecciones((actual) => {
@@ -305,12 +317,12 @@ function FormularioSolicitud({
         note: nota.trim() || undefined,
       });
 
-      setExito(res.message);
+      setExito(t(res.message));
       setSelecciones({});
       setNota("");
       onEnviada();
     } catch (err: unknown) {
-      setError(mensajeDe(err, "No fue posible enviar la solicitud."));
+      setError(mensajeDe(err, t("No fue posible enviar la solicitud.")));
     } finally {
       setEnviando(false);
     }
@@ -321,7 +333,7 @@ function FormularioSolicitud({
       {alumnos.length > 1 && (
         <Card className="p-5">
           <label htmlFor="equipo-alumno" className={ETIQUETA}>
-            ¿Para quién es?
+            {t("¿Para quién es?")}
           </label>
           <select
             id="equipo-alumno"
@@ -331,7 +343,7 @@ function FormularioSolicitud({
             }
             className={`${CAMPO} mt-2 cursor-pointer sm:max-w-sm`}
           >
-            <option value="">Elige un alumno</option>
+            <option value="">{t("Elige un alumno")}</option>
             {alumnos.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.firstName} {a.lastName}
@@ -347,7 +359,7 @@ function FormularioSolicitud({
             id={`categoria-${value}`}
             className="mb-4 text-lg font-bold text-neutral-800"
           >
-            {titulo}
+            {t(titulo)}
           </h2>
 
           <Card className="divide-y divide-neutral-100">
@@ -368,8 +380,8 @@ function FormularioSolicitud({
 
       <Card className="p-5">
         <label htmlFor="equipo-nota" className={ETIQUETA}>
-          Nota para el profesor{" "}
-          <span className="font-normal text-neutral-500">(opcional)</span>
+          {t("Nota para el profesor")}{" "}
+          <span className="font-normal text-neutral-500">{t("(opcional)")}</span>
         </label>
         <input
           id="equipo-nota"
@@ -385,9 +397,7 @@ function FormularioSolicitud({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-neutral-600">
-              {elegidos.length}{" "}
-              {elegidos.length === 1 ? "producto" : "productos"}
-              {hayPorConfirmar && " · falta confirmar precio"}
+              {resumenProductos}
             </p>
             <p className="text-xl font-bold text-neutral-800">
               {formatMoney(total)}
@@ -399,7 +409,7 @@ function FormularioSolicitud({
             disabled={!puedeEnviar}
             className={BOTON_PRIMARIO}
           >
-            {enviando ? "Enviando…" : "Enviar al profesor"}
+            {enviando ? t("Enviando…") : t("Enviar al profesor")}
           </button>
         </div>
 
@@ -453,7 +463,7 @@ function FilaProducto({
           <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
             <div className="space-y-2">
               <label htmlFor={`${id}-modelo`} className={ETIQUETA}>
-                Marca y modelo
+                {t("Marca y modelo")}
               </label>
               <select
                 id={`${id}-modelo`}
@@ -461,19 +471,19 @@ function FilaProducto({
                 onChange={(e) => onCambiar({ modelo: e.target.value })}
                 className={`${CAMPO} cursor-pointer`}
               >
-                <option value="">Elige una opción</option>
+                <option value="">{t("Elige una opción")}</option>
                 {producto.models.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.brandName} · {m.name} · {formatMoney(m.priceCents)}
                   </option>
                 ))}
-                <option value={OTRA_MARCA}>Otra marca (especificar)</option>
+                <option value={OTRA_MARCA}>{t("Otra marca (especificar)")}</option>
               </select>
             </div>
 
             <div className="space-y-2">
               <label htmlFor={`${id}-talla`} className={ETIQUETA}>
-                Talla
+                {t("Talla")}
               </label>
               <select
                 id={`${id}-talla`}
@@ -481,7 +491,7 @@ function FilaProducto({
                 onChange={(e) => onCambiar({ talla: e.target.value })}
                 className={`${CAMPO} cursor-pointer`}
               >
-                <option value="">Elige</option>
+                <option value="">{t("Elige")}</option>
                 {producto.sizes.map((t) => (
                   <option key={t} value={t}>
                     {t}
@@ -494,7 +504,7 @@ function FilaProducto({
           {seleccion.modelo === OTRA_MARCA && (
             <div className="space-y-2">
               <label htmlFor={`${id}-marca`} className={ETIQUETA}>
-                ¿Qué marca?
+                {t("¿Qué marca?")}
               </label>
               <input
                 id={`${id}-marca`}
@@ -510,11 +520,11 @@ function FilaProducto({
 
           {producto.colors.length > 0 && (
             <fieldset>
-              <legend className={ETIQUETA}>Color</legend>
+              <legend className={ETIQUETA}>{t("Color")}</legend>
               <div className="mt-2 flex flex-wrap gap-2">
                 {[
                   ...producto.colors.map((c) => ({ valor: c, etiqueta: c })),
-                  { valor: AMBOS_COLORES, etiqueta: "Ambos (2 juegos)" },
+                  { valor: AMBOS_COLORES, etiqueta: t("Ambos (2 juegos)") },
                 ].map(({ valor, etiqueta }) => (
                   <label
                     key={valor}
@@ -525,7 +535,7 @@ function FilaProducto({
                       ${
                         seleccion.color === valor
                           ? "border-violet-300 bg-violet-50 text-violet-700"
-                          : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                          : "border-neutral-300 bg-surface text-neutral-700 hover:bg-neutral-50"
                       }
                     `}
                   >
@@ -546,12 +556,12 @@ function FilaProducto({
           {(modelo || seleccion.modelo === OTRA_MARCA) && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
               <span className="font-bold text-neutral-800">
-                {precio === null ? "Precio por confirmar" : formatMoney(precio)}
+                {precio === null ? t("Precio por confirmar") : formatMoney(precio)}
               </span>
 
               {modelo?.isExample && (
                 <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
-                  Precio de ejemplo
+                  {t("Precio de ejemplo")}
                 </span>
               )}
 
@@ -566,7 +576,7 @@ function FilaProducto({
                     focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
                   "
                 >
-                  Ver tienda de {modelo.brandName}
+                  {t("Ver tienda de {marca}", { marca: modelo.brandName })}
                   <ExternalLink size={14} aria-hidden="true" />
                 </a>
               )}
@@ -613,7 +623,7 @@ function TarjetaSolicitud({
       await updateEquipmentRequest(solicitud.id, body);
       onCambio();
     } catch (e: unknown) {
-      setError(mensajeDe(e, "No fue posible guardar el cambio."));
+      setError(mensajeDe(e, t("No fue posible guardar el cambio.")));
     } finally {
       setGuardando(false);
     }
@@ -627,7 +637,7 @@ function TarjetaSolicitud({
       await resolveCharge("EQUIPO", solicitud.id, confirmado);
       onCambio();
     } catch (e: unknown) {
-      setError(mensajeDe(e, "No fue posible guardar el cambio."));
+      setError(mensajeDe(e, t("No fue posible guardar el cambio.")));
     } finally {
       setGuardando(false);
     }
@@ -652,13 +662,13 @@ function TarjetaSolicitud({
             {solicitud.studentName}
           </p>
           <p className="text-sm text-neutral-600">
-            {new Intl.DateTimeFormat("es-MX", {
+            {new Intl.DateTimeFormat(getLocale(), {
               day: "numeric",
               month: "long",
             }).format(new Date(solicitud.createdAt))}
             {esPersonal &&
               solicitud.requestedBy &&
-              ` · pidió ${solicitud.requestedBy}`}
+              ` · ${t("pidió {nombre}", { nombre: solicitud.requestedBy })}`}
             {!esPersonal &&
               solicitud.teacherName &&
               ` · ${solicitud.teacherName}`}
@@ -670,7 +680,7 @@ function TarjetaSolicitud({
             EQUIPMENT_STATUS_STYLES[solicitud.status]
           }`}
         >
-          {EQUIPMENT_STATUS_LABELS[solicitud.status]}
+          {t(EQUIPMENT_STATUS_LABELS[solicitud.status])}
         </span>
       </div>
 
@@ -687,7 +697,8 @@ function TarjetaSolicitud({
               </p>
               <p className="text-sm break-words text-neutral-600">
                 {i.brandName}
-                {i.modelName && ` · ${i.modelName}`} · Talla {i.size}
+                {i.modelName && ` · ${i.modelName}`} ·{" "}
+                {t("Talla {talla}", { talla: i.size })}
               </p>
             </div>
 
@@ -700,7 +711,9 @@ function TarjetaSolicitud({
                   type="text"
                   inputMode="decimal"
                   autoComplete="off"
-                  aria-label={`Precio de ${i.productName}, en pesos`}
+                  aria-label={t("Precio de {producto}, en pesos", {
+                    producto: i.productName,
+                  })}
                   value={precios[i.id]}
                   onChange={(e) =>
                     setPrecios((p) => ({ ...p, [i.id]: e.target.value }))
@@ -711,7 +724,7 @@ function TarjetaSolicitud({
             ) : (
               <p className="font-bold text-neutral-800">
                 {i.priceCents === null
-                  ? "Precio por confirmar"
+                  ? t("Precio por confirmar")
                   : formatMoney(i.priceCents)}
               </p>
             )}
@@ -727,7 +740,7 @@ function TarjetaSolicitud({
 
       {solicitud.staffNote && (
         <p className="mt-2 text-sm break-words text-neutral-700">
-          <span className="font-semibold">Nota del dojo:</span>{" "}
+          <span className="font-semibold">{t("Nota del dojo:")}</span>{" "}
           {solicitud.staffNote}
         </p>
       )}
@@ -741,7 +754,7 @@ function TarjetaSolicitud({
           )}
           {solicitud.method && (
             <p className="text-sm text-neutral-600">
-              {PAYMENT_METHOD_LABELS[solicitud.method]}
+              {t(PAYMENT_METHOD_LABELS[solicitud.method])}
             </p>
           )}
         </div>
@@ -758,7 +771,7 @@ function TarjetaSolicitud({
               onClick={() => aplicar({ accion: "pagado", method: "EFECTIVO" })}
               className={BOTON_SECUNDARIO}
             >
-              Pagó en efectivo
+              {t("Pagó en efectivo")}
             </button>
             <button
               type="button"
@@ -768,7 +781,7 @@ function TarjetaSolicitud({
               }
               className={BOTON_SECUNDARIO}
             >
-              Pagó por transferencia
+              {t("Pagó por transferencia")}
             </button>
             <button
               type="button"
@@ -776,7 +789,7 @@ function TarjetaSolicitud({
               onClick={() => aplicar({ accion: "rechazar" })}
               className={BOTON_SECUNDARIO}
             >
-              Rechazar
+              {t("Rechazar")}
             </button>
           </div>
         )}
@@ -789,7 +802,7 @@ function TarjetaSolicitud({
               onClick={() => resolver(true)}
               className={BOTON_PRIMARIO}
             >
-              Confirmar pago
+              {t("Confirmar pago")}
             </button>
             <button
               type="button"
@@ -797,7 +810,7 @@ function TarjetaSolicitud({
               onClick={() => resolver(false)}
               className={BOTON_SECUNDARIO}
             >
-              No lo recibí
+              {t("No lo recibí")}
             </button>
           </div>
         )}
@@ -809,7 +822,7 @@ function TarjetaSolicitud({
             onClick={() => aplicar({ accion: "entregado" })}
             className={BOTON_PRIMARIO}
           >
-            Marcar como entregado
+            {t("Marcar como entregado")}
           </button>
         )}
       </div>
@@ -818,8 +831,10 @@ function TarjetaSolicitud({
         <div className="mt-3 space-y-3">
           <div className="space-y-2">
             <label htmlFor={`nota-${solicitud.id}`} className={ETIQUETA}>
-              Nota para la familia{" "}
-              <span className="font-normal text-neutral-500">(opcional)</span>
+              {t("Nota para la familia")}{" "}
+              <span className="font-normal text-neutral-500">
+                {t("(opcional)")}
+              </span>
             </label>
             <input
               id={`nota-${solicitud.id}`}
@@ -838,7 +853,7 @@ function TarjetaSolicitud({
               onClick={confirmar}
               className={BOTON_PRIMARIO}
             >
-              Confirmar disponibilidad y precio
+              {t("Confirmar disponibilidad y precio")}
             </button>
             <button
               type="button"
@@ -851,7 +866,7 @@ function TarjetaSolicitud({
               }
               className={BOTON_SECUNDARIO}
             >
-              Rechazar
+              {t("Rechazar")}
             </button>
           </div>
         </div>

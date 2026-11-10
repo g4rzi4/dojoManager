@@ -3,6 +3,7 @@ import { KeyRound } from "lucide-react";
 
 import Card from "./Card";
 import { ApiError, createTeacher } from "../services/api";
+import { t } from "../i18n";
 
 type Props = {
   onCreado: () => void | Promise<void>;
@@ -56,7 +57,7 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No fue posible registrar al profesor."
+          : t("No fue posible registrar al profesor.")
       );
     } finally {
       setGuardando(false);
@@ -73,10 +74,9 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
             <KeyRound size={20} aria-hidden="true" />
           </span>
           <div>
-            <h2 className="font-bold text-neutral-900">Profesor registrado</h2>
+            <h2 className="font-bold text-neutral-900">{t("Profesor registrado")}</h2>
             <p className="mt-1 text-sm text-neutral-600">
-              Pásale esta clave. La necesita para que sus alumnos queden en su
-              grupo.
+              {t("Pásale esta clave. La necesita para que sus alumnos queden en su grupo.")}
             </p>
             <p className="mt-4 inline-block rounded-2xl border border-neutral-300 bg-neutral-50 px-4 py-3 font-mono text-lg font-bold text-neutral-900">
               {claveCreada}
@@ -91,14 +91,14 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
             onCancelar();
           }}
           className="
-            mt-5 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+            mt-5 cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-3
             font-semibold text-neutral-700 transition-colors duration-200
             motion-reduce:transition-none
             hover:bg-neutral-50
             focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
           "
         >
-          Listo
+          {t("Listo")}
         </button>
       </Card>
     );
@@ -106,9 +106,9 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
 
   return (
     <Card className="p-5 sm:p-6">
-      <h2 className="font-bold text-neutral-900">Registrar un profesor</h2>
+      <h2 className="font-bold text-neutral-900">{t("Registrar un profesor")}</h2>
       <p className="mt-1 text-sm text-neutral-600">
-        El sistema le genera su clave única al guardar.
+        {t("El sistema le genera su clave única al guardar.")}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
@@ -117,16 +117,16 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
             htmlFor="prof-nombre"
             className="block text-sm font-medium text-neutral-700"
           >
-            Nombre completo
+            {t("Nombre completo")}
           </label>
           <input
             id="prof-nombre"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Sensei Ramírez"
+            placeholder={t("Sensei Ramírez")}
             className="
-              w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+              w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
               outline-none transition-[border-color,box-shadow,background-color]
               focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
@@ -138,16 +138,16 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
             htmlFor="prof-correo"
             className="block text-sm font-medium text-neutral-700"
           >
-            Correo electrónico
+            {t("Correo electrónico")}
           </label>
           <input
             id="prof-correo"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="profesor@dojo.com"
+            placeholder={t("profesor@dojo.com")}
             className="
-              w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+              w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
               outline-none transition-[border-color,box-shadow,background-color]
               focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
@@ -159,23 +159,23 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
             htmlFor="prof-password"
             className="block text-sm font-medium text-neutral-700"
           >
-            Contraseña provisional
+            {t("Contraseña provisional")}
           </label>
           <input
             id="prof-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Al menos 8 caracteres"
+            placeholder={t("Al menos 8 caracteres")}
             aria-describedby="prof-password-ayuda"
             className="
-              w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3
+              w-full rounded-2xl border border-neutral-300 bg-surface px-4 py-3
               outline-none transition-[border-color,box-shadow,background-color]
               focus:border-violet-600 focus-visible:ring-4 focus-visible:ring-violet-100
             "
           />
           <p id="prof-password-ayuda" className="text-xs text-neutral-500">
-            Mínimo {MIN_PASSWORD} caracteres. Pídele que la cambie al entrar.
+            {t("Mínimo {n} caracteres. Pídele que la cambie al entrar.", { n: MIN_PASSWORD })}
           </p>
         </div>
 
@@ -198,21 +198,21 @@ function TeacherForm({ onCreado, onCancelar }: Props) {
               disabled:cursor-not-allowed disabled:opacity-50
             "
           >
-            {guardando ? "Registrando…" : "Registrar profesor"}
+            {guardando ? t("Registrando…") : t("Registrar profesor")}
           </button>
 
           <button
             type="button"
             onClick={onCancelar}
             className="
-              cursor-pointer rounded-2xl border border-neutral-300 bg-white px-5 py-3
+              cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-5 py-3
               font-semibold text-neutral-700 transition-colors duration-200
               motion-reduce:transition-none
               hover:bg-neutral-50
               focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none
             "
           >
-            Cancelar
+            {t("Cancelar")}
           </button>
         </div>
       </form>

@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import Card from "./Card";
 import { ApiError } from "../services/api";
+import { t } from "../i18n";
 
 type Cuenta = {
   id: number;
@@ -37,7 +38,9 @@ function EnlacesDeAcceso({ cuentas, generar, onCerrar }: Props) {
       setCopiado(null);
     } catch (e: unknown) {
       setError(
-        e instanceof ApiError ? e.message : "No fue posible generar el enlace."
+        e instanceof ApiError
+          ? e.message
+          : t("No fue posible generar el enlace.")
       );
     } finally {
       setGenerando(null);
@@ -49,7 +52,9 @@ function EnlacesDeAcceso({ cuentas, generar, onCerrar }: Props) {
       await navigator.clipboard.writeText(enlaces[id]);
       setCopiado(id);
     } catch {
-      setError("No se pudo copiar. Selecciona el enlace y cópialo a mano.");
+      setError(
+        t("No se pudo copiar. Selecciona el enlace y cópialo a mano.")
+      );
     }
   }
 
@@ -58,20 +63,21 @@ function EnlacesDeAcceso({ cuentas, generar, onCerrar }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-neutral-900">
-            Restablecer contraseña
+            {t("Restablecer contraseña")}
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-neutral-600">
-            Comparte el enlace solo con esa persona. Caduca en 24 horas,
-            funciona una vez y anula los enlaces anteriores.
+            {t(
+              "Comparte el enlace solo con esa persona. Caduca en 24 horas, funciona una vez y anula los enlaces anteriores."
+            )}
           </p>
         </div>
 
         <button
           type="button"
           onClick={onCerrar}
-          className="min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
+          className="min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
         >
-          Cerrar
+          {t("Cerrar")}
         </button>
       </div>
 
@@ -93,10 +99,10 @@ function EnlacesDeAcceso({ cuentas, generar, onCerrar }: Props) {
                 className="min-h-11 cursor-pointer rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {generando === c.id
-                  ? "Generando…"
+                  ? t("Generando…")
                   : enlaces[c.id]
-                    ? "Generar otro"
-                    : "Generar enlace"}
+                    ? t("Generar otro")
+                    : t("Generar enlace")}
               </button>
             </div>
 
@@ -104,7 +110,7 @@ function EnlacesDeAcceso({ cuentas, generar, onCerrar }: Props) {
               <div className="mt-3 flex flex-wrap gap-2">
                 <input
                   readOnly
-                  aria-label={`Enlace para ${c.etiqueta}`}
+                  aria-label={t("Enlace para {nombre}", { nombre: c.etiqueta })}
                   value={enlaces[c.id]}
                   onFocus={(e) => e.target.select()}
                   className="min-h-11 min-w-0 flex-1 basis-60 rounded-2xl border border-neutral-300 bg-neutral-50 px-3 py-2 font-mono text-sm text-neutral-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-100"
@@ -112,9 +118,9 @@ function EnlacesDeAcceso({ cuentas, generar, onCerrar }: Props) {
                 <button
                   type="button"
                   onClick={() => copiar(c.id)}
-                  className="min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
+                  className="min-h-11 cursor-pointer rounded-2xl border border-neutral-300 bg-surface px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none"
                 >
-                  {copiado === c.id ? "Copiado" : "Copiar"}
+                  {copiado === c.id ? t("Copiado") : t("Copiar")}
                 </button>
               </div>
             )}

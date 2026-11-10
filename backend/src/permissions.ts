@@ -32,6 +32,8 @@ export type Permission =
   | "settings:write"
   /// Redactar avisos y mandarlos a otros usuarios.
   | "notifications:send"
+  /// Ver todos los dojos y sumarles administradores. Solo el superadministrador.
+  | "platform:manage"
   /// Consultar lo propio: su expediente, sus pagos, sus notificaciones.
   | "self:read";
 
@@ -78,7 +80,18 @@ const TUTOR_PERMISSIONS: Permission[] = ["events:read", "self:read"];
 /** El alumno ve el calendario del dojo y sus propios datos. */
 const ALUMNO_PERMISSIONS: Permission[] = ["events:read", "self:read"];
 
+/**
+ * El superadministrador administra la plataforma, no los dojos: a propósito
+ * no tiene students:read ni payments:read, y su cuenta no es de ningún dojo
+ * real, así que no ve datos de alumnos.
+ */
+const SUPERADMIN_PERMISSIONS: Permission[] = [
+  "platform:manage",
+  "self:read",
+];
+
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
+  [Role.SUPERADMIN]: SUPERADMIN_PERMISSIONS,
   [Role.ADMIN]: ADMIN_PERMISSIONS,
   [Role.PROFESOR]: PROFESOR_PERMISSIONS,
   [Role.TUTOR]: TUTOR_PERMISSIONS,

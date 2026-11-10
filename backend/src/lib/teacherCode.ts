@@ -1,4 +1,4 @@
-import { prisma } from "./prisma";
+import { prismaGlobal } from "./prisma";
 
 /**
  * Generación de la clave única del profesor, p. ej. "PROF-7K2M".
@@ -32,7 +32,7 @@ export async function generateTeacherCode(): Promise<string> {
   for (let i = 0; i < INTENTOS; i++) {
     const code = candidato();
 
-    const existe = await prisma.user.findUnique({
+    const existe = await prismaGlobal.user.findUnique({
       where: { teacherCode: code },
       select: { id: true },
     });

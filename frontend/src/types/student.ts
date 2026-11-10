@@ -21,7 +21,7 @@ export const BELT_LABELS: Record<Belt, string> = {
 
 /** Clases del badge de cinta. Mantienen contraste 4.5:1 del texto. */
 export const BELT_STYLES: Record<Belt, string> = {
-  BLANCO: "bg-white text-neutral-800 border-neutral-300",
+  BLANCO: "bg-white text-black border-neutral-300",
   AMARILLO: "bg-yellow-300 text-yellow-950 border-yellow-500",
   NARANJA: "bg-orange-500 text-white border-orange-600",
   VERDE: "bg-green-700 text-white border-green-800",

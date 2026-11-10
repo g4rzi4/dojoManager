@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 
+import { conDojo } from "../lib/dojoContext";
 import { verifyToken } from "../lib/jwt";
 import { can, type Permission } from "../permissions";
 import type { Role } from "../generated/prisma/enums";
@@ -51,7 +52,9 @@ export function requireAuth(
   }
 
   req.user = { id: payload.sub, role: payload.role };
-  next();
+
+  // Todo lo que siga en esta petición queda limitado al dojo del token.
+  conDojo(payload.dojoId, next);
 }
 
 /**
