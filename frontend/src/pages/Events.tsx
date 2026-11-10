@@ -7,6 +7,7 @@ import PageHeading from "../components/PageHeading";
 import EventForm from "../components/EventForm";
 import EventPaymentPanel from "../components/EventPaymentPanel";
 import EventEditForm from "../components/EventEditForm";
+import EventResponse from "../components/EventResponse";
 import { ApiError, deleteEvent, getEvents, getMyStudents } from "../services/api";
 import { can, getUser } from "../services/session";
 import { t } from "../i18n";
@@ -254,7 +255,8 @@ function Events() {
                           </span>
                         )}
 
-                        {event.requiresPayment && (
+                        {/* La familia paga desde la fila de cada alumno, abajo. */}
+                        {event.requiresPayment && puedeEditar && (
                           <button
                             type="button"
                             onClick={() =>
@@ -321,6 +323,34 @@ function Events() {
                             <Trash2 size={18} aria-hidden="true" />
                           </button>
                         )}
+
+                        {!puedeEditar && (
+                          <EventResponse
+                            event={event}
+                            misAlumnos={misAlumnos}
+                            onCambio={cargar}
+                            onPagar={() => setAbierto(event.id)}
+                          />
+                        )}
+
+                        {puedeEditar &&
+                          event.respuestas &&
+                          event.respuestas.asistiran.length + event.respuestas.noAsistiran.length > 0 && (
+                            <div className="w-full space-y-1 border-t border-neutral-200 pt-3 text-sm">
+                              <p className="text-neutral-800">
+                                <span className="font-semibold text-emerald-700">
+                                  {t("Van ({n}):", { n: event.respuestas.asistiran.length })}
+                                </span>{" "}
+                                {event.respuestas.asistiran.join(", ") || "—"}
+                              </p>
+                              <p className="text-neutral-800">
+                                <span className="font-semibold text-neutral-600">
+                                  {t("No van ({n}):", { n: event.respuestas.noAsistiran.length })}
+                                </span>{" "}
+                                {event.respuestas.noAsistiran.join(", ") || "—"}
+                              </p>
+                            </div>
+                          )}
                       </Card>
 
                       {editando === event.id && puedeEditar && (

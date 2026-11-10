@@ -1,7 +1,13 @@
 import { Router } from "express";
 
 import { prisma } from "../lib/prisma";
-import { canManageStudent, familyStudentIds } from "../lib/access";
+import {
+  canManageStudent,
+  familyStudentIds,
+  scopeToStudentIdFilter,
+  visibleStudentIds,
+} from "../lib/access";
+import { hoyEnElDojo } from "../lib/dates";
 import {
   notifyEnrolledByTeacher,
   notifyEventPaymentReported,
@@ -66,7 +72,15 @@ router.get(
     // reportó pago, para no ofrecerle reportarlo otra vez.
     const propios = await familyStudentIds(req.user!);
 
-    const [events, misInscripciones] = await Promise.all([
+    // El personal ve quién de su grupo dijo que va o que no; la familia, lo
+    // que respondió por sus alumnos.
+    const esPersonal =
+      req.user!.role === Role.ADMIN || req.user!.role === Role.PROFESOR;
+    const filtroDeGrupo = esPersonal
+      ? scopeToStudentIdFilter(await visibleStudentIds(req.user!))
+      : undefined;
+
+    const [events, misInscripciones, respuestas] = await Promise.all([
       prisma.event.findMany({
         orderBy: [{ date: "asc" }, { time: "asc" }],
         include: {
@@ -87,6 +101,17 @@ router.get(
               enrolled: true,
             },
           }),
+      esPersonal
+        ? prisma.eventRsvp.findMany({
+            where: filtroDeGrupo,
+            include: { student: { select: { firstName: true, lastName: true } } },
+          })
+        : propios.length === 0
+          ? []
+          : prisma.eventRsvp.findMany({
+              where: { studentId: { in: propios } },
+              include: { student: { select: { firstName: true, lastName: true } } },
+            }),
     ]);
 
     /**
@@ -116,6 +141,9 @@ router.get(
       success: true,
       events: events.map((e) => {
         const mias = misInscripciones.filter((i) => i.eventId === e.id);
+        const delEvento = respuestas.filter((r) => r.eventId === e.id);
+        const nombre = (r: (typeof respuestas)[number]) =>
+          `${r.student.firstName} ${r.student.lastName}`;
 
         return {
           id: String(e.id),
@@ -138,11 +166,119 @@ router.get(
             status: i.status,
             enrolled: i.enrolled,
           })),
+          /** Lo que respondió la familia por cada uno de sus alumnos. */
+          misRespuestas: esPersonal
+            ? []
+            : delEvento.map((r) => ({ studentId: r.studentId, asistira: r.attending })),
+          /** Para el personal: quién de su grupo va y quién no. */
+          respuestas: esPersonal
+            ? {
+                asistiran: delEvento.filter((r) => r.attending).map(nombre),
+                noAsistiran: delEvento.filter((r) => !r.attending).map(nombre),
+              }
+            : null,
         };
       }),
     });
   }
 );
+
+/**
+ * POST /events/:id/rsvp  { studentId?, asistira }
+ *
+ * El alumno o su tutor dicen si va o no al evento. En uno gratuito, decir que
+ * va basta para quedar inscrito; en uno con costo, la inscripción se cierra al
+ * confirmarse el pago, y esto solo registra que piensa ir.
+ */
+router.post("/:id/rsvp", requireAuth, async (req, res) => {
+  const eventId = Number(req.params.id);
+  const { studentId, asistira } = req.body ?? {};
+
+  if (!Number.isInteger(eventId) || eventId < 1 || typeof asistira !== "boolean") {
+    return res.status(400).json({
+      success: false,
+      message: "Indica si el alumno va o no al evento.",
+    });
+  }
+
+  const propios = await familyStudentIds(req.user!);
+
+  if (propios.length === 0) {
+    return res.status(403).json({
+      success: false,
+      message: "Tu cuenta no tiene alumnos a su cargo.",
+    });
+  }
+
+  let alumnoId = propios[0];
+
+  if (studentId === undefined || studentId === null) {
+    if (propios.length > 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Indica por cuál de tus hijos respondes.",
+      });
+    }
+  } else {
+    alumnoId = Number(studentId);
+
+    if (!propios.includes(alumnoId)) {
+      return res.status(403).json({
+        success: false,
+        message: "Ese alumno no está a tu cargo.",
+      });
+    }
+  }
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, date: true },
+  });
+
+  if (!event) {
+    return res.status(404).json({ success: false, message: "No existe ese evento." });
+  }
+
+  // Las fechas @db.Date llegan a medianoche UTC: se compara el día como texto.
+  if (event.date.toISOString().slice(0, 10) < hoyEnElDojo()) {
+    return res.status(400).json({ success: false, message: "Ese evento ya pasó." });
+  }
+
+  if (!asistira) {
+    const inscripcion = await prisma.eventEnrollment.findUnique({
+      where: { eventId_studentId: { eventId, studentId: alumnoId } },
+      select: { status: true },
+    });
+
+    // Con un pago ya reportado o confirmado, bajarse es asunto del profesor:
+    // hay dinero de por medio.
+    if (
+      inscripcion?.status === EventPaymentStatus.REPORTADO ||
+      inscripcion?.status === EventPaymentStatus.CONFIRMADO
+    ) {
+      return res.status(409).json({
+        success: false,
+        message: "Ya tiene un pago registrado para este evento. Si no podrá ir, avísale a su profesor.",
+      });
+    }
+  }
+
+  await prisma.eventRsvp.upsert({
+    where: { eventId_studentId: { eventId, studentId: alumnoId } },
+    update: { attending: asistira, respondedById: req.user!.id },
+    create: {
+      eventId,
+      studentId: alumnoId,
+      attending: asistira,
+      respondedById: req.user!.id,
+    },
+  });
+
+  return res.json({
+    success: true,
+    message: asistira ? "Listo, quedó apuntado." : "Listo, avisamos que no irá.",
+  });
+});
 
 /**
  * GET /events/categories
