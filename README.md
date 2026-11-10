@@ -768,6 +768,95 @@ La integración está en [paypal.ts](backend/src/lib/paypal.ts) y
 
 ---
 
+# Agente de cobranza: recordatorios y recuperación (fase 2)
+
+Después de que Zapier envía los recordatorios de cobro, el backend guarda a qué cobros
+se les mandaron y mide cuánto se recuperó. Las dos rutas viven junto a `/unpaid` y
+exigen la misma API key (`x-api-key: <AGENT_API_KEY>` o `Authorization: Bearer ...`).
+Están en [agentRecordatorios.routes.ts](backend/src/routes/agentRecordatorios.routes.ts).
+
+> **Este es el contrato con Zapier, Claude y Postman.** Cambiar el nombre de un campo
+> rompe el Zap, el prompt y los tests: avísalo al equipo antes de hacerlo.
+
+### `POST /api/agent/record-reminders`
+
+Zapier lo llama después de enviar los mensajes, con los `pagoId` que tomó de `/unpaid`:
+
+```json
+{ "pagoIds": [201, 215] }
+```
+
+Respuesta `200`:
+
+```json
+{
+  "fechaEnvio": "2026-11-05T09:02:11-06:00",
+  "registrados": [201, 215],
+  "yaPagados": [],
+  "noEncontrados": []
+}
+```
+
+- Un id repetido cuenta una sola vez.
+- Un cobro ya pagado va en `yaPagados` y un id que no existe en `noEncontrados`; ninguno
+  hace fallar al resto.
+- Responde `400` si `pagoIds` no es una lista de 1 a 500 enteros positivos, y `401` sin
+  API key.
+
+### `GET /api/agent/recovery-stats?dias=30`
+
+Resume los cobros recordados en los últimos `dias` días (1 a 365, 30 por omisión). Los
+montos van en pesos enteros, igual que en `/unpaid`.
+
+```json
+{
+  "fechaConsulta": "2026-11-10T09:00:00-06:00",
+  "periodo": { "desde": "2026-10-11", "hasta": "2026-11-10", "dias": 30 },
+  "recordatoriosEnviados": 2,
+  "pagosRecordados": 2,
+  "pagosRecuperados": 1,
+  "pagosReportados": 0,
+  "pagosPendientes": 1,
+  "pagosPagadosAntes": 0,
+  "tasaRecuperacion": 50,
+  "montoRecordado": 1400,
+  "montoRecuperado": 700,
+  "montoPendiente": 700,
+  "diasPromedioParaPagar": 2,
+  "recuperadoPorMetodo": { "PAYPAL": 700, "EFECTIVO": 0, "TRANSFERENCIA": 0 },
+  "pagos": [
+    {
+      "pagoId": 201,
+      "alumnoId": 14,
+      "alumno": "Sofía Cruz",
+      "tutor": "Mariana Cruz",
+      "mes": "2026-10",
+      "monto": 700,
+      "recordatorios": 1,
+      "primerRecordatorio": "2026-11-05T09:02:11-06:00",
+      "estado": "RECUPERADO",
+      "pagadoEl": "2026-11-07",
+      "metodo": "PAYPAL",
+      "diasParaPagar": 2
+    }
+  ]
+}
+```
+
+`estado` de cada cobro, medido desde su **primer** recordatorio:
+
+| Estado | Significado |
+|---|---|
+| `RECUPERADO` | Se pagó el día del recordatorio o después. |
+| `REPORTADO` | La familia dice que pagó en efectivo o transferencia y falta confirmarlo. |
+| `PENDIENTE` | Sigue sin pagarse. |
+| `PAGADO_ANTES` | Ya estaba pagado al enviar el recordatorio. No cuenta para `tasaRecuperacion` ni para `montoRecordado`. |
+
+`tasaRecuperacion` es un porcentaje entero. `diasPromedioParaPagar` es `null` mientras
+no haya cobros recuperados.
+
+---
+
 # Asistencia y graduaciones
 
 **Asistencia.** En **Asistencia** el administrador o el profesor eligen el día y marcan
