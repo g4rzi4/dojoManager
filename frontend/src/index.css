@@ -1,18 +1,58 @@
 @import "tailwindcss";
 @import "@fontsource-variable/mona-sans/wght.css";
 
+/* ---------------------------------------------------------------------------
+   Paleta de DojoManager
+
+     #F8F7FD  fondo (claro) / texto (oscuro)
+     #ECE9FA  tintes suaves (claro) / texto secundario (oscuro)
+     #5B3DF5  principal: botones, enlaces, selección
+     #FF9F1C  acento: la cinta de la marca
+     #17123A  texto (claro) / fondo (oscuro)
+
+   Las pantallas usan las escalas neutral y violet de Tailwind, así que la
+   paleta se aplica redefiniéndolas aquí: los grises llevan el tinte de
+   #17123A y la escala violet sale de #5B3DF5.
+   --------------------------------------------------------------------------- */
 @theme {
   /* Fondo de tarjetas y paneles. Cambia con la vista clara u oscura. */
   --color-surface: #fff;
 
+  --color-accent: #ff9f1c;
+  --color-accent-soft: #ffc46b;
+
+  --color-neutral-50: #f8f7fd;
+  --color-neutral-100: #ece9fa;
+  --color-neutral-200: #dedaf0;
+  --color-neutral-300: #c7c2e0;
+  --color-neutral-400: #9993b8;
+  --color-neutral-500: #6e6893;
+  --color-neutral-600: #534d7a;
+  --color-neutral-700: #3d3766;
+  --color-neutral-800: #2a2453;
+  --color-neutral-900: #1e1847;
+  --color-neutral-950: #17123a;
+
+  --color-violet-50: #f4f2fe;
+  --color-violet-100: #ece9fa;
+  --color-violet-200: #d6cefd;
+  --color-violet-300: #b7a9fb;
+  --color-violet-400: #9581f8;
+  --color-violet-500: #7660f7;
+  --color-violet-600: #5b3df5;
+  --color-violet-700: #4a2bdf;
+  --color-violet-800: #3b21b5;
+  --color-violet-900: #2e1a8c;
+  --color-violet-950: #1d115c;
+
   --font-sans: "Mona Sans Variable", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
 
-  --shadow-surface: 0 1px 2px rgb(23 23 23 / 0.04),
-    0 14px 32px -18px rgb(23 23 23 / 0.14);
-  --shadow-float: 0 1px 2px rgb(23 23 23 / 0.05),
-    0 18px 40px -20px rgb(23 23 23 / 0.2);
-  --shadow-tile: 0 6px 14px -8px var(--tile-shadow, rgb(23 23 23 / 0.25));
+  --shadow-surface: 0 1px 2px rgb(23 18 58 / 0.04),
+    0 14px 32px -18px rgb(23 18 58 / 0.14);
+  --shadow-float: 0 1px 2px rgb(23 18 58 / 0.05),
+    0 18px 40px -20px rgb(23 18 58 / 0.2);
+  --shadow-tile: 0 6px 14px -8px var(--tile-shadow, rgb(23 18 58 / 0.25));
 }
 
 @layer base {
@@ -26,7 +66,7 @@
     @apply bg-neutral-50 font-sans text-neutral-600 antialiased;
     background-image: radial-gradient(
       circle,
-      rgb(23 23 23 / 0.07) 1px,
+      rgb(23 18 58 / 0.07) 1px,
       transparent 1.2px
     );
     background-size: 22px 22px;
@@ -56,7 +96,7 @@
   a.bg-violet-600 {
     box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12),
       inset 0 1.5px 0 rgb(255 255 255 / 0.3),
-      0 8px 18px -10px rgb(127 34 254 / 0.8);
+      0 8px 18px -10px rgb(91 61 245 / 0.75);
   }
 }
 
@@ -72,19 +112,20 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --color-surface: oklch(24.5% 0.008 286);
+  /* Fondo #17123A; el texto termina en #ECE9FA y #F8F7FD. */
+  --color-surface: #201a49;
 
-  --color-neutral-50: oklch(17.5% 0.006 286);
-  --color-neutral-100: oklch(30% 0.006 286);
-  --color-neutral-200: oklch(35% 0.006 286);
-  --color-neutral-300: oklch(41% 0.006 286);
-  --color-neutral-400: oklch(62% 0.006 286);
-  --color-neutral-500: oklch(72% 0.006 286);
-  --color-neutral-600: oklch(80% 0.006 286);
-  --color-neutral-700: oklch(86% 0.006 286);
-  --color-neutral-800: oklch(93% 0.006 286);
-  --color-neutral-900: oklch(97% 0.006 286);
-  --color-neutral-950: oklch(98.5% 0.006 286);
+  --color-neutral-50: #17123a;
+  --color-neutral-100: #2a2356;
+  --color-neutral-200: #3a3369;
+  --color-neutral-300: #4a4380;
+  --color-neutral-400: #8a84b0;
+  --color-neutral-500: #a29dc6;
+  --color-neutral-600: #bcb7dc;
+  --color-neutral-700: #d4d0ec;
+  --color-neutral-800: #ece9fa;
+  --color-neutral-900: #f8f7fd;
+  --color-neutral-950: #ffffff;
 
   --color-teal-50: oklch(27% 0.045 185);
   --color-teal-100: oklch(31% 0.065 185);
@@ -95,14 +136,15 @@
   --color-teal-900: oklch(91% 0.06 185);
   --color-teal-950: oklch(95% 0.035 185);
 
-  --color-violet-50: oklch(27% 0.045 293);
-  --color-violet-100: oklch(31% 0.065 293);
-  --color-violet-200: oklch(39% 0.085 293);
-  --color-violet-300: oklch(50% 0.11 293);
-  --color-violet-700: oklch(82% 0.11 293);
-  --color-violet-800: oklch(87% 0.085 293);
-  --color-violet-900: oklch(91% 0.06 293);
-  --color-violet-950: oklch(95% 0.035 293);
+  /* 400 a 600 no cambian: #5B3DF5 sigue siendo el relleno de los botones. */
+  --color-violet-50: #241c5e;
+  --color-violet-100: #2b2170;
+  --color-violet-200: #3a2c95;
+  --color-violet-300: #4e3ac6;
+  --color-violet-700: #c5bafd;
+  --color-violet-800: #dad3fe;
+  --color-violet-900: #ece9fa;
+  --color-violet-950: #f8f7fd;
 
   --color-indigo-50: oklch(27% 0.045 277);
   --color-indigo-100: oklch(31% 0.065 277);
@@ -194,8 +236,8 @@
   --color-blue-900: oklch(91% 0.06 260);
   --color-blue-950: oklch(95% 0.035 260);
 
-  --shadow-surface: 0 1px 2px rgb(0 0 0 / 0.3), 0 14px 32px -18px rgb(0 0 0 / 0.7);
-  --shadow-float: 0 1px 2px rgb(0 0 0 / 0.35), 0 18px 40px -20px rgb(0 0 0 / 0.8);
+  --shadow-surface: 0 1px 2px rgb(6 4 22 / 0.35), 0 14px 32px -18px rgb(6 4 22 / 0.75);
+  --shadow-float: 0 1px 2px rgb(6 4 22 / 0.4), 0 18px 40px -20px rgb(6 4 22 / 0.85);
 }
 
 :root[data-theme="dark"] body {
@@ -209,20 +251,23 @@
 /* Lo que debe conservar su color aunque la escala se invierta: el relleno de
    los botones, el velo del menú móvil y las cintas, que son colores reales.
    Fuera de @layer para ganarle a las utilidades. */
-:root[data-theme="dark"] .hover:bg-violet-700:hover {
-  background-color: oklch(49.1% 0.27 292.581);
+:root[data-theme="dark"] .hover\:bg-violet-700:hover {
+  background-color: #4a2bdf;
 }
-:root[data-theme="dark"] .hover:bg-emerald-700:hover {
+:root[data-theme="dark"] .hover\:bg-emerald-700:hover {
   background-color: oklch(50.8% 0.118 165.612);
 }
-:root[data-theme="dark"] .bg-neutral-900/40 {
-  background-color: rgb(0 0 0 / 0.6);
+:root[data-theme="dark"] .hover\:bg-red-700:hover {
+  background-color: oklch(50.5% 0.213 27.518);
+}
+:root[data-theme="dark"] .bg-neutral-900\/40 {
+  background-color: rgb(6 4 22 / 0.65);
 }
 :root[data-theme="dark"] .bg-neutral-900 {
-  background-color: oklch(14.5% 0 0);
+  background-color: #0e0a26;
 }
 :root[data-theme="dark"] .border-neutral-900 {
-  border-color: oklch(45% 0 0);
+  border-color: #5a5390;
 }
 :root[data-theme="dark"] .bg-blue-700 {
   background-color: oklch(48.8% 0.243 264.376);
@@ -237,10 +282,26 @@
   border-color: oklch(41.4% 0.112 45.904);
 }
 
+/* Selectores: la flecha nativa queda pegada al borde. Se cambia por una
+   propia con aire a la derecha. Fuera de @layer para ganarle al px-* de cada
+   pantalla. */
+select:not([multiple]):not([size]) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236e6893' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.125rem;
+  padding-right: 2.75rem;
+}
+:root[data-theme="dark"] select:not([multiple]):not([size]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a29dc6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
 /* El tono 600 se queda como relleno de botones, pero como texto no alcanza
    el contraste sobre fondo oscuro. */
 :root[data-theme="dark"] .text-violet-600 {
-  color: oklch(78% 0.13 293);
+  color: #a898fb;
 }
 :root[data-theme="dark"] .text-rose-600 {
   color: oklch(78% 0.13 15);

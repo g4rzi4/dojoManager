@@ -2,23 +2,26 @@
 name: DojoManager
 description: One color per dojo module, so every role finds its place at a glance.
 colors:
-  primary: "oklch(54.1% 0.281 293.009)"
-  primary-deep: "oklch(49.1% 0.27 292.581)"
-  primary-on: "oklch(96.9% 0.016 293.756)"
-  primary-tint: "oklch(94.3% 0.029 294.588)"
-  primary-ink: "oklch(43.2% 0.232 292.759)"
-  selection: "oklch(89.4% 0.057 293.283)"
-  selection-ink: "oklch(28.3% 0.141 291.089)"
-  ground: "oklch(98.5% 0 0)"
+  primary: "#5b3df5"
+  primary-deep: "#4a2bdf"
+  primary-on: "#f4f2fe"
+  primary-tint: "#ece9fa"
+  primary-ink: "#3b21b5"
+  accent: "#ff9f1c"
+  accent-soft: "#ffc46b"
+  selection: "#d6cefd"
+  selection-ink: "#1d115c"
+  ground: "#f8f7fd"
   surface: "#fff"
-  hover-fill: "oklch(97% 0 0)"
-  hairline: "oklch(92.2% 0 0)"
-  control-border: "oklch(87% 0 0)"
-  text-placeholder: "oklch(55.6% 0 0)"
-  text-body: "oklch(43.9% 0 0)"
-  text-strong: "oklch(37.1% 0 0)"
-  text-heading: "oklch(26.9% 0 0)"
-  text-title: "oklch(20.5% 0 0)"
+  hover-fill: "#ece9fa"
+  hairline: "#dedaf0"
+  control-border: "#c7c2e0"
+  text-placeholder: "#9993b8"
+  text-body: "#534d7a"
+  text-strong: "#3d3766"
+  text-heading: "#2a2453"
+  text-title: "#1e1847"
+  ink: "#17123a"
   inicio-wash: "oklch(96.9% 0.016 293.756)"
   inicio-edge: "oklch(89.4% 0.057 293.283)"
   inicio-ink: "oklch(54.1% 0.281 293.009)"
@@ -191,10 +194,15 @@ The surfaces are very round, hairline-bordered and softly lifted, floating over 
 
 ## Colors
 
-A neutral light field where saturated color appears only as a module identity, a literal meaning, or an action.
+A lavender-tinted light field where saturated color appears only as a module identity, a literal meaning, or an action.
+
+The brand palette is five colors: `#F8F7FD` (ground), `#ECE9FA` (soft tint), `#5B3DF5` (primary), `#FF9F1C` (accent) and `#17123A` (ink). They live in `frontend/src/index.css`, which redefines Tailwind's `neutral` and `violet` scales from them, so screens keep using `neutral-*` and `violet-*` classes. In the dark view the roles swap: `#17123A` is the ground and `#F8F7FD` / `#ECE9FA` are the text.
 
 ### Primary
-- **Dojo Violet** (`primary`): the primary action fill, focus rings, the input caret, the selected calendar day. It is also the Inicio module's hue. Hover deepens to `primary-deep`. `primary-tint` and `primary-ink` color the user avatar; `selection` and `selection-ink` color selected text.
+- **Dojo Violet** (`primary`, `#5B3DF5`): the primary action fill, focus rings, the input caret, the selected calendar day. It is also the Inicio module's hue. Hover deepens to `primary-deep`. `primary-tint` and `primary-ink` color the user avatar; `selection` and `selection-ink` color selected text.
+
+### Accent
+- **Belt Orange** (`accent`, `#FF9F1C`): the belt in the brand mark and favicon, with `accent-soft` for the knot. Use it sparingly, for brand moments only; it is not an action color and does not replace the amber of pending payments.
 
 ### Secondary
 The module hues. Each has a `wash` (tile fill), `edge` (tile border), `ink` (icon) and `glow` (tile shadow).
@@ -214,6 +222,7 @@ The module hues. Each has a `wash` (tile fill), `edge` (tile border), `ink` (ico
 - **Errors and destructive hover** use `danger-text`; the unread count uses `danger-badge`.
 
 ### Neutral
+- The neutral scale is tinted with `ink` (`#17123A`), never pure gray.
 - **Dotted Ground** (`ground`): the page, overlaid with a 22px grid of 1px dots at 7% ink.
 - **White Surface** (`surface`): cards, sidebar, top bar, inputs.
 - **Soft Fill** (`hover-fill`): hover and active rows, inactive chips, empty-state icon wells.
@@ -267,7 +276,7 @@ A hybrid of hairline borders and soft shadows whose wide blur and negative sprea
 - **Surface** (`box-shadow: 0 1px 2px rgb(23 23 23 / 0.04), 0 14px 32px -18px rgb(23 23 23 / 0.14)`): cards and the top bar.
 - **Float** (`box-shadow: 0 1px 2px rgb(23 23 23 / 0.05), 0 18px 40px -20px rgb(23 23 23 / 0.2)`): the sidebar and the login container.
 - **Tile** (`box-shadow: 0 6px 14px -8px <module glow>`): module tiles.
-- **Primary Edge** (`box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12), inset 0 1.5px 0 rgb(255 255 255 / 0.3), 0 8px 18px -10px rgb(127 34 254 / 0.8)`): every violet-filled button or link, replaced by the focus ring when focused.
+- **Primary Edge** (`box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12), inset 0 1.5px 0 rgb(255 255 255 / 0.3), 0 8px 18px -10px rgb(91 61 245 / 0.75)`): every violet-filled button or link, replaced by the focus ring when focused.
 
 ### Named Rules
 **The Soft Offset Rule.** Shadows are blurred and drawn in below the element. Hard-edged offset shadows do not belong here.
@@ -317,7 +326,7 @@ The signature element, decorative and paired with text. Wash fill, 1.5px edge, i
 A card that links to a module: large tile, label, metric, hint. Lifts 2px on hover.
 
 ### Brand Mark
-A violet rounded square holding an amber belt knot. Its amber is the belt and does not represent Pagos.
+A violet (`#5B3DF5`) rounded square holding a belt knot in the accent orange (`#FF9F1C`). The orange is the belt and does not represent Pagos.
 
 ## Do's and Don'ts
 
