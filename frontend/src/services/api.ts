@@ -147,6 +147,14 @@ export async function addDojoAdmin(
   return request(`/platform/dojos/${dojoId}/admins`, { method: "POST", body });
 }
 
+/** Borra el dojo con todos sus datos. `confirmName` debe ser su nombre exacto. */
+export async function deleteDojo(
+  dojoId: number,
+  confirmName: string
+): Promise<{ success: boolean }> {
+  return request(`/platform/dojos/${dojoId}`, { method: "DELETE", body: { confirmName } });
+}
+
 export async function updatePreferences(
   patch: Partial<Preferences>
 ): Promise<{ preferences: Preferences }> {
