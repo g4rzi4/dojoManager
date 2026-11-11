@@ -1,6 +1,7 @@
 import { Router } from "express";
 
-import { prismaGlobal } from "../lib/prisma";
+import { prisma } from "../lib/prisma";
+import { dojoDeLaPeticion, mesLegible } from "../lib/agentDojo";
 import {
   fechaDelDojo,
   INCLUIR_PAGO_RECORDADO,
@@ -12,9 +13,9 @@ import { PaymentStatus } from "../generated/prisma/enums";
  * Fase 2 del agente de cobranza: registrar los recordatorios que envió Zapier
  * y medir cuánto se recuperó después.
  *
- * Se monta dentro de agent.routes.ts, así que hereda su API key. Usa
- * `prismaGlobal` porque el agente es una integración de servidor a servidor,
- * sin sesión de usuario, y por lo tanto sin dojo en el contexto.
+ * Se monta dentro de agent.routes.ts, así que hereda su API key y su dojo
+ * (resolverDojoDelAgente). Usa `prisma`, que filtra por ese dojo: un pagoId de
+ * otro dojo cuenta como no encontrado.
  */
 const router = Router();
 
@@ -44,7 +45,16 @@ const DIAS_POR_OMISION = 30;
  * manda la lista completa de una vez y conviene registrar lo que sí aplica.
  */
 router.post("/record-reminders", async (req, res) => {
-  const { pagoIds } = req.body ?? {};
+  // Zapier manda más fácil un texto "201,215" que una lista JSON: se aceptan
+  // los dos. Un texto con algo que no sea número cae en la validación de abajo.
+  const recibido = req.body?.pagoIds;
+  const pagoIds: unknown =
+    typeof recibido === "string"
+      ? recibido
+          .split(/[\s,]+/)
+          .filter((t) => t.length > 0)
+          .map(Number)
+      : recibido;
 
   if (!Array.isArray(pagoIds) || pagoIds.length === 0) {
     return res.status(400).json({
@@ -73,7 +83,7 @@ router.post("/record-reminders", async (req, res) => {
   // El mismo id dos veces en la lista cuenta como un solo recordatorio.
   const ids = [...new Set(pagoIds as number[])];
 
-  const pagos = await prismaGlobal.payment.findMany({
+  const pagos = await prisma.payment.findMany({
     where: { id: { in: ids } },
     select: { id: true, status: true },
   });
@@ -88,13 +98,14 @@ router.post("/record-reminders", async (req, res) => {
   const fechaEnvio = new Date();
 
   if (registrados.length > 0) {
-    await prismaGlobal.paymentReminder.createMany({
+    await prisma.paymentReminder.createMany({
       data: registrados.map((paymentId) => ({ paymentId, sentAt: fechaEnvio })),
     });
   }
 
   return res.json({
     fechaEnvio: fechaDelDojo(fechaEnvio),
+    dojo: await dojoDeLaPeticion(),
     registrados,
     yaPagados,
     noEncontrados,
@@ -125,13 +136,40 @@ router.get("/recovery-stats", async (req, res) => {
   const ahora = new Date();
   const desde = new Date(ahora.getTime() - dias * 86_400_000);
 
-  const recordatorios = await prismaGlobal.paymentReminder.findMany({
+  const recordatorios = await prisma.paymentReminder.findMany({
     where: { sentAt: { gte: desde } },
     orderBy: { sentAt: "asc" },
     include: INCLUIR_PAGO_RECORDADO,
   });
 
-  return res.json(resumirRecuperacion(recordatorios, desde, ahora, dias));
+  const resumen = resumirRecuperacion(recordatorios, desde, ahora, dias);
+
+  return res.json({
+    ...resumen,
+    dojo: await dojoDeLaPeticion(),
+    // El mismo resumen en texto, para pasarlo tal cual al prompt de Claude
+    // desde Zapier, que no recorre bien la lista `pagos`.
+    resumenTexto: resumenEnTexto(resumen),
+  });
 });
+
+/** El resumen de recuperación redactado en líneas, para un prompt. */
+function resumenEnTexto(r: ReturnType<typeof resumirRecuperacion>): string {
+  const porMetodo = r.recuperadoPorMetodo;
+
+  return [
+    `Periodo: ${r.periodo.desde} a ${r.periodo.hasta} (${r.periodo.dias} días).`,
+    `Recordatorios enviados: ${r.recordatoriosEnviados}. Cobros recordados: ${r.pagosRecordados}.`,
+    `Recuperados: ${r.pagosRecuperados}. Reportados por confirmar: ${r.pagosReportados}. Pendientes: ${r.pagosPendientes}. Ya estaban pagados: ${r.pagosPagadosAntes}.`,
+    `Tasa de recuperación: ${r.tasaRecuperacion}%.`,
+    `Monto recordado: $${r.montoRecordado}. Recuperado: $${r.montoRecuperado}. Pendiente: $${r.montoPendiente}.`,
+    `Días promedio para pagar: ${r.diasPromedioParaPagar ?? "sin datos"}.`,
+    `Recuperado por método: PayPal $${porMetodo.PAYPAL}, efectivo $${porMetodo.EFECTIVO}, transferencia $${porMetodo.TRANSFERENCIA}.`,
+    ...r.pagos.map(
+      (p) =>
+        `- ${p.alumno} (${mesLegible(p.mes)}, $${p.monto}): ${p.estado}${p.diasParaPagar !== null ? ` en ${p.diasParaPagar} días` : ""}${p.metodo ? ` por ${p.metodo}` : ""}.`
+    ),
+  ].join("\n");
+}
 
 export default router;

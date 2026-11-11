@@ -3,6 +3,13 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { marcarMensualidadesVencidas } from "../lib/mensualidades";
 import { requireAgentApiKey } from "../middleware/agentAuth";
+import {
+  correoPermitido,
+  dojoDeLaPeticion,
+  enModoPrueba,
+  mesLegible,
+  resolverDojoDelAgente,
+} from "../lib/agentDojo";
 import recordatoriosRoutes from "./agentRecordatorios.routes";
 import { PaymentStatus } from "../generated/prisma/enums";
 
@@ -10,6 +17,10 @@ const router = Router();
 
 // Todas las rutas de /api/agent/* exigen API key para proteger teléfonos y correos
 router.use(requireAgentApiKey);
+
+// Y cada petición corre dentro de UN dojo: sin esto, /unpaid falla ("Consulta
+// sin dojo") y los demás mezclarían los cobros de todos los dojos.
+router.use(resolverDojoDelAgente);
 
 /**
  * Genera la marca de tiempo actual con la zona horaria del dojo (UTC-6).
@@ -158,9 +169,22 @@ router.get("/unpaid", async (_req, res) => {
     alumnoEntry.montoAdeudado += montoEnPesos;
   }
 
-  const alumnos = Array.from(alumnosMap.values()).sort(
-    (a, b) => b.montoAdeudado - a.montoAdeudado
-  );
+  const todos = Array.from(alumnosMap.values());
+  const alumnos = todos
+    .filter((a) => correoPermitido(a.email))
+    .sort((a, b) => b.montoAdeudado - a.montoAdeudado)
+    // Campos en texto plano para Zapier, que no recorre bien listas anidadas:
+    // pagoIdsTexto va tal cual a record-reminders y detallePagos al prompt.
+    .map((a) => ({
+      ...a,
+      pagoIdsTexto: a.pagos.map((p) => p.pagoId).join(","),
+      detallePagos: a.pagos
+        .map(
+          (p) =>
+            `${mesLegible(p.mes)}: $${p.monto} (${p.estado === "VENCIDO" ? "vencido" : "pendiente"})`
+        )
+        .join("; "),
+    }));
 
   const montoTotalAdeudado = alumnos.reduce(
     (total, a) => total + a.montoAdeudado,
@@ -169,6 +193,9 @@ router.get("/unpaid", async (_req, res) => {
 
   return res.json({
     fechaConsulta: fechaConsultaActual(),
+    dojo: await dojoDeLaPeticion(),
+    modoPrueba: enModoPrueba(),
+    omitidosPorModoPrueba: todos.length - alumnos.length,
     totalAlumnos: alumnos.length,
     montoTotalAdeudado,
     alumnos,
