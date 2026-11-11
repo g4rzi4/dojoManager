@@ -65,6 +65,16 @@ const CARD_INCLUDE = {
     include: { guardian: { select: { id: true, name: true, email: true } } },
   },
   user: { select: { id: true, email: true } },
+  // Los eventos a los que fue: los que tienen su inscripción confirmada.
+  eventEnrollments: {
+    where: { enrolled: true },
+    orderBy: { event: { date: "desc" } },
+    take: LIMITE_HISTORIAL,
+    include: {
+      event: { select: { title: true, date: true, category: true } },
+      modalities: { include: { modality: { select: { name: true } } } },
+    },
+  },
 } satisfies StudentInclude;
 
 type StudentWithHistory = StudentGetPayload<{
@@ -107,6 +117,7 @@ function buildCard(student: StudentWithHistory) {
       pagosPendientes: student.payments.filter((p) => p.status !== "PAGADO")
         .length,
       observaciones: student.notes.length,
+      eventos: student.eventEnrollments.length,
     },
 
     historial: {
@@ -132,6 +143,14 @@ function buildCard(student: StudentWithHistory) {
         status: p.status,
         paidAt: p.paidAt ? dateOnly(p.paidAt) : null,
         note: p.note,
+      })),
+
+      eventos: student.eventEnrollments.map((e) => ({
+        id: e.id,
+        titulo: e.event.title,
+        fecha: dateOnly(e.event.date),
+        categoria: e.event.category,
+        modalidades: e.modalities.map((m) => m.modality.name),
       })),
 
       observaciones: student.notes.map((n) => ({

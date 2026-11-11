@@ -148,6 +148,9 @@ model User {
   /// Enlaces para restablecer su contraseña.
   passwordResetTokens PasswordResetToken[]
 
+  /// Respuestas a eventos que dio por un alumno.
+  eventRsvpsAnswered EventRsvp[] @relation("RespuestaEventoPor")
+
   /// Notificaciones que recibe.
   notifications     Notification[] @relation("NotificacionDestinatario")
   /// Avisos que redactó, si es ADMIN o PROFESOR.
@@ -250,6 +253,9 @@ model Student {
 
   /// Eventos a los que reportó pago o quedó inscrito.
   eventEnrollments EventEnrollment[]
+
+  /// Si dijo que va o no a cada evento.
+  eventRsvps EventRsvp[]
 
   /// Uniformes y protecciones que se han pedido para él.
   equipmentRequests EquipmentRequest[]
@@ -578,6 +584,9 @@ model Event {
   createdBy   User? @relation("EventoCreadoPor", fields: [createdById], references: [id], onDelete: SetNull)
 
   enrollments EventEnrollment[]
+
+  /// Quién dijo que va y quién que no.
+  rsvps EventRsvp[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -978,4 +987,31 @@ model DojoClass {
   @@index([teacherId])
 
   @@index([dojoId])
+}
+
+/// Si un alumno va o no a un evento, según lo que respondió él o su tutor.
+///
+/// Es aparte de EventEnrollment porque un evento gratuito no tiene cobro, y
+/// porque "no voy" también es una respuesta que el profesor necesita saber.
+/// En un evento con costo, el alumno queda inscrito cuando su pago se
+/// confirma; esta respuesta solo dice que piensa ir.
+model EventRsvp {
+  id Int @id @default(autoincrement())
+
+  eventId Int
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  attending Boolean
+
+  respondedById Int?
+  respondedBy   User? @relation("RespuestaEventoPor", fields: [respondedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, studentId])
+  @@index([studentId])
 }

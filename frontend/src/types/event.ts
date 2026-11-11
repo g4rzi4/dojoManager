@@ -24,6 +24,10 @@ export type DojoEvent = {
   reportes?: number;
   /** Estado de los alumnos a cargo de quien consulta. */
   misAlumnos?: import("./eventPayment").MyEnrollment[];
+  /** Si la familia dijo que su alumno va o no. Vacío para el personal. */
+  misRespuestas?: { studentId: number; asistira: boolean }[];
+  /** Para el personal: quién de su grupo va y quién no. Nulo para la familia. */
+  respuestas?: { asistiran: string[]; noAsistiran: string[] } | null;
 };
 
 export const CATEGORY_LABELS: Record<EventCategory, string> = {
