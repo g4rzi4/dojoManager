@@ -7,12 +7,23 @@
 //   node scripts/proxy-agente.mjs                    # escucha en el 3099
 //   cloudflared tunnel --url http://localhost:3099   # en otra terminal
 //
-// Variables opcionales: PROXY_PORT (3099) y BACKEND_URL (http://localhost:3001).
+// Variables opcionales: PROXY_PORT (3099) y BACKEND_URL. Sin BACKEND_URL, usa
+// el PORT de backend/.env (o 3000, el mismo valor por omisión que el backend),
+// así el proxy apunta al backend en cualquier máquina sin configurarlo.
 
 import http from "node:http";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
+
+dotenv.config({
+  path: fileURLToPath(new URL("../.env", import.meta.url)),
+  quiet: true,
+});
 
 const PUERTO = Number(process.env.PROXY_PORT ?? 3099);
-const BACKEND = new URL(process.env.BACKEND_URL ?? "http://localhost:3001");
+const BACKEND = new URL(
+  process.env.BACKEND_URL ?? `http://localhost:${process.env.PORT ?? 3000}`
+);
 const PERMITIDO = /^\/api\/agent\/[a-z-]+(\?.*)?$/;
 
 const servidor = http.createServer((req, res) => {

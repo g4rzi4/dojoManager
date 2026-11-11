@@ -46,7 +46,8 @@ pagos), pasa por el proxy del repo, que **solo deja pasar `/api/agent/*`**:
 # Terminal 1: el backend
 cd backend && npm run dev
 
-# Terminal 2: el proxy (puerto 3099)
+# Terminal 2: el proxy (puerto 3099). Toma el puerto del backend de PORT en
+# backend/.env (3000 si no está); para otro destino: BACKEND_URL=http://localhost:4000
 cd backend && node scripts/proxy-agente.mjs
 
 # Terminal 3: el túnel (cloudflared, sin cuenta)
