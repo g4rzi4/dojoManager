@@ -15,7 +15,7 @@ alumnos, profesores, cobros y calendario, y las familias pagan en línea con **P
 | [Horario](#horario-de-clases) | Clases semanales por profesor |
 | [Pagos](#pagos) | Mensualidades, eventos y uniformes en un solo historial |
 | [PayPal](#pago-en-línea-con-paypal) | Pago en línea con captura en el servidor |
-| [Sensei](#sensei-asistente-con-ia) | Asistente con Claude: cobranza, revisión del grupo, avisos, asesor de equipo y resumen del alumno |
+| [ki-AI](#ki-ai-asistente-con-ia) | Asistente con Claude: cobranza, revisión del grupo, avisos, asesor de equipo y resumen del alumno |
 | [Uniformes y protecciones](#uniformes-y-protecciones) | Solicitud de equipo por marca, modelo y talla |
 | [Inscripción por QR](#inscripción-por-qr) | Alta de alumnos y tutores desde el celular |
 | [Notificaciones](#notificaciones) | Automáticas y avisos del dojo |
@@ -41,7 +41,7 @@ alumnos, profesores, cobros y calendario, y las familias pagan en línea con **P
 ### Servicios
 - PayPal (Orders v2 y JavaScript SDK, en modo sandbox)
 - Correo SMTP con Nodemailer, opcional, para recuperar contraseñas
-- Claude (API de Anthropic, modelo Claude Opus 5.5) para Sensei, el asistente
+- Claude (API de Anthropic, modelo Claude Opus 5.5) para ki-AI, el asistente
 
 ---
 
@@ -418,9 +418,9 @@ que crea dojos y administradores pero no ve sus alumnos ni sus pagos (ver
 | Ver pagos | **todos** | los que le corresponden | sus hijos | los suyos |
 | Pagar | ❌ | ❌ | ✅ | ✅ |
 | Confirmar pagos en efectivo o transferencia | ✅ | los que le corresponden | ❌ | ❌ |
-| **Sensei:** cobranza, revisión del grupo y avisos | ✅ | su grupo | ❌ | ❌ |
-| **Sensei:** asesor de equipo | ❌ | ❌ | ✅ | ✅ |
-| **Sensei:** resumen del alumno | ✅ | su grupo | sus hijos | él mismo |
+| **ki-AI:** cobranza, revisión del grupo y avisos | ✅ | su grupo | ❌ | ❌ |
+| **ki-AI:** asesor de equipo | ❌ | ❌ | ✅ | ✅ |
+| **ki-AI:** resumen del alumno | ✅ | su grupo | sus hijos | él mismo |
 | Solicitar **uniformes y protecciones** | ❌ | ❌ | ✅ | ✅ |
 | Mandar avisos | ✅ | ✅ | ❌ | ❌ |
 | Ver el calendario y el horario | ✅ | ✅ | ✅ | ✅ |
@@ -773,10 +773,10 @@ La integración está en [paypal.ts](backend/src/lib/paypal.ts) y
 
 ---
 
-# Sensei (asistente con IA)
+# ki-AI (asistente con IA)
 
-**Sensei** es el asistente de la app, con **Claude**. Cada rol ve tareas distintas en el
-menú **Sensei**:
+**ki-AI** es el asistente de la app, con **Claude**. Cada rol ve tareas distintas en el
+menú **ki-AI**:
 
 | Tarea | Para quién | Qué hace |
 | --- | --- | --- |
@@ -816,7 +816,7 @@ Para activarlo, agrega a **`backend/.env`** una llave de
 ANTHROPIC_API_KEY="..."
 ```
 
-Sin ella, Sensei avisa que no está disponible y el resto de la app funciona igual.
+Sin ella, ki-AI avisa que no está disponible y el resto de la app funciona igual.
 
 ---
 

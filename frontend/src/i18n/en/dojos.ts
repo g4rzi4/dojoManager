@@ -33,4 +33,14 @@ export const dojos: Record<string, string> = {
   "Ya existe una cuenta con ese correo.":
     "An account with that email already exists.",
   "No se encontró ese registro.": "That record wasn't found.",
+  "Eliminar dojo": "Delete dojo",
+  "Esto no se puede deshacer.": "This can't be undone.",
+  "Se borrarán el dojo y todo lo suyo: {alumnos} alumnos, sus cuentas, profesores y administradores, asistencia, pagos, eventos, clases, notificaciones y solicitudes de equipo.":
+    "The dojo and everything in it will be deleted: {alumnos} students, their accounts, teachers and administrators, attendance, payments, events, classes, notifications and equipment requests.",
+  "Para confirmar, escribe el nombre del dojo: {nombre}": "To confirm, type the dojo's name: {nombre}",
+  "Eliminar definitivamente": "Delete permanently",
+  "Eliminando…": "Deleting…",
+  "No fue posible eliminar el dojo.": "The dojo couldn't be deleted.",
+  "Escribe el nombre exacto del dojo para confirmar.": "Type the dojo's exact name to confirm.",
+  "Dojo «{nombre}» eliminado.": "Dojo “{nombre}” deleted.",
 };

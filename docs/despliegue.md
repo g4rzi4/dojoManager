@@ -24,7 +24,7 @@ Render la crea en un solo paso (*Blueprint*). Todo cabe en el plan gratis.
    | Variable | Qué poner |
    | --- | --- |
    | `AGENT_API_KEY` | Una clave larga al azar: `openssl rand -hex 24`. Es la de Zapier. |
-   | `ANTHROPIC_API_KEY` | La clave `sk-ant-…` para Sensei. Opcional. |
+   | `ANTHROPIC_API_KEY` | La clave `sk-ant-…` para ki-AI. Opcional. |
    | `PAYPAL_*` | Las credenciales del sandbox de PayPal. Opcional. |
    | `SMTP_*` | El servidor de correo para recuperar contraseña. Opcional: sin él, el enlace sale en los logs. |
 

@@ -72,38 +72,51 @@ function Sensei() {
   const user = getUser();
   const esPersonal = user?.role === "ADMIN" || user?.role === "PROFESOR";
 
-  const [estado, setEstado] = useState<{ disponible: boolean; enlace: string } | null>(null);
+  // "sin-conexion" es que no se pudo preguntar; "no disponible" es que el
+  // servidor contestó que falta la llave. Son avisos distintos.
+  const [estado, setEstado] = useState<
+    { disponible: boolean; enlace: string } | "sin-conexion" | null
+  >(null);
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
+  const [intento, setIntento] = useState(0);
 
   useEffect(() => {
     let activo = true;
 
-    Promise.all([
-      getSenseiStatus(),
-      esPersonal
-        ? getStudents().then((lista) => lista.filter((a) => a.active))
-        : getMyStudents(),
-    ])
-      .then(([s, lista]) => {
-        if (!activo) return;
-        setEstado({ disponible: s.disponible, enlace: s.enlaceDePago });
-        setAlumnos(lista);
+    getSenseiStatus()
+      .then((s) => {
+        if (activo) setEstado({ disponible: s.disponible, enlace: s.enlaceDePago });
       })
       .catch(() => {
-        if (activo) setEstado({ disponible: false, enlace: "" });
+        if (activo) setEstado("sin-conexion");
       });
+
+    // Por separado: si falla la lista de alumnos, ki-AI sigue disponible.
+    (esPersonal
+      ? getStudents().then((lista) => lista.filter((a) => a.active))
+      : getMyStudents()
+    )
+      .then((lista) => {
+        if (activo) setAlumnos(lista);
+      })
+      .catch(() => {});
 
     return () => {
       activo = false;
     };
-  }, [esPersonal]);
+  }, [esPersonal, intento]);
+
+  function reintentar() {
+    setEstado(null);
+    setIntento((n) => n + 1);
+  }
 
   return (
     <DashboardLayout>
       <header>
         <PageHeading module="asistente">
           <h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
-            Sensei
+            ki-AI
           </h1>
           <p className="mt-1 max-w-2xl text-pretty text-neutral-600 sm:text-lg">
             {esPersonal
@@ -115,9 +128,23 @@ function Sensei() {
 
       {estado === null ? (
         <Card className="mt-8 h-48 animate-pulse motion-reduce:animate-none" />
+      ) : estado === "sin-conexion" ? (
+        <Card className="mt-8 border-amber-200 p-6">
+          <p className="font-semibold text-amber-900">{t("No pudimos conectar con ki-AI")}</p>
+          <p className="mt-1 text-sm text-amber-900">
+            {t("Revisa tu conexión o espera unos segundos a que el servidor responda.")}
+          </p>
+          <button
+            type="button"
+            onClick={reintentar}
+            className="mt-4 inline-flex min-h-10 cursor-pointer items-center rounded-xl border border-neutral-300 bg-surface px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors duration-200 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none"
+          >
+            {t("Reintentar")}
+          </button>
+        </Card>
       ) : !estado.disponible ? (
         <Card className="mt-8 border-amber-200 p-6">
-          <p className="font-semibold text-amber-900">{t("Sensei no está disponible")}</p>
+          <p className="font-semibold text-amber-900">{t("ki-AI no está disponible")}</p>
           <p className="mt-1 text-sm text-amber-900">
             {t("Falta configurar la llave de Claude en el servidor. Las demás funciones de la app siguen igual.")}
           </p>
@@ -137,7 +164,7 @@ function Sensei() {
               {t("Notificaciones")}
             </Link>
             {", "}
-            {t("escribe la idea del aviso y elige Redactar con Sensei.")}
+            {t("escribe la idea del aviso y elige Redactar con ki-AI.")}
           </Card>
         </>
       ) : (
@@ -268,7 +295,7 @@ function AsesorEquipo({ alumnos }: { alumnos: Alumno[] }) {
           </div>
 
           <button type="submit" disabled={!valido || cargando} className={BOTON_PRIMARIO}>
-            {cargando ? t("Sensei está pensando…") : t("Pedir recomendación")}
+            {cargando ? t("ki-AI está pensando…") : t("Pedir recomendación")}
           </button>
         </form>
 
@@ -280,7 +307,7 @@ function AsesorEquipo({ alumnos }: { alumnos: Alumno[] }) {
 
             {consejo.items.length === 0 ? (
               <p className="mt-3 text-sm text-neutral-600">
-                {t("Sensei no encontró en el catálogo algo que cuadre. Prueba a describirlo de otra forma.")}
+                {t("ki-AI no encontró en el catálogo algo que cuadre. Prueba a describirlo de otra forma.")}
               </p>
             ) : (
               <>
@@ -378,7 +405,7 @@ function ResumenAlumno({ alumnos }: { alumnos: Alumno[] }) {
             disabled={elegido === "" || cargando}
             className={BOTON_PRIMARIO}
           >
-            {cargando ? t("Sensei está pensando…") : t("Generar resumen")}
+            {cargando ? t("ki-AI está pensando…") : t("Generar resumen")}
           </button>
         </div>
 
@@ -436,11 +463,11 @@ function RevisionGrupo() {
               {t("Revisión del grupo")}
             </h2>
             <p className="mt-1 text-sm text-neutral-600">
-              {t("Quién podría presentar examen de cinta y quién podría estar por dejar el dojo. Sensei sugiere; tú decides.")}
+              {t("Quién podría presentar examen de cinta y quién podría estar por dejar el dojo. ki-AI sugiere; tú decides.")}
             </p>
           </div>
           <button type="button" onClick={revisar} disabled={cargando} className={BOTON_PRIMARIO}>
-            {cargando ? t("Sensei está pensando…") : revision ? t("Revisar de nuevo") : t("Revisar mi grupo")}
+            {cargando ? t("ki-AI está pensando…") : revision ? t("Revisar de nuevo") : t("Revisar mi grupo")}
           </button>
         </div>
 
@@ -649,7 +676,7 @@ function Recordatorios({ enlace }: { enlace: string }) {
 
                   {b.mensaje === null ? (
                     <p className="mt-3 text-sm font-medium text-red-700">
-                      {b.error ?? t("No se pudo redactar este mensaje.")}
+                      {t(b.error ?? "No se pudo redactar este mensaje.")}
                     </p>
                   ) : (
                     <>

@@ -364,7 +364,7 @@ function FormularioSolicitud({
     <form onSubmit={enviar} className="mt-8 space-y-6">
       {sugerencia && (
         <Card className="border-cyan-200 p-4 text-sm text-cyan-900">
-          {t("Sensei llenó esta solicitud con lo que te recomendó. Revisa tallas y colores antes de enviarla.")}
+          {t("ki-AI llenó esta solicitud con lo que te recomendó. Revisa tallas y colores antes de enviarla.")}
         </Card>
       )}
 

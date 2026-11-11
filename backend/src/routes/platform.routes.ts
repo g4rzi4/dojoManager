@@ -151,4 +151,59 @@ router.post("/dojos/:id/admins", async (req, res) => {
   return res.status(201).json({ success: true });
 });
 
+/**
+ * DELETE /platform/dojos/:id  { confirmName }
+ *
+ * Borra el dojo con TODO lo suyo: cuentas, alumnos, eventos y clases, y en
+ * cascada asistencia, pagos, graduaciones, notificaciones, solicitudes de
+ * equipo e invitaciones. No se puede deshacer, así que hay que mandar el
+ * nombre exacto del dojo como confirmación, también desde la API. El
+ * catálogo de equipo es de la plataforma y no se toca.
+ */
+router.delete("/dojos/:id", async (req, res) => {
+  const dojo = await prismaGlobal.dojo.findFirst({
+    where: { id: Number(req.params.id) || 0, isPlatform: false },
+    select: { id: true, name: true },
+  });
+
+  if (!dojo) {
+    return res.status(404).json({
+      success: false,
+      message: "No existe ese dojo.",
+    });
+  }
+
+  const confirmacion =
+    typeof req.body?.confirmName === "string" ? req.body.confirmName.trim() : "";
+
+  if (confirmacion !== dojo.name.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Escribe el nombre exacto del dojo para confirmar.",
+    });
+  }
+
+  // Las cuatro tablas que apuntan al dojo no se borran solas con él; lo que
+  // cuelga de ellas sí (Cascade o SetNull). Todo o nada.
+  const borrado = await prismaGlobal.$transaction(async (tx) => {
+    const filtro = { where: { dojoId: dojo.id } };
+    const alumnos = await tx.student.deleteMany(filtro);
+    const eventos = await tx.event.deleteMany(filtro);
+    const clases = await tx.dojoClass.deleteMany(filtro);
+    const usuarios = await tx.user.deleteMany(filtro);
+    await tx.dojo.delete({ where: { id: dojo.id } });
+
+    return {
+      alumnos: alumnos.count,
+      eventos: eventos.count,
+      clases: clases.count,
+      usuarios: usuarios.count,
+    };
+  });
+
+  console.log(`[platform] dojo ${dojo.id} eliminado`, borrado);
+
+  return res.json({ success: true, borrado });
+});
+
 export default router;

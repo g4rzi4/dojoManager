@@ -30,8 +30,8 @@ const FONT_SCALE: Record<FontSize, string> = {
 };
 
 const THEME_COLOR: Record<Theme, string> = {
-  LIGHT: "#fafafa",
-  DARK: "#16161a",
+  LIGHT: "#f8f7fd",
+  DARK: "#17123a",
 };
 
 /**

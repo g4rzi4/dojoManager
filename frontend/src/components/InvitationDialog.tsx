@@ -52,7 +52,7 @@ function InvitationDialog({
       width: 320,
       margin: 2,
       // Contraste alto: el QR se lee desde la pantalla de otro teléfono.
-      color: { dark: "#0f172a", light: "#ffffff" },
+      color: { dark: "#17123a", light: "#ffffff" },
     })
       .then((url) => {
         if (activo) setQr(url);

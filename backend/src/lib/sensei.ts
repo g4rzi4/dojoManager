@@ -99,6 +99,19 @@ Convierte la idea en un aviso claro:
 
 Responde únicamente con un objeto JSON, sin texto antes ni después: {"titulo": "...", "mensaje": "..."}`;
 
+/** El idioma de la interfaz de quien pide la tarea (User.language). */
+export type Idioma = "ES" | "EN";
+
+/**
+ * Las instrucciones están escritas en español. Para quien tiene la app en
+ * inglés se agrega esta regla al final, que manda sobre las anteriores.
+ */
+const EN_INGLES = `IDIOMA DE LA RESPUESTA: inglés. Esta regla reemplaza cualquier indicación anterior de escribir en español.
+- Escribe todo el texto en inglés, aunque los datos o la idea vengan en español. Usa un tono cercano y cordial.
+- Si respondes en JSON, las claves quedan exactamente igual; solo los valores de texto van en inglés.
+- Escribe los meses en inglés ("2026-10" es "October 2026") y los montos con el formato $1,700 MXN la primera vez y $1,700 después.
+- Los nombres de personas, productos, marcas, modelos y eventos se quedan como vienen.`;
+
 export class AsistenteNoDisponible extends Error {}
 
 let cliente: Anthropic | null = null;
@@ -118,7 +131,9 @@ function obtenerCliente(): Anthropic {
 }
 
 /** Una sola llamada a Claude que devuelve el texto de la respuesta. */
-async function preguntar(sistema: string, datos: unknown): Promise<string> {
+async function preguntar(sistema: string, datos: unknown, idioma: Idioma): Promise<string> {
+  if (idioma === "EN") sistema = `${sistema}\n\n${EN_INGLES}`;
+
   const response = await obtenerCliente().beta.messages.create({
     model: MODELO,
     max_tokens: 16000,
@@ -156,8 +171,8 @@ async function preguntar(sistema: string, datos: unknown): Promise<string> {
  * Pide JSON y lo convierte. No confía en la forma: quien llama valida cada
  * campo contra los datos reales antes de usarlo.
  */
-async function preguntarJSON(sistema: string, datos: unknown): Promise<unknown> {
-  const texto = await preguntar(sistema, datos);
+async function preguntarJSON(sistema: string, datos: unknown, idioma: Idioma): Promise<unknown> {
+  const texto = await preguntar(sistema, datos, idioma);
   const inicio = texto.indexOf("{");
   const fin = texto.lastIndexOf("}");
 
@@ -206,35 +221,38 @@ export function montosCorrectos(mensaje: string, alumno: AlumnoConAdeudo): boole
   );
 }
 
-export function redactarRecordatorio(alumno: AlumnoConAdeudo): Promise<string> {
+// Cada tarea responde en el idioma de quien la pide: es quien la lee y, en
+// recordatorios y avisos, quien revisa el texto antes de enviarlo.
+
+export function redactarRecordatorio(alumno: AlumnoConAdeudo, idioma: Idioma): Promise<string> {
   // Sin teléfono ni correo: Claude no los necesita para redactar.
-  return preguntar(SISTEMA_RECORDATORIO, alumno);
+  return preguntar(SISTEMA_RECORDATORIO, alumno, idioma);
 }
 
-export function redactarReporte(datos: unknown): Promise<string> {
-  return preguntar(SISTEMA_REPORTE, datos);
+export function redactarReporte(datos: unknown, idioma: Idioma): Promise<string> {
+  return preguntar(SISTEMA_REPORTE, datos, idioma);
 }
 
 // ---------------------------------------------------------------------------
 // Familias
 // ---------------------------------------------------------------------------
 
-export function recomendarEquipo(datos: unknown): Promise<unknown> {
-  return preguntarJSON(SISTEMA_EQUIPO, datos);
+export function recomendarEquipo(datos: unknown, idioma: Idioma): Promise<unknown> {
+  return preguntarJSON(SISTEMA_EQUIPO, datos, idioma);
 }
 
-export function resumirAlumno(datos: unknown): Promise<string> {
-  return preguntar(SISTEMA_RESUMEN, datos);
+export function resumirAlumno(datos: unknown, idioma: Idioma): Promise<string> {
+  return preguntar(SISTEMA_RESUMEN, datos, idioma);
 }
 
 // ---------------------------------------------------------------------------
 // Profesores y admin
 // ---------------------------------------------------------------------------
 
-export function revisarGrupo(datos: unknown): Promise<unknown> {
-  return preguntarJSON(SISTEMA_GRUPO, datos);
+export function revisarGrupo(datos: unknown, idioma: Idioma): Promise<unknown> {
+  return preguntarJSON(SISTEMA_GRUPO, datos, idioma);
 }
 
-export function redactarAviso(idea: string): Promise<unknown> {
-  return preguntarJSON(SISTEMA_AVISO, { idea });
+export function redactarAviso(idea: string, idioma: Idioma): Promise<unknown> {
+  return preguntarJSON(SISTEMA_AVISO, { idea }, idioma);
 }
