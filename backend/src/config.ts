@@ -78,6 +78,18 @@ export const config = {
   agentApiKey: process.env.AGENT_API_KEY || undefined,
 
   /**
+   * Modo prueba del agente: correos separados por coma. Si hay alguno, el
+   * agente solo ve a los morosos con esos correos. Vacío en producción.
+   */
+  agentCorreosPermitidos: ((lista: string[]) =>
+    lista.length > 0 ? new Set(lista) : null)(
+    (process.env.AGENT_CORREOS_PERMITIDOS ?? "")
+      .split(",")
+      .map((c) => c.trim().toLowerCase())
+      .filter((c) => c.length > 0)
+  ),
+
+  /**
    * PayPal. Opcional por la misma razón: sin credenciales, la app funciona y
    * solo el pago en línea queda deshabilitado.
    *

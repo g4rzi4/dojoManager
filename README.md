@@ -830,6 +830,24 @@ Están en [agentRecordatorios.routes.ts](backend/src/routes/agentRecordatorios.r
 > **Este es el contrato con Zapier, Claude y Postman.** Cambiar el nombre de un campo
 > rompe el Zap, el prompt y los tests: avísalo al equipo antes de hacerlo.
 
+**Cómo armar los dos Zaps paso a paso:** [docs/zapier-cobranza.md](docs/zapier-cobranza.md).
+
+### Reglas comunes a las tres rutas
+
+- **Un dojo por petición.** Indica cuál con `?dojoId=`. Si solo existe un dojo se usa
+  ese; si hay varios y falta el parámetro, la respuesta es `400` con la lista de dojos.
+  Cada respuesta incluye `dojo: { dojoId, nombre }`, y un `pagoId` de otro dojo cuenta
+  como no encontrado.
+- **Modo prueba.** Si `AGENT_CORREOS_PERMITIDOS` tiene correos, `/unpaid` solo devuelve
+  morosos con esos correos e indica `modoPrueba: true` y `omitidosPorModoPrueba`.
+  Vacía en producción.
+- **Campos en texto para Zapier**, que no recorre bien las listas anidadas:
+  `/unpaid` agrega a cada alumno `pagoIdsTexto` (`"201,215"`) y `detallePagos`
+  (`"octubre 2026: $700 (vencido)"`); `recovery-stats` agrega `resumenTexto`; y
+  `record-reminders` acepta `pagoIds` como lista o como texto `"201,215"`.
+- **Para probar desde tu computadora**, [scripts/proxy-agente.mjs](backend/scripts/proxy-agente.mjs)
+  expone solo `/api/agent/*` a un túnel; el resto de la API queda fuera.
+
 ### `POST /api/agent/record-reminders`
 
 Zapier lo llama después de enviar los mensajes, con los `pagoId` que tomó de `/unpaid`:
