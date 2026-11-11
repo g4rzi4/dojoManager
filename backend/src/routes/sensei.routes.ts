@@ -24,6 +24,7 @@ import {
   resumirAlumno,
   revisarGrupo,
   type AlumnoConAdeudo,
+  type Idioma,
 } from "../lib/sensei";
 import { config } from "../config";
 import { requireAuth, type AuthUser } from "../middleware/auth";
@@ -62,7 +63,7 @@ const limite = (maximo: number) =>
   rateLimit({
     maximo,
     ventanaSegundos: 10 * 60,
-    mensaje: "Ya hiciste varias peticiones a Sensei. Espera unos minutos para volver a intentarlo.",
+    mensaje: "Ya hiciste varias peticiones a ki-AI. Espera unos minutos para volver a intentarlo.",
   });
 
 const limiteCobranza = limite(6);
@@ -78,7 +79,7 @@ function soloPara(condicion: (u: AuthUser) => boolean) {
     if (!condicion(req.user!)) {
       return res.status(403).json({
         success: false,
-        message: "Esta tarea de Sensei no está disponible para tu cuenta.",
+        message: "Esta tarea de ki-AI no está disponible para tu cuenta.",
       });
     }
 
@@ -90,7 +91,7 @@ function disponible(_req: Request, res: Response, next: NextFunction) {
   if (!asistenteDisponible()) {
     return res.status(503).json({
       success: false,
-      message: "Sensei no está disponible: falta configurar la llave de Claude.",
+      message: "ki-AI no está disponible: falta configurar la llave de Claude.",
     });
   }
 
@@ -102,12 +103,25 @@ function fallo(res: Response, contexto: string, error: unknown) {
 
   return res.status(502).json({
     success: false,
-    message: "Sensei no pudo responder. Intenta de nuevo en un momento.",
+    message: "ki-AI no pudo responder. Intenta de nuevo en un momento.",
   });
 }
 
 function enlaceDePago(): string {
   return `${config.appUrl}/pagos`;
+}
+
+/** El idioma que eligió la persona en Preferencias; español si no hay. */
+async function idiomaDe(user: AuthUser): Promise<Idioma> {
+  const u = await prisma.user.findUnique({ where: { id: user.id }, select: { language: true } });
+  return u?.language === "EN" ? "EN" : "ES";
+}
+
+/** Lo que se agrega al final de cada recordatorio enviado. */
+function pieDeRecordatorio(idioma: Idioma, enlace: string): string {
+  return idioma === "EN"
+    ? `You can pay with PayPal, cash or bank transfer here: ${enlace}`
+    : `Puedes pagar con PayPal, en efectivo o por transferencia aquí: ${enlace}`;
 }
 
 const aPesos = (centavos: number) => Math.round(centavos / 100);
@@ -239,10 +253,11 @@ router.post(
   async (req, res) => {
     const adeudos = await adeudosDe(req.user!);
     const elegidos = adeudos.slice(0, MAX_FAMILIAS);
+    const idioma = await idiomaDe(req.user!);
 
     const borradores = await enLotes(elegidos, EN_PARALELO, async (alumno) => {
       try {
-        const mensaje = await redactarRecordatorio(alumno);
+        const mensaje = await redactarRecordatorio(alumno, idioma);
 
         return {
           ...alumno,
@@ -306,6 +321,8 @@ router.post("/cobranza/enviar", soloPara(esPersonal), async (req, res) => {
   // en el alcance de quien envía. Nunca se confía en los ids que llegan.
   const adeudos = new Map((await adeudosDe(req.user!)).map((a) => [a.alumnoId, a]));
   const enlace = enlaceDePago();
+  // El mensaje lo redactó Sensei en el idioma de quien envía; el pie va igual.
+  const pie = pieDeRecordatorio(await idiomaDe(req.user!), enlace);
 
   let enviados = 0;
   let sinAdeudo = 0;
@@ -321,7 +338,7 @@ router.post("/cobranza/enviar", soloPara(esPersonal), async (req, res) => {
 
     const avisados = await notifyPaymentReminder(
       alumnoId,
-      `${mensaje.trim()}\n\nPuedes pagar con PayPal, en efectivo o por transferencia aquí: ${enlace}`
+      `${mensaje.trim()}\n\n${pie}`
     );
 
     if (avisados === 0) {
@@ -365,7 +382,11 @@ router.post(
     const datos = resumirRecuperacion(recordatorios, desde, ahora, dias);
 
     try {
-      return res.json({ success: true, resumen: await redactarReporte(datos), datos });
+      return res.json({
+        success: true,
+        resumen: await redactarReporte(datos, await idiomaDe(req.user!)),
+        datos,
+      });
     } catch (error) {
       return fallo(res, "reporte", error);
     }
@@ -426,7 +447,7 @@ router.post("/grupo", soloPara(esPersonal), disponible, limiteGrupo, async (req,
   let respuesta: unknown;
 
   try {
-    respuesta = await revisarGrupo({ alumnos: datos });
+    respuesta = await revisarGrupo({ alumnos: datos }, await idiomaDe(req.user!));
   } catch (error) {
     return fallo(res, "revision del grupo", error);
   }
@@ -477,12 +498,12 @@ router.post("/aviso", soloPara(esPersonal), disponible, limiteAviso, async (req,
   if (idea.length < 5) {
     return res.status(400).json({
       success: false,
-      message: "Escribe en el mensaje la idea del aviso y Sensei la redacta.",
+      message: "Escribe en el mensaje la idea del aviso y ki-AI la redacta.",
     });
   }
 
   try {
-    const r = ((await redactarAviso(idea)) ?? {}) as Record<string, unknown>;
+    const r = ((await redactarAviso(idea, await idiomaDe(req.user!))) ?? {}) as Record<string, unknown>;
     const titulo = texto(r.titulo, 120);
     const mensaje = texto(r.mensaje, 1500);
 
@@ -516,7 +537,7 @@ router.post("/equipo", soloPara(esFamilia), disponible, limiteFamilia, async (re
   if (necesidad.length < 5) {
     return res.status(400).json({
       success: false,
-      message: "Cuéntale a Sensei para qué necesitas el equipo.",
+      message: "Cuéntale a ki-AI para qué necesitas el equipo.",
     });
   }
 
@@ -579,7 +600,7 @@ router.post("/equipo", soloPara(esFamilia), disponible, limiteFamilia, async (re
   let respuesta: unknown;
 
   try {
-    respuesta = await recomendarEquipo(datos);
+    respuesta = await recomendarEquipo(datos, await idiomaDe(req.user!));
   } catch (error) {
     return fallo(res, "asesor de equipo", error);
   }
@@ -720,7 +741,7 @@ router.post("/resumen", disponible, limiteFamilia, async (req, res) => {
   };
 
   try {
-    return res.json({ success: true, resumen: await resumirAlumno(datos) });
+    return res.json({ success: true, resumen: await resumirAlumno(datos, await idiomaDe(user)) });
   } catch (error) {
     return fallo(res, "resumen", error);
   }

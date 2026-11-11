@@ -77,7 +77,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     to: "/sensei",
-    label: "Sensei",
+    label: "ki-AI",
     module: "asistente",
     // Los cuatro roles: cada uno ve las tareas que le tocan.
     permission: "self:read",

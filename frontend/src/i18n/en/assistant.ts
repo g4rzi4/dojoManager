@@ -5,13 +5,17 @@ export const assistant: Record<string, string> = {
     "Your Claude assistant: it collects payments, reviews your group and drafts announcements. You decide what gets sent.",
   "Tu asistente con Claude: te ayuda a elegir equipo y a ver cómo va tu entrenamiento.":
     "Your Claude assistant: it helps you choose gear and see how training is going.",
-  "Sensei no está disponible": "Sensei is not available",
+  "ki-AI no está disponible": "ki-AI is not available",
+  "No pudimos conectar con ki-AI": "We couldn't reach ki-AI",
+  "Revisa tu conexión o espera unos segundos a que el servidor responda.":
+    "Check your connection or wait a few seconds for the server to respond.",
+  Reintentar: "Try again",
   "Falta configurar la llave de Claude en el servidor. Las demás funciones de la app siguen igual.":
     "The Claude key is not configured on the server. Everything else in the app keeps working.",
   "También redacta avisos: en": "It also drafts announcements: in",
-  "escribe la idea del aviso y elige Redactar con Sensei.":
-    "write the idea for the announcement and choose Draft with Sensei.",
-  "Sensei está pensando…": "Sensei is thinking…",
+  "escribe la idea del aviso y elige Redactar con ki-AI.":
+    "write the idea for the announcement and choose Draft with ki-AI.",
+  "ki-AI está pensando…": "ki-AI is thinking…",
 
   // Asesor de equipo
   "Asesor de equipo": "Gear advisor",
@@ -22,15 +26,15 @@ export const assistant: Record<string, string> = {
     "It's their first kumite tournament and they have no protective gear…",
   "Pedir recomendación": "Get a recommendation",
   "No fue posible pedir la recomendación.": "Unable to get a recommendation.",
-  "Sensei no encontró en el catálogo algo que cuadre. Prueba a describirlo de otra forma.":
-    "Sensei found nothing in the catalog that fits. Try describing it another way.",
+  "ki-AI no encontró en el catálogo algo que cuadre. Prueba a describirlo de otra forma.":
+    "ki-AI found nothing in the catalog that fits. Try describing it another way.",
   "Ambos colores": "Both colors",
   "Total aproximado": "Approximate total",
   "Revisar y solicitar": "Review and request",
   "Se llena tu solicitud en Uniformes y protecciones para que confirmes tallas antes de enviarla.":
     "Your request is filled in under Uniforms and protective gear so you can confirm sizes before sending it.",
-  "Sensei llenó esta solicitud con lo que te recomendó. Revisa tallas y colores antes de enviarla.":
-    "Sensei filled in this request with its recommendation. Check sizes and colors before sending it.",
+  "ki-AI llenó esta solicitud con lo que te recomendó. Revisa tallas y colores antes de enviarla.":
+    "ki-AI filled in this request with its recommendation. Check sizes and colors before sending it.",
 
   // Resumen del alumno
   "Mi mes en el dojo": "My month at the dojo",
@@ -43,8 +47,8 @@ export const assistant: Record<string, string> = {
 
   // Revisión del grupo
   "Revisión del grupo": "Group review",
-  "Quién podría presentar examen de cinta y quién podría estar por dejar el dojo. Sensei sugiere; tú decides.":
-    "Who could take a belt exam and who might be about to leave the dojo. Sensei suggests; you decide.",
+  "Quién podría presentar examen de cinta y quién podría estar por dejar el dojo. ki-AI sugiere; tú decides.":
+    "Who could take a belt exam and who might be about to leave the dojo. ki-AI suggests; you decide.",
   "Revisar de nuevo": "Review again",
   "Revisar mi grupo": "Review my group",
   "No fue posible revisar el grupo.": "Unable to review the group.",
@@ -55,9 +59,9 @@ export const assistant: Record<string, string> = {
   "Copiar mensaje": "Copy message",
 
   // Avisos
-  "Redactar con Sensei": "Draft with Sensei",
-  "Sensei está redactando…": "Sensei is writing…",
-  "Sensei no pudo redactar el aviso.": "Sensei could not draft the announcement.",
+  "Redactar con ki-AI": "Draft with ki-AI",
+  "ki-AI está redactando…": "ki-AI is writing…",
+  "ki-AI no pudo redactar el aviso.": "ki-AI could not draft the announcement.",
 
   // Cobranza
   "Recordatorios de pago": "Payment reminders",
@@ -97,21 +101,21 @@ export const assistant: Record<string, string> = {
   "Cobros recordados": "Charges reminded",
 
   // Mensajes de la API
-  "Sensei no está disponible: falta configurar la llave de Claude.":
-    "Sensei is not available: the Claude key is not configured.",
-  "Ya hiciste varias peticiones a Sensei. Espera unos minutos para volver a intentarlo.":
-    "You've made several requests to Sensei. Wait a few minutes and try again.",
-  "Sensei no pudo responder. Intenta de nuevo en un momento.":
-    "Sensei couldn't respond. Try again in a moment.",
-  "Esta tarea de Sensei no está disponible para tu cuenta.":
-    "This Sensei task isn't available for your account.",
+  "ki-AI no está disponible: falta configurar la llave de Claude.":
+    "ki-AI is not available: the Claude key is not configured.",
+  "Ya hiciste varias peticiones a ki-AI. Espera unos minutos para volver a intentarlo.":
+    "You've made several requests to ki-AI. Wait a few minutes and try again.",
+  "ki-AI no pudo responder. Intenta de nuevo en un momento.":
+    "ki-AI couldn't respond. Try again in a moment.",
+  "Esta tarea de ki-AI no está disponible para tu cuenta.":
+    "This ki-AI task isn't available for your account.",
   "No se pudo redactar este mensaje. Intenta de nuevo más tarde.":
     "This message could not be drafted. Try again later.",
   "Elige de 1 a 50 recordatorios para enviar.": "Choose 1 to 50 reminders to send.",
   "Elige un periodo de 1 a 365 días.": "Choose a period of 1 to 365 days.",
-  "Escribe en el mensaje la idea del aviso y Sensei la redacta.":
-    "Write the idea in the message field and Sensei will draft it.",
-  "Cuéntale a Sensei para qué necesitas el equipo.": "Tell Sensei what you need the gear for.",
+  "Escribe en el mensaje la idea del aviso y ki-AI la redacta.":
+    "Write the idea in the message field and ki-AI will draft it.",
+  "Cuéntale a ki-AI para qué necesitas el equipo.": "Tell ki-AI what you need the gear for.",
   "El dojo todavía no tiene catálogo de equipo.": "The dojo doesn't have a gear catalog yet.",
   "No puedes ver a ese alumno.": "You can't view that student.",
 };

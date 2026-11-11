@@ -48,7 +48,7 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
       setBody(r.mensaje);
     } catch (e: unknown) {
       setError(
-        e instanceof ApiError ? e.message : t("Sensei no pudo redactar el aviso.")
+        e instanceof ApiError ? e.message : t("ki-AI no pudo redactar el aviso.")
       );
     } finally {
       setRedactando(false);
@@ -157,7 +157,7 @@ function AnnouncementForm({ onEnviado, onCancelar }: Props) {
                 disabled:cursor-not-allowed disabled:opacity-50
               "
             >
-              {redactando ? t("Sensei está redactando…") : t("Redactar con Sensei")}
+              {redactando ? t("ki-AI está redactando…") : t("Redactar con ki-AI")}
             </button>
           )}
         </div>
