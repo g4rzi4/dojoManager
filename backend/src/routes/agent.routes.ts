@@ -86,7 +86,7 @@ type AlumnoMoroso = {
  *   ]
  * }
  */
-router.get("/unpaid", async (_req, res) => {
+router.get("/unpaid", async (req, res) => {
   // Aseguramos que las mensualidades de meses concluidos pasen a VENCIDO
   await marcarMensualidadesVencidas();
 
@@ -200,7 +200,14 @@ router.get("/unpaid", async (_req, res) => {
     omitidosPorModoPrueba: todos.length - alumnos.length,
     totalAlumnos: alumnos.length,
     montoTotalAdeudado,
-    alumnos,
+    // ?plano=1 quita la lista anidada `pagos` de cada alumno. Zapier solo
+    // maneja un nivel de line items: con dos niveles mezcla campos de pagos y
+    // de alumnos, y el loop del Zap A sale desfasado. pagoIdsTexto y
+    // detallePagos ya llevan esa información en texto.
+    alumnos:
+      req.query.plano === "1"
+        ? alumnos.map(({ pagos: _pagos, ...alumno }) => alumno)
+        : alumnos,
   });
 });
 

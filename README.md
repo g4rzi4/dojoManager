@@ -862,6 +862,8 @@ Están en [agentRecordatorios.routes.ts](backend/src/routes/agentRecordatorios.r
   `/unpaid` agrega a cada alumno `pagoIdsTexto` (`"201 215"`, sin comas para no desfasar el loop de Zapier) y `detallePagos`
   (`"octubre 2026: $700 (vencido)"`); `recovery-stats` agrega `resumenTexto`; y
   `record-reminders` acepta `pagoIds` como lista o como texto (`"201 215"` o `"201,215"`).
+  Con `/unpaid?plano=1`, cada alumno viene sin la lista anidada `pagos`: Zapier solo
+  maneja un nivel de listas, y es la forma que usa el Zap A.
 - **Para probar desde tu computadora**, [scripts/proxy-agente.mjs](backend/scripts/proxy-agente.mjs)
   expone solo `/api/agent/*` a un túnel; el resto de la API queda fuera.
 
