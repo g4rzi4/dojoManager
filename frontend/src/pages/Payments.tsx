@@ -34,24 +34,28 @@ const MODULO_DE_COBRO: Record<ChargeType, ModuleKey> = {
   EQUIPO: "equipo",
 };
 
-type Filtro = "TODOS" | "PENDIENTES" | "PAGADOS";
+type Filtro = "TODOS" | "PENDIENTES" | "POR_CONFIRMAR" | "PAGADOS";
 
 const FILTROS: { valor: Filtro; etiqueta: string }[] = [
   { valor: "TODOS", etiqueta: "Todos" },
   { valor: "PENDIENTES", etiqueta: "Pendientes" },
+  { valor: "POR_CONFIRMAR", etiqueta: "Por confirmar" },
   { valor: "PAGADOS", etiqueta: "Pagados" },
 ];
 
-const ABIERTOS: ChargeStatus[] = [
-  "PENDIENTE",
-  "VENCIDO",
-  "POR_CONFIRMAR",
-  "EN_REVISION",
-];
+/**
+ * Lo que se debe. Es la misma regla que `porCobrar` en el backend, con la que
+ * se calcula la tarjeta "Por cubrir": filtro y tarjeta deben dar lo mismo.
+ */
+const POR_COBRAR: ChargeStatus[] = ["PENDIENTE", "VENCIDO"];
+
+/** Lo que espera revisión del dojo: la familia reportó un pago o pidió equipo. */
+const EN_ESPERA: ChargeStatus[] = ["POR_CONFIRMAR", "EN_REVISION"];
 
 function coincide(fila: PaymentRow, filtro: Filtro): boolean {
   if (filtro === "PAGADOS") return fila.estado === "PAGADO";
-  if (filtro === "PENDIENTES") return ABIERTOS.includes(fila.estado);
+  if (filtro === "PENDIENTES") return POR_COBRAR.includes(fila.estado);
+  if (filtro === "POR_CONFIRMAR") return EN_ESPERA.includes(fila.estado);
 
   return true;
 }
@@ -211,7 +215,7 @@ function Payments() {
               <div
                 role="group"
                 aria-label={t("Filtrar cobros")}
-                className="mb-4 flex w-fit rounded-2xl border border-neutral-300 bg-surface p-1"
+                className="mb-4 flex w-fit max-w-full flex-wrap rounded-2xl border border-neutral-300 bg-surface p-1"
               >
                 {FILTROS.map(({ valor, etiqueta }) => (
                   <button
