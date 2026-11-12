@@ -1,4 +1,5 @@
-// Proxy para exponer SOLO las rutas del agente (/api/agent/*) a internet.
+// Proxy para exponer SOLO las rutas del agente (/api/agent/*) y el webhook de
+// PayPal (POST /paypal/webhook) a internet.
 //
 // Zapier corre en la nube y no puede llegar a localhost. Un túnel resuelve eso,
 // pero publicaría TODA la API: el login, los alumnos, los pagos. Este proxy se
@@ -26,8 +27,21 @@ const BACKEND = new URL(
 );
 const PERMITIDO = /^\/api\/agent\/[a-z-]+(\?.*)?$/;
 
+/**
+ * El webhook de PayPal también pasa, solo con POST: así se puede probar desde
+ * el sandbox con el mismo túnel. Es seguro exponerlo porque el backend
+ * verifica con PayPal la firma de cada evento y rechaza (400) los que no son
+ * auténticos, o responde 503 si PayPal no está configurado.
+ */
+function permitido(req) {
+  if (!req.url) return false;
+  if (PERMITIDO.test(req.url)) return true;
+
+  return req.method === "POST" && req.url === "/paypal/webhook";
+}
+
 const servidor = http.createServer((req, res) => {
-  if (!req.url || !PERMITIDO.test(req.url)) {
+  if (!permitido(req)) {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ success: false, message: "Ruta no encontrada." }));
     return;
@@ -64,6 +78,6 @@ const servidor = http.createServer((req, res) => {
 
 servidor.listen(PUERTO, () => {
   console.log(
-    `Proxy del agente en http://localhost:${PUERTO} -> ${BACKEND.origin} (solo /api/agent/*)`
+    `Proxy del agente en http://localhost:${PUERTO} -> ${BACKEND.origin} (solo /api/agent/* y POST /paypal/webhook)`
   );
 });
