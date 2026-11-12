@@ -110,7 +110,7 @@ export const uniforms: Record<string, string> = {
   "Solicitud rechazada.": "Request rejected.",
   "Indica si pagó en efectivo o por transferencia.":
     "Indicate whether they paid in cash or by bank transfer.",
-  "Pago registrado.": "Payment recorded.",
+  "Pago registrado.": "Payment registered.",
   "Marcada como entregada.": "Marked as delivered.",
   "Esa acción no existe.": "That action doesn't exist.",
 
