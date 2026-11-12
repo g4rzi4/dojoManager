@@ -61,6 +61,9 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
     clientId: string;
     currency: string;
   } | null>(null);
+  // El backend respondió que PayPal no está configurado. Distinto de "aún no
+  // sabemos": mientras carga, o si la consulta falla, no se muestra nada.
+  const [noDisponible, setNoDisponible] = useState(false);
   const [abierto, setAbierto] = useState(false);
   const [error, setError] = useState("");
 
@@ -69,8 +72,12 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
 
     cargarConfig()
       .then((c) => {
-        if (activo && c.enabled && c.clientId) {
+        if (!activo) return;
+
+        if (c.enabled && c.clientId) {
           setPaypal({ clientId: c.clientId, currency: c.currency });
+        } else {
+          setNoDisponible(true);
         }
       })
       .catch(() => {});
@@ -79,6 +86,16 @@ function PagarConPayPal({ tipo, id, onPagado }: Props) {
       activo = false;
     };
   }, []);
+
+  // Sin PayPal, se avisa en lugar de esconder el botón sin explicación; los
+  // demás métodos de pago siguen junto a este aviso.
+  if (noDisponible) {
+    return (
+      <p className="py-2 text-sm text-neutral-600">
+        {t("El pago en línea no está disponible.")}
+      </p>
+    );
+  }
 
   if (!paypal) return null;
 
