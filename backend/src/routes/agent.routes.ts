@@ -175,9 +175,11 @@ router.get("/unpaid", async (_req, res) => {
     .sort((a, b) => b.montoAdeudado - a.montoAdeudado)
     // Campos en texto plano para Zapier, que no recorre bien listas anidadas:
     // pagoIdsTexto va tal cual a record-reminders y detallePagos al prompt.
+    // Ninguno lleva comas: Looping by Zapier separa con comas los valores de
+    // cada lista, y un "8,7" desfasaba el loop (otra familia recibía esos ids).
     .map((a) => ({
       ...a,
-      pagoIdsTexto: a.pagos.map((p) => p.pagoId).join(","),
+      pagoIdsTexto: a.pagos.map((p) => p.pagoId).join(" "),
       detallePagos: a.pagos
         .map(
           (p) =>

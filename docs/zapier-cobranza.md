@@ -168,7 +168,9 @@ Detalle: {detalle del paso 4}
 - **Headers:** `x-api-key` | `TU_AGENT_API_KEY`
 
 Va después del correo a propósito: solo se registra lo que de verdad se envió.
-`pagoIds` llega como texto (`"201,215"`) y el backend lo acepta así.
+`pagoIds` llega como texto separado por espacios (`"201 215"`) y el backend lo acepta así.
+Va sin comas a propósito: *Looping by Zapier* separa con comas los valores de cada
+lista, y una coma dentro de un valor desfasa el loop.
 
 ### Probarlo
 
