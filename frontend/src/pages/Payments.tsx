@@ -126,8 +126,8 @@ function Payments() {
     return () => window.clearTimeout(temporizador);
   }, [aviso]);
 
-  const alCambiarMensualidad = (mensaje: string) => {
-    setAviso(mensaje);
+  const alCambiarConAviso = (mensaje?: string) => {
+    if (mensaje) setAviso(mensaje);
     recargar();
   };
 
@@ -309,7 +309,7 @@ function Payments() {
                             fila={p}
                             esFamilia={puedePagar}
                             onCambio={recargar}
-                            onCambioMensualidad={alCambiarMensualidad}
+                            onCambioConAviso={alCambiarConAviso}
                           />
                         </div>
                       </div>
@@ -393,7 +393,7 @@ function Payments() {
                               fila={p}
                               esFamilia={puedePagar}
                               onCambio={recargar}
-                              onCambioMensualidad={alCambiarMensualidad}
+                              onCambioConAviso={alCambiarConAviso}
                             />
                           </td>
                         </tr>
@@ -427,13 +427,16 @@ function AccionesCobro({
   fila,
   esFamilia,
   onCambio,
-  onCambioMensualidad,
+  onCambioConAviso,
 }: {
   fila: PaymentRow;
   esFamilia: boolean;
   onCambio: () => void;
-  /** Pagar, editar o eliminar una mensualidad: llega con su mensaje. */
-  onCambioMensualidad: (mensaje: string) => void;
+  /**
+   * Cambios que llegan con un mensaje para mostrar: pagar, editar o eliminar
+   * una mensualidad, o que la familia reporte un pago.
+   */
+  onCambioConAviso: (mensaje?: string) => void;
 }) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
@@ -458,7 +461,11 @@ function AccionesCobro({
 
   if (esFamilia) {
     return fila.pagable ? (
-      <OpcionesDePago tipo={fila.tipo} id={fila.id} onCambio={onCambio} />
+      <OpcionesDePago
+        tipo={fila.tipo}
+        id={fila.id}
+        onCambio={onCambioConAviso}
+      />
     ) : null;
   }
 
@@ -475,7 +482,7 @@ function AccionesCobro({
           concepto: conceptoDe(fila),
           alumno: fila.studentName,
         })}
-        onCambio={onCambioMensualidad}
+        onCambio={onCambioConAviso}
       />
     );
   }
