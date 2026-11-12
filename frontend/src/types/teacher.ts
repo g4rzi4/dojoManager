@@ -83,6 +83,9 @@ export type TeacherCard = {
 
 /** Lo que se puede editar de la ficha. */
 export type TeacherUpdate = {
+  /** Solo el administrador puede cambiar nombre y correo. */
+  name?: string;
+  email?: string;
   phone?: string | null;
   belt?: Belt | null;
   specialty?: string | null;
