@@ -5,6 +5,7 @@ import { Check, ChevronRight, Copy, GraduationCap, UserPlus } from "lucide-react
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import { t } from "../i18n";
+import { copiarTexto } from "../lib/portapapeles";
 import ModuleTile from "../components/ModuleTile";
 import PageHeading from "../components/PageHeading";
 import TeacherForm from "../components/TeacherForm";
@@ -61,7 +62,7 @@ function Teachers() {
 
   async function copiarClave(code: string) {
     try {
-      await navigator.clipboard.writeText(code);
+      await copiarTexto(code);
       setCopiada(code);
       // Vuelve al icono normal tras un momento, para que se note el cambio.
       window.setTimeout(() => setCopiada(null), 1500);

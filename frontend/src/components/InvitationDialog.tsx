@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { Check, Copy, QrCode, TriangleAlert } from "lucide-react";
 
 import { getLocale, t } from "../i18n";
+import { copiarTexto } from "../lib/portapapeles";
 import Card from "./Card";
 import { ApiError, createInvitation } from "../services/api";
 import {
@@ -93,7 +94,7 @@ function InvitationDialog({
     if (!invitacion) return;
 
     try {
-      await navigator.clipboard.writeText(invitacion.url);
+      await copiarTexto(invitacion.url);
       setCopiado(true);
       window.setTimeout(() => setCopiado(false), 1500);
     } catch {

@@ -24,6 +24,7 @@ import {
 import { getUser } from "../services/session";
 import { guardarSugerencia } from "../lib/senseiSugerencia";
 import { getLocale, t } from "../i18n";
+import { copiarTexto } from "../lib/portapapeles";
 import { formatMoney } from "../utils/format";
 
 const BOTON_PRIMARIO = `
@@ -447,7 +448,7 @@ function RevisionGrupo() {
 
   async function copiar(alumnoId: number, mensaje: string) {
     try {
-      await navigator.clipboard.writeText(mensaje);
+      await copiarTexto(mensaje);
       setCopiado(alumnoId);
     } catch {
       setCopiado(null);
