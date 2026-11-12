@@ -6,6 +6,7 @@ import {
   CalendarDays,
   KeyRound,
   Lock,
+  Pencil,
   Mail,
   Phone,
   Receipt,
@@ -17,6 +18,7 @@ import Card from "../components/Card";
 import { getLocale, t } from "../i18n";
 import PageHeading from "../components/PageHeading";
 import EnlacesDeAcceso from "../components/EnlacesDeAcceso";
+import TeacherEditForm from "../components/TeacherEditForm";
 import {
   ApiError,
   createTeacherResetLink,
@@ -49,6 +51,10 @@ function TeacherCard() {
 
   const [estado, setEstado] = useState<Estado>({ status: "cargando" });
   const [restableciendo, setRestableciendo] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [aviso, setAviso] = useState("");
+  /** Sube después de guardar para volver a pedir la ficha. */
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (!idValido) return;
@@ -74,7 +80,7 @@ function TeacherCard() {
     return () => {
       activo = false;
     };
-  }, [teacherId, idValido]);
+  }, [teacherId, idValido, version]);
 
   const estadoFinal: Estado = idValido
     ? estado
@@ -82,6 +88,12 @@ function TeacherCard() {
 
   // El admin vuelve a la lista; un profesor viendo su ficha, a su panel.
   const esAdmin = can(user, "teachers:read");
+
+  // Editan la ficha el administrador y el propio profesor; el backend decide
+  // qué campos puede cambiar cada uno.
+  const puedeEditar =
+    can(user, "teachers:write") ||
+    (user?.role === "PROFESOR" && user.id === teacherId);
 
   return (
     <DashboardLayout>
@@ -102,6 +114,41 @@ function TeacherCard() {
       <PageHeading module="profesores"><h1 className="text-3xl leading-tight font-bold break-words text-neutral-800 sm:text-[2.5rem]">
         {t("Ficha del profesor")}
       </h1></PageHeading>
+
+      {puedeEditar && estadoFinal.status === "ok" && !editando && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => {
+              setAviso("");
+              setEditando(true);
+            }}
+            className="flex cursor-pointer items-center gap-2 rounded-2xl border border-neutral-300 bg-surface px-4 py-2.5 text-sm font-semibold text-neutral-700 transition-colors duration-200 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:outline-none motion-reduce:transition-none"
+          >
+            <Pencil size={17} aria-hidden="true" />
+            {t("Editar ficha")}
+          </button>
+        </div>
+      )}
+
+      <p role="status" className="mt-4 text-sm font-medium text-emerald-800 empty:hidden">
+        {aviso}
+      </p>
+
+      {editando && estadoFinal.status === "ok" && (
+        <div className="mt-4">
+          <TeacherEditForm
+            teacher={estadoFinal.teacher}
+            esAdmin={can(user, "teachers:write")}
+            onCancelar={() => setEditando(false)}
+            onGuardado={() => {
+              setEditando(false);
+              setAviso(t("Ficha actualizada."));
+              setVersion((v) => v + 1);
+            }}
+          />
+        </div>
+      )}
 
       {esAdmin && estadoFinal.status === "ok" && (
         <div className="mt-4">

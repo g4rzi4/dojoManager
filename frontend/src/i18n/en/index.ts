@@ -8,6 +8,7 @@ import { forms } from "./forms";
 import { pagesA } from "./pagesA";
 import { pagesB } from "./pagesB";
 import { panels } from "./panels";
+import { profesores } from "./profesores";
 import { shell } from "./shell";
 import { uniforms } from "./uniforms";
 
@@ -23,6 +24,7 @@ export const en: Record<string, string> = {
   ...pagesA,
   ...pagesB,
   ...panels,
+  ...profesores,
   ...shell,
   ...uniforms,
 };

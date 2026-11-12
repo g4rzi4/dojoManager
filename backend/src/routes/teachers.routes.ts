@@ -264,15 +264,54 @@ router.patch("/:id", requireAuth, async (req, res) => {
     });
   }
 
-  const { phone, belt, specialty, hiredAt, adminNotes } = req.body ?? {};
+  const { name, email, phone, belt, specialty, hiredAt, adminNotes } =
+    req.body ?? {};
 
   const datos: {
+    name?: string;
+    email?: string;
     phone?: string | null;
     belt?: Belt | null;
     specialty?: string | null;
     hiredAt?: Date | null;
     adminNotes?: string | null;
   } = {};
+
+  // Nombre y correo identifican la cuenta: solo los cambia el administrador.
+  if ((name !== undefined || email !== undefined) && !esAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: "Solo el administrador puede cambiar el nombre o el correo.",
+    });
+  }
+
+  if (name !== undefined) {
+    const nombre = typeof name === "string" ? name.trim() : "";
+
+    if (nombre.length < 2 || nombre.length > 80) {
+      return res.status(400).json({
+        success: false,
+        message: "Escribe el nombre del profesor.",
+      });
+    }
+
+    datos.name = nombre;
+  }
+
+  // Un correo repetido lo rechaza la base, y el manejador de errores responde
+  // 409 con un mensaje claro.
+  if (email !== undefined) {
+    const correo = typeof email === "string" ? email.trim().toLowerCase() : "";
+
+    if (!/^[^\s@]+@[^\s@]+$/.test(correo)) {
+      return res.status(400).json({
+        success: false,
+        message: "El correo electrónico no es válido.",
+      });
+    }
+
+    datos.email = correo;
+  }
 
   if (phone !== undefined) {
     datos.phone = typeof phone === "string" ? phone.trim() || null : null;
