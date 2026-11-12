@@ -132,7 +132,7 @@ export const uniforms: Record<string, string> = {
   "Ese cobro ya no está pendiente. Recarga para ver cómo quedó.":
     "That charge is no longer pending. Reload to see the update.",
   "Listo. Quedará pagado cuando tu profesor lo confirme.":
-    "Done. It will be marked as paid once your teacher confirms it.",
+    "Done. It will be marked paid when your teacher confirms.",
   "La solicitud no es válida.": "The request is not valid.",
   "No existe ese cobro.": "That charge doesn't exist.",
   "Ese cobro no te corresponde.": "That charge isn't yours.",

@@ -8,7 +8,12 @@ import { t } from "../i18n";
 type Props = {
   tipo: ChargeType;
   id: number;
-  onCambio: () => void | Promise<void>;
+  /**
+   * Tras pagar o reportar. Al reportar llega el mensaje del backend ("Listo.
+   * Quedará pagado…") para que la página lo muestre: la fila deja de ofrecer
+   * el pago, así que aquí no hay dónde mostrarlo.
+   */
+  onCambio: (mensaje?: string) => void | Promise<void>;
 };
 
 const BOTON = `
@@ -34,8 +39,8 @@ function OpcionesDePago({ tipo, id, onCambio }: Props) {
     setError("");
 
     try {
-      await reportCharge(tipo, id, method);
-      await onCambio();
+      const { message } = await reportCharge(tipo, id, method);
+      await onCambio(message ? t(message) : undefined);
     } catch (e: unknown) {
       setError(
         e instanceof ApiError
