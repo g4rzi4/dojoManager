@@ -45,8 +45,8 @@ const DIAS_POR_OMISION = 30;
  * manda la lista completa de una vez y conviene registrar lo que sí aplica.
  */
 router.post("/record-reminders", async (req, res) => {
-  // Zapier manda más fácil un texto "201,215" que una lista JSON: se aceptan
-  // los dos. Un texto con algo que no sea número cae en la validación de abajo.
+  // Zapier manda más fácil un texto "201 215" (o "201,215") que una lista
+  // JSON: se aceptan los dos. Un texto con algo que no sea número cae en la validación de abajo.
   const recibido = req.body?.pagoIds;
   const pagoIds: unknown =
     typeof recibido === "string"

@@ -92,11 +92,15 @@ Revisa que la zona horaria de tu cuenta de Zapier sea la de México
 
 ### 2. Acción: *Webhooks by Zapier* → **GET**
 
-- **URL:** `{URL}/api/agent/unpaid?dojoId=1`
+- **URL:** `{URL}/api/agent/unpaid?dojoId=1&plano=1`
 - **Headers:** `x-api-key` | `TU_AGENT_API_KEY`
 - Lo demás, como viene.
 
 En la prueba debe traer `Total Alumnos`, `Dojo Nombre` y la lista `Alumnos`.
+
+`plano=1` quita de cada alumno la lista anidada `pagos`. Es necesario: Zapier solo
+maneja un nivel de listas, y con dos mezcla los campos de los pagos con los de los
+alumnos, así que el loop del paso 4 sale desfasado.
 
 ### 3. Acción: *Filter by Zapier*
 
@@ -168,7 +172,9 @@ Detalle: {detalle del paso 4}
 - **Headers:** `x-api-key` | `TU_AGENT_API_KEY`
 
 Va después del correo a propósito: solo se registra lo que de verdad se envió.
-`pagoIds` llega como texto (`"201,215"`) y el backend lo acepta así.
+`pagoIds` llega como texto separado por espacios (`"201 215"`) y el backend lo acepta así.
+Va sin comas a propósito: *Looping by Zapier* separa con comas los valores de cada
+lista, y una coma dentro de un valor desfasa el loop.
 
 ### Probarlo
 

@@ -86,7 +86,7 @@ type AlumnoMoroso = {
  *   ]
  * }
  */
-router.get("/unpaid", async (_req, res) => {
+router.get("/unpaid", async (req, res) => {
   // Aseguramos que las mensualidades de meses concluidos pasen a VENCIDO
   await marcarMensualidadesVencidas();
 
@@ -175,9 +175,11 @@ router.get("/unpaid", async (_req, res) => {
     .sort((a, b) => b.montoAdeudado - a.montoAdeudado)
     // Campos en texto plano para Zapier, que no recorre bien listas anidadas:
     // pagoIdsTexto va tal cual a record-reminders y detallePagos al prompt.
+    // Ninguno lleva comas: Looping by Zapier separa con comas los valores de
+    // cada lista, y un "8,7" desfasaba el loop (otra familia recibía esos ids).
     .map((a) => ({
       ...a,
-      pagoIdsTexto: a.pagos.map((p) => p.pagoId).join(","),
+      pagoIdsTexto: a.pagos.map((p) => p.pagoId).join(" "),
       detallePagos: a.pagos
         .map(
           (p) =>
@@ -198,7 +200,14 @@ router.get("/unpaid", async (_req, res) => {
     omitidosPorModoPrueba: todos.length - alumnos.length,
     totalAlumnos: alumnos.length,
     montoTotalAdeudado,
-    alumnos,
+    // ?plano=1 quita la lista anidada `pagos` de cada alumno. Zapier solo
+    // maneja un nivel de line items: con dos niveles mezcla campos de pagos y
+    // de alumnos, y el loop del Zap A sale desfasado. pagoIdsTexto y
+    // detallePagos ya llevan esa información en texto.
+    alumnos:
+      req.query.plano === "1"
+        ? alumnos.map(({ pagos: _pagos, ...alumno }) => alumno)
+        : alumnos,
   });
 });
 
