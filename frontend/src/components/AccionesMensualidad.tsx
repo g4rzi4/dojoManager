@@ -20,7 +20,11 @@ type Props = {
   amountCents: number;
   /** Para los lectores de pantalla: "octubre 2026 de Ana López". */
   descripcion: string;
-  onCambio: () => void;
+  /**
+   * Se llama tras un cambio, con el mensaje de éxito del backend. Lo muestra
+   * la página y no esta fila: al pagar o eliminar, la fila deja de mostrarse.
+   */
+  onCambio: (mensaje: string) => void;
 };
 
 /** Lo que el dojo puede hacer con una mensualidad que sigue pendiente. */
@@ -30,15 +34,15 @@ function AccionesMensualidad({ id, amountCents, descripcion, onCambio }: Props) 
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
-  async function ejecutar(accion: () => Promise<unknown>) {
+  async function ejecutar(accion: () => Promise<string>) {
     setGuardando(true);
     setError("");
 
     try {
-      await accion();
+      const mensaje = await accion();
       // La fila sigue montada si la mensualidad continúa pendiente.
       setModo("inicio");
-      onCambio();
+      onCambio(mensaje);
     } catch (e: unknown) {
       setError(
         e instanceof ApiError

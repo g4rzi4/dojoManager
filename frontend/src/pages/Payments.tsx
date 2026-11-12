@@ -111,6 +111,22 @@ function Payments() {
   const recargar = () => setRecarga((n) => n + 1);
   const visibles = data?.payments.filter((p) => coincide(p, filtro)) ?? [];
 
+  // Confirmación de la última acción ("Pago registrado.", etc.). Vive en la
+  // página porque la fila que la originó puede dejar de mostrarse.
+  const [aviso, setAviso] = useState("");
+
+  useEffect(() => {
+    if (!aviso) return;
+
+    const temporizador = window.setTimeout(() => setAviso(""), 5000);
+    return () => window.clearTimeout(temporizador);
+  }, [aviso]);
+
+  const alCambiarMensualidad = (mensaje: string) => {
+    setAviso(mensaje);
+    recargar();
+  };
+
   return (
     <DashboardLayout>
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -289,6 +305,7 @@ function Payments() {
                             fila={p}
                             esFamilia={puedePagar}
                             onCambio={recargar}
+                            onCambioMensualidad={alCambiarMensualidad}
                           />
                         </div>
                       </div>
@@ -372,6 +389,7 @@ function Payments() {
                               fila={p}
                               esFamilia={puedePagar}
                               onCambio={recargar}
+                              onCambioMensualidad={alCambiarMensualidad}
                             />
                           </td>
                         </tr>
@@ -384,6 +402,18 @@ function Payments() {
           </section>
         </>
       ) : null}
+
+      {/* Siempre montado: los lectores de pantalla anuncian lo que entra. */}
+      <div
+        role="status"
+        className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex justify-center"
+      >
+        {aviso && (
+          <p className="pointer-events-auto max-w-md rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-lg">
+            {aviso}
+          </p>
+        )}
+      </div>
     </DashboardLayout>
   );
 }
@@ -393,10 +423,13 @@ function AccionesCobro({
   fila,
   esFamilia,
   onCambio,
+  onCambioMensualidad,
 }: {
   fila: PaymentRow;
   esFamilia: boolean;
   onCambio: () => void;
+  /** Pagar, editar o eliminar una mensualidad: llega con su mensaje. */
+  onCambioMensualidad: (mensaje: string) => void;
 }) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
@@ -438,7 +471,7 @@ function AccionesCobro({
           concepto: conceptoDe(fila),
           alumno: fila.studentName,
         })}
-        onCambio={onCambio}
+        onCambio={onCambioMensualidad}
       />
     );
   }

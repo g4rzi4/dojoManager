@@ -314,25 +314,43 @@ export async function generateMonthlyPayments(params: {
   });
 }
 
-export async function payMonthlyPayment(
+/**
+ * El mensaje de éxito que manda el backend ("Pago registrado.", etc.), ya
+ * traducido. Los mensajes del backend comparten diccionario con la interfaz.
+ */
+async function mensajeDe(
+  respuesta: Promise<{ message?: string } | null>
+): Promise<string> {
+  const datos = await respuesta;
+  return datos?.message ? t(datos.message) : "";
+}
+
+/** Devuelve el mensaje de éxito para mostrarlo. */
+export function payMonthlyPayment(
   id: number,
   method: "EFECTIVO" | "TRANSFERENCIA"
-): Promise<void> {
-  await request(`/payments/monthly/${id}/pay`, {
-    method: "POST",
-    body: { method },
-  });
+): Promise<string> {
+  return mensajeDe(
+    request(`/payments/monthly/${id}/pay`, {
+      method: "POST",
+      body: { method },
+    })
+  );
 }
 
-export async function updateMonthlyPayment(
+/** Devuelve el mensaje de éxito para mostrarlo. */
+export function updateMonthlyPayment(
   id: number,
   cambios: { amountCents?: number; note?: string }
-): Promise<void> {
-  await request(`/payments/monthly/${id}`, { method: "PATCH", body: cambios });
+): Promise<string> {
+  return mensajeDe(
+    request(`/payments/monthly/${id}`, { method: "PATCH", body: cambios })
+  );
 }
 
-export async function deleteMonthlyPayment(id: number): Promise<void> {
-  await request(`/payments/monthly/${id}`, { method: "DELETE" });
+/** Devuelve el mensaje de éxito para mostrarlo. */
+export function deleteMonthlyPayment(id: number): Promise<string> {
+  return mensajeDe(request(`/payments/monthly/${id}`, { method: "DELETE" }));
 }
 
 export type ReminderDraft = {
