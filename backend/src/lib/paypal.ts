@@ -222,10 +222,25 @@ export async function verifyWebhook(
     config.paypal.webhookId
   )},"webhook_event":${rawBody}}`;
 
-  const result = await llamar<{ verification_status: string }>(
-    "/v1/notifications/verify-webhook-signature",
-    body
-  );
+  try {
+    const result = await llamar<{ verification_status: string }>(
+      "/v1/notifications/verify-webhook-signature",
+      body
+    );
 
-  return result.verification_status === "SUCCESS";
+    return result.verification_status === "SUCCESS";
+  } catch (error) {
+    // Un evento sin firma o con encabezados inválidos hace que PayPal responda
+    // 400/422 a la verificación: no es auténtico, se rechaza. Cualquier otro
+    // error (red, 5xx) sí se propaga, para responder 500 y que PayPal
+    // reintente el evento.
+    if (
+      error instanceof PayPalError &&
+      (error.status === 400 || error.status === 422)
+    ) {
+      return false;
+    }
+
+    throw error;
+  }
 }
