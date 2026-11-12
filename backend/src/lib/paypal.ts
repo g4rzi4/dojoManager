@@ -64,7 +64,8 @@ async function accessToken(): Promise<string> {
 async function llamar<T>(
   path: string,
   body: string,
-  requestId?: string
+  requestId?: string,
+  encabezadosExtra: Record<string, string> = {}
 ): Promise<T> {
   const response = await fetch(`${config.paypal.baseUrl}${path}`, {
     method: "POST",
@@ -72,6 +73,7 @@ async function llamar<T>(
       Authorization: `Bearer ${await accessToken()}`,
       "Content-Type": "application/json",
       ...(requestId ? { "PayPal-Request-Id": requestId } : {}),
+      ...encabezadosExtra,
     },
     body,
   });
@@ -130,6 +132,23 @@ export async function createOrder(params: {
 
 const capturasRechazadas = new Map<string, number>();
 
+/**
+ * Respuesta simulada del sandbox de PayPal ("negative testing"): la captura
+ * falla con INSTRUMENT_DECLINED, igual que con una tarjeta declinada. Solo se
+ * manda con PAYPAL_SIMULAR_RECHAZO="1" (ver config.paypal.simularRechazo).
+ */
+const RECHAZO_SIMULADO = {
+  "PayPal-Mock-Response": JSON.stringify({
+    mock_application_codes: "INSTRUMENT_DECLINED",
+  }),
+};
+
+if (config.paypal.simularRechazo) {
+  console.warn(
+    "[paypal] PAYPAL_SIMULAR_RECHAZO activo: toda captura se rechazará como tarjeta declinada."
+  );
+}
+
 export type CapturedOrder = {
   status: string;
   amountCents: number;
@@ -157,7 +176,8 @@ export async function captureOrder(orderId: string): Promise<CapturedOrder> {
   }>(
     `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
     "{}",
-    `capture-${orderId}-${capturasRechazadas.get(orderId) ?? 0}`
+    `capture-${orderId}-${capturasRechazadas.get(orderId) ?? 0}`,
+    config.paypal.simularRechazo ? RECHAZO_SIMULADO : {}
   ).catch((error: unknown) => {
     if (error instanceof PayPalError) {
       capturasRechazadas.set(
