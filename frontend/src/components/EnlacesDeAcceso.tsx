@@ -3,6 +3,7 @@ import { useState } from "react";
 import Card from "./Card";
 import { ApiError } from "../services/api";
 import { t } from "../i18n";
+import { copiarTexto } from "../lib/portapapeles";
 
 type Cuenta = {
   id: number;
@@ -49,7 +50,7 @@ function EnlacesDeAcceso({ cuentas, generar, onCerrar }: Props) {
 
   async function copiar(id: number) {
     try {
-      await navigator.clipboard.writeText(enlaces[id]);
+      await copiarTexto(enlaces[id]);
       setCopiado(id);
     } catch {
       setError(
