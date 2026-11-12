@@ -119,5 +119,12 @@ export const config = {
         : "https://api-m.sandbox.paypal.com",
     currency: process.env.PAYPAL_CURRENCY || "MXN",
     webhookId: process.env.PAYPAL_WEBHOOK_ID || undefined,
+    /**
+     * Solo pruebas: PayPal rechaza cada captura como tarjeta declinada.
+     * Nunca en producción, aunque la variable se quede puesta por error.
+     */
+    simularRechazo:
+      process.env.PAYPAL_ENV !== "live" &&
+      process.env.PAYPAL_SIMULAR_RECHAZO === "1",
   },
 };
