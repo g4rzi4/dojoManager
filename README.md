@@ -340,6 +340,23 @@ Al aplicar la migración `dojos`, todo lo que ya existía pasa a un primer dojo 
 
 ---
 
+# Validación de campos
+
+Toda petición pasa por [validarCampos.ts](backend/src/middleware/validarCampos.ts) antes de
+llegar a su ruta, sin importar el rol. Cada campo acepta solo lo que le corresponde:
+
+| Campo | Acepta |
+| --- | --- |
+| Nombres de personas (`firstName`, `lastName`, `guardianName`, `adminName`, y `name` en profesores, tutores, inscripción y plataforma) | Letras con acentos y ñ, espacios, punto, apóstrofo y guion |
+| Teléfonos (`phone`, `guardianPhone`) | Números, espacios, paréntesis, guion, punto y `+`; de 7 a 15 dígitos |
+| Correos (`email`, `adminEmail`) | Formato de correo |
+| Todo lo demás (notas, títulos, avisos…) | Texto libre, sin etiquetas HTML, sin `javascript:` y sin caracteres de control |
+
+Las contraseñas y los tokens no se revisan. Si agregas un campo con formato propio, súmalo
+a las listas de ese archivo. Lo rechazado responde `400` con un mensaje que dice qué falta.
+
+---
+
 # Preferencias de usuario
 
 Cada persona elige en **Preferencias** su idioma (español o inglés), la vista (clara

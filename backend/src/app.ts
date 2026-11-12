@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import cors from "cors";
 
 import { config } from "./config";
+import { validarCampos } from "./middleware/validarCampos";
 import authRoutes from "./routes/auth.routes";
 import platformRoutes from "./routes/platform.routes";
 import studentRoutes from "./routes/students.routes";
@@ -38,6 +39,9 @@ app.use(
     },
   })
 );
+
+// Cada campo de texto acepta solo lo que le corresponde, en todas las rutas.
+app.use(validarCampos);
 
 app.get("/", (_req, res) => {
   res.json({

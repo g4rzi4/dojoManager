@@ -11,6 +11,7 @@ import { panels } from "./panels";
 import { profesores } from "./profesores";
 import { shell } from "./shell";
 import { uniforms } from "./uniforms";
+import { validacion } from "./validacion";
 
 /** Traducciones al inglés. La llave es el texto original en español. */
 export const en: Record<string, string> = {
@@ -27,4 +28,5 @@ export const en: Record<string, string> = {
   ...profesores,
   ...shell,
   ...uniforms,
+  ...validacion,
 };
